@@ -57,13 +57,80 @@ Auto-closes after 10s of inactivity; polls every 2s.
 
 ## Installation
 
+### 1. Install Quickshell
+
+Quickshell is not in most distro repos — you need to build it from source.
+
+#### Prerequisites
+
+Install Qt6 and build dependencies:
+
+<details>
+<summary><b>Arch Linux</b></summary>
+
 ```bash
-# Clone into Quickshell config directory
+sudo pacman -S --needed git cmake ninja qt6-base qt6-declarative qt6-wayland \
+  wayland-protocols pipewire wireplumber brightnessctl
+```
+</details>
+
+<details>
+<summary><b>Ubuntu / Debian</b></summary>
+
+```bash
+sudo apt install git cmake ninja-build qt6-base-dev qt6-declarative-dev \
+  qt6-wayland libwayland-dev libpipewire-0.3-dev libpulse-dev \
+  brightnessctl pipewire pipewire-pulse wireplumber
+```
+</details>
+
+<details>
+<summary><b>Fedora</b></summary>
+
+```bash
+sudo dnf install git cmake ninja-build qt6-qtbase-devel qt6-qtdeclarative-devel \
+  qt6-qtwayland-devel wayland-devel pipewire-devel pulseaudio-libs-devel \
+  brightnessctl pipewire wireplumber
+```
+</details>
+
+#### Build Quickshell from source
+
+```bash
+git clone https://github.com/Quickshell/Quickshell.git
+cd Quickshell
+cmake -B build -G Ninja
+cmake --build build
+sudo cmake --install build
+```
+
+Verify it installed:
+
+```bash
+quickshell --version
+```
+
+### 2. Install Island
+
+```bash
+# Clone directly into Quickshell's config directory
 git clone https://github.com/yourusername/quickshell ~/.config/quickshell
 
-# Or symlink your config
-ln -sf /path/to/quickshell ~/.config/quickshell
+# Or clone elsewhere and symlink
+git clone https://github.com/yourusername/quickshell ~/projects/quickshell
+ln -sf ~/projects/quickshell ~/.config/quickshell
 ```
+
+### 3. Optional Dependencies
+
+These enable extra hardware monitoring features:
+
+| Package | Purpose | Install |
+|---|---|---|
+| `nvidia-smi` | NVIDIA GPU stats | `pacman -S nvidia-utils` / `apt install nvidia-utils` |
+| `supergfxctl` | ASUS GPU mode switching | AUR / [GitHub](https://github.com/asus-linux/supergfxctl) |
+| `asusctl` | ASUS power profiles | AUR / [GitHub](https://github.com/asus-linux/asusctl) |
+| `lm_sensors` | CPU/GPU temperature | `pacman -S lm_sensors` / `apt install lm-sensors` |
 
 ---
 
