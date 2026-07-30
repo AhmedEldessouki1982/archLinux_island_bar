@@ -46,7 +46,7 @@ Item {
   }
 
   Timer {
-    interval: 5000
+    interval: 10000
     running: true
     repeat: true
     onTriggered: root.refresh()

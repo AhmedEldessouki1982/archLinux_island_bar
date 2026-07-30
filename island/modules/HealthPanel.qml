@@ -80,11 +80,14 @@ Item {
     sysInfoProc.running = true
     collectData.running = true
     collectData.triggered()
+    collectGpu.running = true
+    collectGpu.triggered()
   }
 
   function stop() {
     root.active = false
     collectData.running = false
+    collectGpu.running = false
   }
 
   function detectIface() {
@@ -101,8 +104,17 @@ Item {
       memProc.running = true
       cpuTempProc.running = true
       fanProc.running = true
-      gpuDataProc.running = true
       netDataProc.running = true
+    }
+  }
+
+  Timer {
+    id: collectGpu
+    interval: 5000
+    running: false
+    repeat: true
+    onTriggered: {
+      gpuDataProc.running = true
     }
   }
 

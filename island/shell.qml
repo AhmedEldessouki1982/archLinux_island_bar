@@ -14,10 +14,19 @@ PanelWindow {
   implicitHeight: 38
   exclusiveZone: 38
 
+  screen: {
+    var screens = Quickshell.screens
+    for (var i = 0; i < screens.length; i++) {
+      if (screens[i].name === "eDP-1") return screens[i]
+    }
+    return null
+  }
+
   WlrLayershell.layer: WlrLayer.Overlay
 
   FloatingHealth {
     id: floatingHealth
+    screen: root.screen
   }
 
   IslandPill {
