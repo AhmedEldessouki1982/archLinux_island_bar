@@ -16,8 +16,8 @@ PanelWindow {
   WlrLayershell.layer: WlrLayer.Overlay
   anchors.top: true
   anchors.right: true
-  margins.top: 46
-  margins.right: 16
+  margins.top: 50
+  margins.right: 20
 
   property var layer: null
 

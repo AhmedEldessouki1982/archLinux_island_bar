@@ -8,7 +8,6 @@ Item {
 
   property bool connected: false
   property string ipAddress: "..."
-  property string ifaceName: ""
   property string type: "wifi"
 
   function refreshIp() {
@@ -33,7 +32,6 @@ Item {
     stdout: SplitParser {
       onRead: data => {
         var v = data.trim()
-        root.ifaceName = v
         root.type = (v.indexOf("eth") === 0 || v.indexOf("enp") === 0 || v.indexOf("enx") === 0) ? "ethernet" : "wifi"
       }
     }

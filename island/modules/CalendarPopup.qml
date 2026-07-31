@@ -18,13 +18,12 @@ PanelWindow {
 
   property int year: new Date().getFullYear()
   property int month: new Date().getMonth()
-  property var today: new Date()
 
   Timer {
     interval: 60000
     running: true
     repeat: true
-    onTriggered: root.today = new Date()
+    onTriggered: root.rebuild()
   }
 
   ListModel { id: gridModel }

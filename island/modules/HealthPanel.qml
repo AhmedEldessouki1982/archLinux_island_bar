@@ -17,7 +17,6 @@ Item {
   property real ramPercent: 0
   property real gpuTemp: 0
   property real gpuLoad: 0
-  property real gpuFan: 0
   property real cpuFanSpeed: 0
   property real gpuFanSpeed: 0
   property real netRxRate: 0
@@ -36,8 +35,11 @@ Item {
   property int _lastTx: 0
   property string _iface: ""
 
-  width: 340
-  height: 195
+  readonly property real contentWidth: Math.max(370, infoGrid.implicitWidth + 20)
+  readonly property real contentHeight: infoGrid.implicitHeight + footerRow.implicitHeight + 33
+
+  width: contentWidth
+  height: contentHeight
 
   function formatBytes(b) {
     if (b < 1024) return b.toFixed(0) + " B/s"
@@ -259,8 +261,6 @@ Item {
         if (parts.length >= 2) {
           root.gpuTemp = parseFloat(parts[0]) || 0
           root.gpuLoad = parseFloat(parts[1]) || 0
-          var fan = parseFloat(parts[2])
-          root.gpuFan = isNaN(fan) ? 0 : fan
         }
       }
     }
@@ -296,14 +296,11 @@ Item {
   }
 
   GridLayout {
+    id: infoGrid
     anchors.top: parent.top
     anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.bottom: separatorLine.top
     anchors.topMargin: 10
     anchors.leftMargin: 10
-    anchors.rightMargin: 10
-    anchors.bottomMargin: 8
     columns: 2
     columnSpacing: 16
     rowSpacing: 6
@@ -503,8 +500,8 @@ Item {
     height: 1
     color: Theme.selection
     anchors.horizontalCenter: parent.horizontalCenter
-    anchors.bottom: footerRow.top
-    anchors.bottomMargin: 5
+    anchors.top: infoGrid.bottom
+    anchors.topMargin: 8
   }
 
   RowLayout {
@@ -513,8 +510,8 @@ Item {
     anchors.leftMargin: 10
     anchors.right: parent.right
     anchors.rightMargin: 10
-    anchors.bottom: parent.bottom
-    anchors.bottomMargin: 8
+    anchors.top: separatorLine.bottom
+    anchors.topMargin: 6
     spacing: 6
 
     TuxIcon { Layout.alignment: Qt.AlignVCenter }

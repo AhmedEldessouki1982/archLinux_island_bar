@@ -6,11 +6,14 @@ import "../config"
 PanelWindow {
   id: root
   visible: false
-  implicitWidth: 340
-  implicitHeight: 200
+  implicitWidth: root.hpW
+  implicitHeight: root.hpH
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   aboveWindows: true
+
+  property int hpW: 340
+  property int hpH: 205
 
   WlrLayershell.layer: WlrLayer.Overlay
 
@@ -46,6 +49,11 @@ PanelWindow {
         batteryPower: root.batteryPower
         batteryCharging: root.batteryCharging
         batteryCapacity: root.batteryCapacity
+
+        Component.onCompleted: {
+          root.hpW = healthPanel.contentWidth
+          root.hpH = healthPanel.contentHeight
+        }
       }
     }
   }

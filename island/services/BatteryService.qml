@@ -9,7 +9,6 @@ Item {
   property int capacity: 0
   property bool charging: false
   property real power: 0
-  property string label: ""
 
   function refresh() {
     capProc.running = true
@@ -24,7 +23,6 @@ Item {
     stdout: SplitParser {
       onRead: data => {
         root.capacity = parseInt(data.trim()) || 0
-        updateLabel()
       }
     }
   }
@@ -36,7 +34,6 @@ Item {
     stdout: SplitParser {
       onRead: data => {
         root.charging = data.trim() === "1"
-        updateLabel()
       }
     }
   }
@@ -48,16 +45,8 @@ Item {
     stdout: SplitParser {
       onRead: data => {
         root.power = (parseInt(data.trim()) || 0) / 1000000
-        updateLabel()
       }
     }
-  }
-
-  function updateLabel() {
-    if (root.charging)
-      root.label = "CHR:" + root.power.toFixed(0) + "W"
-    else
-      root.label = "BAT:" + root.capacity + "%"
   }
 
   Timer {
