@@ -45,11 +45,6 @@ PanelWindow {
     screen: root.screen
   }
 
-  WorkspaceOverview {
-    id: overviewWindow
-    screen: root.screen
-  }
-
   IslandPill {
     id: islandPill
     anchors.horizontalCenter: parent.horizontalCenter
@@ -59,6 +54,5 @@ PanelWindow {
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
     calendarPopup: calendarPopup
-    overviewWindow: overviewWindow
   }
 }

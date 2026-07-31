@@ -22,7 +22,6 @@ Item {
   property var notificationLayer: null
   property var notificationCenter: null
   property var calendarPopup: null
-  property var overviewWindow: null
 
   width: parent.width
   height: root.pillHeight
@@ -511,26 +510,6 @@ Item {
         }
       }
 
-      Item {
-        width: 20
-        height: 20
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
-          anchors.centerIn: parent
-          text: "▦"
-          color: Theme.cyan
-          font.pixelSize: 13
-          font.bold: true
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.toggleOverview()
-        }
-      }
-
       Rectangle {
         width: 1
         height: 14
@@ -767,7 +746,6 @@ Item {
     } else {
       if (root.notificationCenter) root.notificationCenter.close()
       if (root.calendarPopup) root.calendarPopup.close()
-      if (root.overviewWindow) root.overviewWindow.close()
       root.healthWindow.open()
       root.isHealthPanelOpen = true
       resetAutoClose()
@@ -779,7 +757,6 @@ Item {
       root.notificationCenter.close()
     } else {
       if (root.calendarPopup) root.calendarPopup.close()
-      if (root.overviewWindow) root.overviewWindow.close()
       if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
       if (root.notificationCenter) root.notificationCenter.toggle()
     }
@@ -790,20 +767,8 @@ Item {
       root.calendarPopup.close()
     } else {
       if (root.notificationCenter) root.notificationCenter.close()
-      if (root.overviewWindow) root.overviewWindow.close()
       if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
       if (root.calendarPopup) root.calendarPopup.toggle()
-    }
-  }
-
-  function toggleOverview() {
-    if (root.overviewWindow && root.overviewWindow.visible) {
-      root.overviewWindow.close()
-    } else {
-      if (root.notificationCenter) root.notificationCenter.close()
-      if (root.calendarPopup) root.calendarPopup.close()
-      if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
-      if (root.overviewWindow) root.overviewWindow.toggle()
     }
   }
 
