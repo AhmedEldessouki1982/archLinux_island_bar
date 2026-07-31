@@ -363,6 +363,24 @@ Item {
         }
       }
 
+      Item {
+        width: 22
+        height: 22
+        Layout.alignment: Qt.AlignVCenter
+
+        Text {
+          anchors.centerIn: parent
+          text: "📅"
+          font.pixelSize: 11
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.toggleCalendar()
+        }
+      }
+
       Rectangle {
         width: 1
         height: 14
