@@ -7,7 +7,6 @@ Item {
   visible: false
 
   property real percent: 100
-  property string device: "amdgpu_bl2"
 
   signal externalChangeDetected()
 

@@ -79,7 +79,6 @@ Item {
     pwrProfileProc.running = true
     sysInfoProc.running = true
     collectData.running = true
-    collectData.triggered()
     collectGpu.running = true
     collectGpu.triggered()
   }
@@ -125,7 +124,10 @@ Item {
     stdout: SplitParser {
       onRead: data => {
         var v = data.trim()
-        if (v.length > 0) root._iface = v
+        if (v.length > 0) {
+          root._iface = v
+          if (root.active) root.collectData.triggered()
+        }
       }
     }
   }
@@ -270,6 +272,7 @@ Item {
     running: false
     stdout: SplitParser {
       onRead: data => {
+        if (root._iface.length === 0) return
         var vals = data.trim().split(/\s+/)
         if (vals.length >= 2) {
           var rx = parseInt(vals[0]) || 0
