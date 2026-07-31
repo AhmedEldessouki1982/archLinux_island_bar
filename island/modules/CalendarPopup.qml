@@ -171,7 +171,7 @@ PanelWindow {
             height: 18
             text: modelData
             color: Theme.comment
-            font.pixelSize: 8
+            font.pixelSize: 10
             font.bold: true
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
