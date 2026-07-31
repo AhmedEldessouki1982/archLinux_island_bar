@@ -29,7 +29,7 @@ Item {
     anchors.horizontalCenter: parent.horizontalCenter
     y: 0
     width: root.meterMode !== "" ? root.meterPillWidth
-      : root.isExpanded ? (mediaService.hasPlayer ? mediaLayout.implicitWidth + 24 : expandedLayout.implicitWidth + 24)
+      : root.isExpanded ? expandedLayout.implicitWidth + 24
       : idleLayout.implicitWidth + 24
     height: parent.height
     radius: root.pillHeight / 2
@@ -178,129 +178,6 @@ Item {
     }
 
     RowLayout {
-      id: mediaLayout
-      anchors.verticalCenter: parent.verticalCenter
-      anchors.left: parent.left
-      anchors.leftMargin: 12
-      anchors.right: parent.right
-      anchors.rightMargin: 12
-      spacing: 10
-      opacity: mediaService.hasPlayer && root.meterMode === "" && root.isExpanded ? 1 : 0
-      visible: mediaService.hasPlayer
-      clip: true
-
-      Behavior on opacity {
-        NumberAnimation { duration: 200; easing: Easing.OutQuad }
-      }
-
-      Rectangle {
-        width: 24
-        height: 24
-        radius: 7
-        color: Theme.selection
-        clip: true
-        Layout.alignment: Qt.AlignVCenter
-
-        Image {
-          anchors.fill: parent
-          source: mediaService.artUrl
-          fillMode: Image.PreserveAspectCrop
-          visible: mediaService.artUrl !== ""
-        }
-
-        Text {
-          anchors.centerIn: parent
-          text: "♪"
-          color: Theme.accent
-          font.pixelSize: 12
-          visible: mediaService.artUrl === ""
-        }
-      }
-
-      ColumnLayout {
-        Layout.alignment: Qt.AlignVCenter
-        Layout.maximumWidth: 150
-        spacing: 1
-
-        Text {
-          text: mediaService.title
-          color: Theme.foreground
-          font.pixelSize: 11
-          font.bold: true
-          elide: Text.ElideRight
-          maximumLineCount: 1
-          Layout.fillWidth: true
-        }
-
-        Text {
-          text: mediaService.artist !== "" ? mediaService.artist : mediaService.album
-          color: Theme.comment
-          font.pixelSize: 9
-          elide: Text.ElideRight
-          maximumLineCount: 1
-          Layout.fillWidth: true
-        }
-      }
-
-      Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
-        Layout.alignment: Qt.AlignVCenter
-      }
-
-      Text {
-        text: "◀◀"
-        color: mediaService.canPrevious ? Theme.foreground : Theme.selection
-        font.pixelSize: 10
-        font.bold: true
-        Layout.alignment: Qt.AlignVCenter
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: mediaService.prevTrack()
-        }
-      }
-
-      Text {
-        text: mediaService.isPlaying ? "▮▮" : "▶"
-        color: Theme.accent
-        font.pixelSize: 11
-        font.bold: true
-        Layout.alignment: Qt.AlignVCenter
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: mediaService.togglePlay()
-        }
-      }
-
-      Text {
-        text: "▶▶"
-        color: mediaService.canNext ? Theme.foreground : Theme.selection
-        font.pixelSize: 10
-        font.bold: true
-        Layout.alignment: Qt.AlignVCenter
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: mediaService.nextTrack()
-        }
-      }
-
-      Text {
-        text: mediaService.formatTime(mediaService.position) + " / " + mediaService.formatTime(mediaService.length)
-        color: Theme.comment
-        font.pixelSize: 9
-        font.family: "monospace"
-        Layout.alignment: Qt.AlignVCenter
-      }
-    }
-
-    RowLayout {
       id: expandedLayout
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
@@ -308,7 +185,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded && !mediaService.hasPlayer ? 1 : 0
+      opacity: root.isExpanded ? 1 : 0
       clip: true
 
       Behavior on opacity {
@@ -797,7 +674,6 @@ Item {
   NetworkService { id: networkService }
   BatteryService { id: batteryService }
   BrightnessService { id: brightnessService }
-  MediaService { id: mediaService }
   LockService { id: lockService }
 
   Connections {
