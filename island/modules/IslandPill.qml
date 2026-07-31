@@ -19,6 +19,10 @@ Item {
   property string meterMode: ""
   property int meterPillWidth: 240
   property bool meterReady: false
+  property var notificationLayer: null
+  property var notificationCenter: null
+  property var calendarPopup: null
+  property var overviewWindow: null
 
   width: parent.width
   height: root.pillHeight
@@ -27,7 +31,10 @@ Item {
     id: pill
     anchors.horizontalCenter: parent.horizontalCenter
     y: 0
-    width: root.meterMode !== "" ? root.meterPillWidth : (root.isExpanded ? expandedLayout.implicitWidth + 24 : idleLayout.implicitWidth + 24)
+    width: root.meterMode !== "" ? root.meterPillWidth
+      : root.isExpanded ? expandedLayout.implicitWidth + 24
+      : mediaService.hasPlayer ? mediaLayout.implicitWidth + 24
+      : idleLayout.implicitWidth + 24
     height: parent.height
     radius: root.pillHeight / 2
     color: Theme.background
@@ -69,7 +76,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded || root.meterMode !== "" ? 0 : 1
+      opacity: root.isExpanded || root.meterMode !== "" || mediaService.hasPlayer ? 0 : 1
       clip: true
 
       Behavior on opacity {
@@ -120,6 +127,12 @@ Item {
         color: Theme.yellow
         font.pixelSize: 11
         font.bold: true
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.toggleCalendar()
+        }
       }
 
       Text {
@@ -159,12 +172,156 @@ Item {
               if (mouse.button === Qt.RightButton) {
                 if (modelData.hasMenu)
                   modelData.display(root.Window, mouse.x, mouse.y)
-              } else {
+            } else if (root.meterMode === "caps" || root.meterMode === "num") {
+              var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
+              ctx.strokeStyle = lit ? Theme.green : Theme.foreground
+              ctx.fillStyle = ctx.strokeStyle
+              ctx.lineWidth = 2
+
+              ctx.beginPath()
+              ctx.rect(cx - 6, cy - 6, 12, 12)
+              ctx.stroke()
+
+              ctx.font = "bold 9px sans-serif"
+              ctx.textAlign = "center"
+              ctx.textBaseline = "middle"
+              ctx.fillText(root.meterMode === "caps" ? "A" : "1", cx, cy + 0.5)
+
+              if (lit) {
+                ctx.fillStyle = Theme.green
+                ctx.beginPath()
+                ctx.arc(cx + 5, cy - 5, 1.5, 0, Math.PI * 2)
+                ctx.fill()
+              }
+            } else {
                 modelData.activate()
               }
             }
           }
         }
+      }
+    }
+
+    RowLayout {
+      id: mediaLayout
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.left: parent.left
+      anchors.leftMargin: 12
+      anchors.right: parent.right
+      anchors.rightMargin: 12
+      spacing: 10
+      opacity: mediaService.hasPlayer && root.meterMode === "" && !root.isExpanded ? 1 : 0
+      visible: mediaService.hasPlayer
+      clip: true
+
+      Behavior on opacity {
+        NumberAnimation { duration: 200; easing: Easing.OutQuad }
+      }
+
+      Rectangle {
+        width: 24
+        height: 24
+        radius: 7
+        color: Theme.selection
+        clip: true
+        Layout.alignment: Qt.AlignVCenter
+
+        Image {
+          anchors.fill: parent
+          source: mediaService.artUrl
+          fillMode: Image.PreserveAspectCrop
+          visible: mediaService.artUrl !== ""
+        }
+
+        Text {
+          anchors.centerIn: parent
+          text: "♪"
+          color: Theme.accent
+          font.pixelSize: 12
+          visible: mediaService.artUrl === ""
+        }
+      }
+
+      ColumnLayout {
+        Layout.alignment: Qt.AlignVCenter
+        Layout.maximumWidth: 150
+        spacing: 1
+
+        Text {
+          text: mediaService.title
+          color: Theme.foreground
+          font.pixelSize: 11
+          font.bold: true
+          elide: Text.ElideRight
+          maximumLineCount: 1
+          Layout.fillWidth: true
+        }
+
+        Text {
+          text: mediaService.artist !== "" ? mediaService.artist : mediaService.album
+          color: Theme.comment
+          font.pixelSize: 9
+          elide: Text.ElideRight
+          maximumLineCount: 1
+          Layout.fillWidth: true
+        }
+      }
+
+      Rectangle {
+        width: 1
+        height: 14
+        color: Theme.selection
+        Layout.alignment: Qt.AlignVCenter
+      }
+
+      Text {
+        text: "◀◀"
+        color: mediaService.canPrevious ? Theme.foreground : Theme.selection
+        font.pixelSize: 10
+        font.bold: true
+        Layout.alignment: Qt.AlignVCenter
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: mediaService.prevTrack()
+        }
+      }
+
+      Text {
+        text: mediaService.isPlaying ? "▮▮" : "▶"
+        color: Theme.accent
+        font.pixelSize: 11
+        font.bold: true
+        Layout.alignment: Qt.AlignVCenter
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: mediaService.togglePlay()
+        }
+      }
+
+      Text {
+        text: "▶▶"
+        color: mediaService.canNext ? Theme.foreground : Theme.selection
+        font.pixelSize: 10
+        font.bold: true
+        Layout.alignment: Qt.AlignVCenter
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: mediaService.nextTrack()
+        }
+      }
+
+      Text {
+        text: mediaService.formatTime(mediaService.position) + " / " + mediaService.formatTime(mediaService.length)
+        color: Theme.comment
+        font.pixelSize: 9
+        font.family: "monospace"
+        Layout.alignment: Qt.AlignVCenter
       }
     }
 
@@ -316,6 +473,71 @@ Item {
         Layout.alignment: Qt.AlignVCenter
       }
 
+      Item {
+        width: 22
+        height: 22
+        Layout.alignment: Qt.AlignVCenter
+
+        Text {
+          anchors.centerIn: parent
+          text: "🔔"
+          font.pixelSize: 11
+        }
+
+        Rectangle {
+          anchors.right: parent.right
+          anchors.top: parent.top
+          width: 13
+          height: 13
+          radius: 6.5
+          color: Theme.red
+          border.width: 1
+          border.color: Theme.background
+          visible: root.notificationLayer && root.notificationLayer.notificationCount > 0
+
+          Text {
+            anchors.centerIn: parent
+            text: root.notificationLayer ? Math.min(root.notificationLayer.notificationCount, 9) : ""
+            color: Theme.foreground
+            font.pixelSize: 8
+            font.bold: true
+          }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.toggleNotificationCenter()
+        }
+      }
+
+      Item {
+        width: 20
+        height: 20
+        Layout.alignment: Qt.AlignVCenter
+
+        Text {
+          anchors.centerIn: parent
+          text: "▦"
+          color: Theme.cyan
+          font.pixelSize: 13
+          font.bold: true
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.toggleOverview()
+        }
+      }
+
+      Rectangle {
+        width: 1
+        height: 14
+        color: Theme.selection
+        Layout.alignment: Qt.AlignVCenter
+      }
+
       BatteryIcon {
         percent: batteryService.capacity
         charging: batteryService.charging
@@ -441,6 +663,12 @@ Item {
             target: brightnessService
             function onPercentChanged() { if (root.meterMode === "brightness") meterIcon.requestPaint() }
           }
+
+          Connections {
+            target: lockService
+            function onCapsChanged() { if (root.meterMode === "caps") meterIcon.requestPaint() }
+            function onNumChanged() { if (root.meterMode === "num") meterIcon.requestPaint() }
+          }
         }
 
         Rectangle {
@@ -463,12 +691,20 @@ Item {
               var maxW = meterBarBg.width - 3
               var pct = root.meterMode === "volume"
                 ? (audioService.muted ? 0 : audioService.volume)
-                : (brightnessService.percent / 100)
+                : root.meterMode === "caps"
+                  ? (lockService.capsOn ? 1 : 0)
+                  : root.meterMode === "num"
+                    ? (lockService.numOn ? 1 : 0)
+                    : (brightnessService.percent / 100)
               return Math.max(0, Math.min(maxW, maxW * pct))
             }
             color: {
               if (root.meterMode === "volume")
                 return audioService.muted ? Theme.red : Theme.accent
+              if (root.meterMode === "caps" || root.meterMode === "num") {
+                var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
+                return lit ? Theme.green : Theme.red
+              }
               return brightnessService.percent > 20 ? Theme.yellow : Theme.red
             }
 
@@ -482,9 +718,18 @@ Item {
           text: {
             if (root.meterMode === "volume")
               return Math.round(audioService.volume * 100) + "%"
+            if (root.meterMode === "caps") return "CAPS"
+            if (root.meterMode === "num") return "NUM"
             return Math.round(brightnessService.percent) + "%"
           }
-          color: root.meterMode === "volume" ? Theme.accent : Theme.yellow
+          color: {
+            if (root.meterMode === "volume") return Theme.accent
+            if (root.meterMode === "caps" || root.meterMode === "num") {
+              var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
+              return lit ? Theme.green : Theme.red
+            }
+            return Theme.yellow
+          }
           font.pixelSize: 13
           font.bold: true
           font.letterSpacing: 0.5
@@ -520,9 +765,45 @@ Item {
       root.healthWindow.close()
       root.isHealthPanelOpen = false
     } else {
+      if (root.notificationCenter) root.notificationCenter.close()
+      if (root.calendarPopup) root.calendarPopup.close()
+      if (root.overviewWindow) root.overviewWindow.close()
       root.healthWindow.open()
       root.isHealthPanelOpen = true
       resetAutoClose()
+    }
+  }
+
+  function toggleNotificationCenter() {
+    if (root.notificationCenter && root.notificationCenter.visible) {
+      root.notificationCenter.close()
+    } else {
+      if (root.calendarPopup) root.calendarPopup.close()
+      if (root.overviewWindow) root.overviewWindow.close()
+      if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
+      if (root.notificationCenter) root.notificationCenter.toggle()
+    }
+  }
+
+  function toggleCalendar() {
+    if (root.calendarPopup && root.calendarPopup.visible) {
+      root.calendarPopup.close()
+    } else {
+      if (root.notificationCenter) root.notificationCenter.close()
+      if (root.overviewWindow) root.overviewWindow.close()
+      if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
+      if (root.calendarPopup) root.calendarPopup.toggle()
+    }
+  }
+
+  function toggleOverview() {
+    if (root.overviewWindow && root.overviewWindow.visible) {
+      root.overviewWindow.close()
+    } else {
+      if (root.notificationCenter) root.notificationCenter.close()
+      if (root.calendarPopup) root.calendarPopup.close()
+      if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
+      if (root.overviewWindow) root.overviewWindow.toggle()
     }
   }
 
@@ -554,6 +835,8 @@ Item {
   NetworkService { id: networkService }
   BatteryService { id: batteryService }
   BrightnessService { id: brightnessService }
+  MediaService { id: mediaService }
+  LockService { id: lockService }
 
   Connections {
     target: audioService
@@ -563,6 +846,12 @@ Item {
   Connections {
     target: brightnessService
     function onExternalChangeDetected() { root.onMeterActivity("brightness") }
+  }
+
+  Connections {
+    target: lockService
+    function onCapsChanged() { root.onMeterActivity("caps") }
+    function onNumChanged() { root.onMeterActivity("num") }
   }
 
   function setupHealthBindings() {

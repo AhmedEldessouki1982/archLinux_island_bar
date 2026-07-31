@@ -29,11 +29,36 @@ PanelWindow {
     screen: root.screen
   }
 
+  NotificationLayer {
+    id: notificationLayer
+    screen: root.screen
+  }
+
+  NotificationCenter {
+    id: notificationCenter
+    screen: root.screen
+    layer: notificationLayer
+  }
+
+  CalendarPopup {
+    id: calendarPopup
+    screen: root.screen
+  }
+
+  WorkspaceOverview {
+    id: overviewWindow
+    screen: root.screen
+  }
+
   IslandPill {
     id: islandPill
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
     anchors.topMargin: 2
     healthWindow: floatingHealth
+    notificationLayer: notificationLayer
+    notificationCenter: notificationCenter
+    calendarPopup: calendarPopup
+    overviewWindow: overviewWindow
   }
 }
