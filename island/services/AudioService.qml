@@ -36,7 +36,7 @@ Item {
 
   Process {
     id: readProc
-    command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null && echo STREAMS && pactl list short sink-inputs 2>/dev/null | wc -l && echo PORT && pactl list sinks 2>/dev/null | grep 'Active Port:' | head -1"]
+    command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null && echo PORT && pactl list sinks 2>/dev/null | grep 'Active Port:' | head -1"]
     running: false
     stdout: SplitParser {
       onRead: data => {
@@ -49,16 +49,24 @@ Item {
           var isMuted = line.indexOf("MUTED") >= 0
           if (isMuted !== root.muted) { root.muted = isMuted; changed = true }
         }
-        var streamMatch = line.match(/^(\d+)$/)
-        if (streamMatch) {
-          var isActive = parseInt(streamMatch[1]) > 0
-          if (isActive !== root.active) root.active = isActive
-        }
         if (line.indexOf("Active Port:") >= 0) {
           var hp = line.toLowerCase().indexOf("headphone") >= 0
           if (hp !== root.headphoneConnected) root.headphoneConnected = hp
         }
         if (changed && !setProc.running && !muteProc.running) root.externalChangeDetected()
+      }
+    }
+  }
+
+  Process {
+    id: musicProc
+    command: ["sh", "-c", "pw-dump 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(sum(1 for o in d if o.get('type')=='PipeWire:Interface:Node' and o.get('info',{}).get('props',{}).get('media.class')=='Stream/Output/Audio' and o.get('info',{}).get('state')=='running'))\""]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var n = parseInt(data.trim())
+        var playing = !isNaN(n) && n > 0
+        if (playing !== root.active) root.active = playing
       }
     }
   }
@@ -88,5 +96,13 @@ Item {
     onTriggered: root.sync()
   }
 
-  Component.onCompleted: { var _ = Pipewire.ready; root.sync() }
+  Timer {
+    id: musicTimer
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: musicProc.running = true
+  }
+
+  Component.onCompleted: { var _ = Pipewire.ready; root.sync(); musicProc.running = true }
 }
