@@ -16,6 +16,9 @@ Item {
   property bool isHealthPanelOpen: false
   property int pillHeight: 35
   property var healthWindow: null
+  property string meterMode: ""
+  property int meterPillWidth: 240
+  property bool meterReady: false
 
   width: parent.width
   height: root.pillHeight
@@ -24,7 +27,7 @@ Item {
     id: pill
     anchors.horizontalCenter: parent.horizontalCenter
     y: 0
-    width: root.isExpanded ? expandedLayout.implicitWidth + 24 : idleLayout.implicitWidth + 24
+    width: root.meterMode !== "" ? root.meterPillWidth : (root.isExpanded ? expandedLayout.implicitWidth + 24 : idleLayout.implicitWidth + 24)
     height: parent.height
     radius: root.pillHeight / 2
     color: Theme.background
@@ -66,7 +69,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded ? 0 : 1
+      opacity: root.isExpanded || root.meterMode !== "" ? 0 : 1
       clip: true
 
       Behavior on opacity {
@@ -320,6 +323,132 @@ Item {
       }
     }
 
+    Item {
+      id: meterLayout
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.left: parent.left
+      anchors.leftMargin: 12
+      anchors.right: parent.right
+      anchors.rightMargin: 12
+      opacity: root.meterMode !== "" ? 1 : 0
+      visible: root.meterMode !== ""
+      clip: false
+
+      Behavior on opacity {
+        NumberAnimation { duration: 200; easing: Easing.OutQuad }
+      }
+
+      Rectangle {
+        anchors.fill: parent
+        color: Theme.background
+        radius: root.pillHeight / 2
+      }
+
+      RowLayout {
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: parent.left
+        anchors.right: parent.right
+        spacing: 10
+
+        Canvas {
+          id: meterIcon
+          width: 22
+          height: 22
+          Layout.alignment: Qt.AlignVCenter
+
+          onPaint: {
+            var ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            ctx.strokeStyle = root.meterMode === "volume" ? Theme.accent : Theme.yellow
+            ctx.fillStyle = ctx.strokeStyle
+            ctx.lineWidth = 2
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+
+            var cx = 11, cy = 11
+            if (root.meterMode === "volume") {
+              ctx.beginPath()
+              ctx.rect(cx - 4, cy - 4, 3, 8)
+              ctx.fill()
+              ctx.beginPath()
+              ctx.moveTo(cx - 1, cy - 5)
+              ctx.lineTo(cx + 3, cy - 8)
+              ctx.lineTo(cx + 3, cy + 8)
+              ctx.lineTo(cx - 1, cy + 5)
+              ctx.closePath()
+              ctx.fill()
+            } else {
+              ctx.beginPath()
+              ctx.arc(cx, cy, 4, 0, Math.PI * 2)
+              ctx.stroke()
+              ctx.lineWidth = 2.5
+              for (var i = 0; i < 4; i++) {
+                var a = i * Math.PI / 2
+                ctx.beginPath()
+                ctx.moveTo(cx + Math.cos(a) * 5.5, cy + Math.sin(a) * 5.5)
+                ctx.lineTo(cx + Math.cos(a) * 8, cy + Math.sin(a) * 8)
+                ctx.stroke()
+              }
+            }
+          }
+
+          Connections {
+            target: root
+            function onMeterModeChanged() { meterIcon.requestPaint() }
+          }
+        }
+
+        Rectangle {
+          id: meterBarBg
+          Layout.alignment: Qt.AlignVCenter
+          Layout.fillWidth: true
+          Layout.minimumWidth: 120
+          height: 14
+          radius: 7
+          color: Theme.selection
+
+          Rectangle {
+            id: meterBarFill
+            height: parent.height - 3
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 1.5
+            radius: parent.radius - 1.5
+            width: {
+              var maxW = meterBarBg.width - 3
+              var pct = root.meterMode === "volume"
+                ? (audioService.muted ? 0 : audioService.volume)
+                : (brightnessService.percent / 100)
+              return Math.max(0, Math.min(maxW, maxW * pct))
+            }
+            color: {
+              if (root.meterMode === "volume")
+                return audioService.muted ? Theme.red : Theme.accent
+              return brightnessService.percent > 20 ? Theme.yellow : Theme.red
+            }
+
+            Behavior on width {
+              NumberAnimation { duration: 100; easing: Easing.OutQuad }
+            }
+          }
+        }
+
+        Text {
+          text: {
+            if (root.meterMode === "volume")
+              return Math.round(audioService.volume * 100) + "%"
+            return Math.round(brightnessService.percent) + "%"
+          }
+          color: root.meterMode === "volume" ? Theme.accent : Theme.yellow
+          font.pixelSize: 13
+          font.bold: true
+          font.letterSpacing: 0.5
+          Layout.alignment: Qt.AlignVCenter
+          Layout.minimumWidth: 38
+        }
+      }
+    }
+
   }
 
   Timer {
@@ -327,6 +456,18 @@ Item {
     interval: 10000
     running: root.isHealthPanelOpen
     onTriggered: root.closeHealthPanel()
+  }
+
+  Timer {
+    id: meterTimer
+    interval: 1500
+    onTriggered: root.dismissMeter()
+  }
+
+  Timer {
+    interval: 500
+    running: true
+    onTriggered: root.meterReady = true
   }
 
   function toggleHealthPanel() {
@@ -350,10 +491,34 @@ Item {
     autoCloseTimer.start()
   }
 
+  function showMeter(mode) {
+    root.meterMode = mode
+    meterTimer.restart()
+  }
+
+  function onMeterActivity(mode) {
+    if (!root.meterReady) return
+    root.showMeter(mode)
+  }
+
+  function dismissMeter() {
+    root.meterMode = ""
+  }
+
   AudioService { id: audioService }
   NetworkService { id: networkService }
   BatteryService { id: batteryService }
   BrightnessService { id: brightnessService }
+
+  Connections {
+    target: audioService
+    function onExternalChangeDetected() { root.onMeterActivity("volume") }
+  }
+
+  Connections {
+    target: brightnessService
+    function onExternalChangeDetected() { root.onMeterActivity("brightness") }
+  }
 
   function setupHealthBindings() {
     if (root.healthWindow) {

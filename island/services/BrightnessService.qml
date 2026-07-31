@@ -9,6 +9,8 @@ Item {
   property real percent: 100
   property string device: "amdgpu_bl2"
 
+  signal externalChangeDetected()
+
   function refresh() {
     getProc.running = true
   }
@@ -33,7 +35,13 @@ Item {
         if (parts.length >= 2) {
           var cur = parseInt(parts[0])
           var max = parseInt(parts[1])
-          if (max > 0) root.percent = Math.round(cur / max * 100)
+          if (max > 0) {
+            var pct = Math.round(cur / max * 100)
+            if (pct !== root.percent) {
+              root.percent = pct
+              root.externalChangeDetected()
+            }
+          }
         }
       }
     }
@@ -46,7 +54,7 @@ Item {
   }
 
   Timer {
-    interval: 10000
+    interval: 500
     running: true
     repeat: true
     onTriggered: root.refresh()
