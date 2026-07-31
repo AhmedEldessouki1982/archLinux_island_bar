@@ -7,7 +7,6 @@ import "../config"
 PanelWindow {
   id: root
   visible: false
-  implicitWidth: 260
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   aboveWindows: true
@@ -18,6 +17,12 @@ PanelWindow {
 
   property int year: new Date().getFullYear()
   property int month: new Date().getMonth()
+
+  property int cw: 260
+  property int ch: 280
+
+  implicitWidth: root.cw
+  implicitHeight: root.ch
 
   Timer {
     interval: 60000
@@ -72,7 +77,11 @@ PanelWindow {
     root.visible = false
   }
 
-  Component.onCompleted: root.rebuild()
+  Component.onCompleted: {
+    root.rebuild()
+    root.cw = Math.max(260, contentLayout.implicitWidth + 24)
+    root.ch = Math.max(260, contentLayout.implicitHeight + 24)
+  }
 
   Rectangle {
     anchors.fill: parent
@@ -82,6 +91,7 @@ PanelWindow {
     border.color: Theme.selection
 
     ColumnLayout {
+      id: contentLayout
       anchors.fill: parent
       anchors.margins: 12
       spacing: 8
