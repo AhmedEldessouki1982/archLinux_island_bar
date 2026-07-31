@@ -359,14 +359,18 @@ Item {
           onPaint: {
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            ctx.strokeStyle = root.meterMode === "volume" ? Theme.accent : Theme.yellow
-            ctx.fillStyle = ctx.strokeStyle
-            ctx.lineWidth = 2
             ctx.lineCap = "round"
             ctx.lineJoin = "round"
+            ctx.globalAlpha = 1
 
             var cx = 11, cy = 11
             if (root.meterMode === "volume") {
+              var muted = audioService.muted
+              var vol = audioService.volume
+              ctx.strokeStyle = muted ? Theme.red : Theme.accent
+              ctx.fillStyle = ctx.strokeStyle
+              ctx.lineWidth = 2
+
               ctx.beginPath()
               ctx.rect(cx - 4, cy - 4, 3, 8)
               ctx.fill()
@@ -377,24 +381,65 @@ Item {
               ctx.lineTo(cx - 1, cy + 5)
               ctx.closePath()
               ctx.fill()
-            } else {
-              ctx.beginPath()
-              ctx.arc(cx, cy, 4, 0, Math.PI * 2)
-              ctx.stroke()
-              ctx.lineWidth = 2.5
-              for (var i = 0; i < 4; i++) {
-                var a = i * Math.PI / 2
+
+              if (!muted && vol > 0) {
+                var wx = cx + 4
                 ctx.beginPath()
-                ctx.moveTo(cx + Math.cos(a) * 5.5, cy + Math.sin(a) * 5.5)
-                ctx.lineTo(cx + Math.cos(a) * 8, cy + Math.sin(a) * 8)
+                ctx.arc(wx, cy, 3, 5.8, 6.6, false)
+                ctx.stroke()
+                if (vol > 0.33) {
+                  ctx.beginPath()
+                  ctx.arc(wx, cy, 5, 5.8, 6.6, false)
+                  ctx.stroke()
+                }
+                if (vol > 0.66) {
+                  ctx.beginPath()
+                  ctx.arc(wx, cy, 7, 5.8, 6.6, false)
+                  ctx.stroke()
+                }
+              }
+            } else {
+              var bp = brightnessService.percent
+              var ratio = Math.max(0, Math.min(1, bp / 100))
+              ctx.strokeStyle = Theme.yellow
+              ctx.fillStyle = Theme.yellow
+              ctx.globalAlpha = 0.35 + 0.65 * ratio
+
+              var coreR = 3 + 2 * ratio
+              ctx.lineWidth = 2
+              ctx.beginPath()
+              ctx.arc(cx, cy, coreR, 0, Math.PI * 2)
+              ctx.stroke()
+
+              var rayCount = ratio > 0.6 ? 8 : (ratio > 0.15 ? 4 : 0)
+              var rayLen = 2.5 + 2 * ratio
+              var inner = coreR + 1
+              for (var i = 0; i < rayCount; i++) {
+                var a = i * Math.PI * 2 / rayCount - Math.PI / 2
+                ctx.lineWidth = 1.8
+                ctx.beginPath()
+                ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner)
+                ctx.lineTo(cx + Math.cos(a) * (inner + rayLen), cy + Math.sin(a) * (inner + rayLen))
                 ctx.stroke()
               }
+              ctx.globalAlpha = 1
             }
           }
 
           Connections {
             target: root
             function onMeterModeChanged() { meterIcon.requestPaint() }
+          }
+
+          Connections {
+            target: audioService
+            function onVolumeChanged() { if (root.meterMode === "volume") meterIcon.requestPaint() }
+            function onMutedChanged() { if (root.meterMode === "volume") meterIcon.requestPaint() }
+          }
+
+          Connections {
+            target: brightnessService
+            function onPercentChanged() { if (root.meterMode === "brightness") meterIcon.requestPaint() }
           }
         }
 
