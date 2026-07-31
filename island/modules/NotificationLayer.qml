@@ -50,14 +50,6 @@ PanelWindow {
     root.showBanners = false
   }
 
-  function clearExpired() {
-    for (var i = historyModel.count - 1; i >= 0; i--) {
-      if (historyModel.get(i).expireMs <= 0) historyModel.remove(i, 1)
-    }
-    root.notificationCount = historyModel.count
-    if (historyModel.count === 0) root.showBanners = false
-  }
-
   Timer {
     id: bannerTimer
     interval: 4000

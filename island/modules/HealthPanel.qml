@@ -80,7 +80,7 @@ Item {
     sysInfoProc.running = true
     collectData.running = true
     collectGpu.running = true
-    collectGpu.triggered()
+    if (collectGpu) collectGpu.triggered()
   }
 
   function stop() {
@@ -126,7 +126,7 @@ Item {
         var v = data.trim()
         if (v.length > 0) {
           root._iface = v
-          if (root.active) root.collectData.triggered()
+          if (root.active && root.collectData) root.collectData.triggered()
         }
       }
     }

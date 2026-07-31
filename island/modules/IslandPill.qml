@@ -2,9 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
-import Quickshell.Services.Pipewire
 import Quickshell.Services.SystemTray
-import Quickshell.Networking
 import "../components"
 import "../services"
 import "../config"
@@ -31,8 +29,7 @@ Item {
     anchors.horizontalCenter: parent.horizontalCenter
     y: 0
     width: root.meterMode !== "" ? root.meterPillWidth
-      : root.isExpanded ? expandedLayout.implicitWidth + 24
-      : mediaService.hasPlayer ? mediaLayout.implicitWidth + 24
+      : root.isExpanded ? (mediaService.hasPlayer ? mediaLayout.implicitWidth + 24 : expandedLayout.implicitWidth + 24)
       : idleLayout.implicitWidth + 24
     height: parent.height
     radius: root.pillHeight / 2
@@ -75,7 +72,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded || root.meterMode !== "" || mediaService.hasPlayer ? 0 : 1
+      opacity: root.isExpanded || root.meterMode !== "" ? 0 : 1
       clip: true
 
       Behavior on opacity {
@@ -171,28 +168,7 @@ Item {
               if (mouse.button === Qt.RightButton) {
                 if (modelData.hasMenu)
                   modelData.display(root.Window, mouse.x, mouse.y)
-            } else if (root.meterMode === "caps" || root.meterMode === "num") {
-              var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
-              ctx.strokeStyle = lit ? Theme.green : Theme.foreground
-              ctx.fillStyle = ctx.strokeStyle
-              ctx.lineWidth = 2
-
-              ctx.beginPath()
-              ctx.rect(cx - 6, cy - 6, 12, 12)
-              ctx.stroke()
-
-              ctx.font = "bold 9px sans-serif"
-              ctx.textAlign = "center"
-              ctx.textBaseline = "middle"
-              ctx.fillText(root.meterMode === "caps" ? "A" : "1", cx, cy + 0.5)
-
-              if (lit) {
-                ctx.fillStyle = Theme.green
-                ctx.beginPath()
-                ctx.arc(cx + 5, cy - 5, 1.5, 0, Math.PI * 2)
-                ctx.fill()
-              }
-            } else {
+              } else {
                 modelData.activate()
               }
             }
@@ -209,7 +185,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: mediaService.hasPlayer && root.meterMode === "" && !root.isExpanded ? 1 : 0
+      opacity: mediaService.hasPlayer && root.meterMode === "" && root.isExpanded ? 1 : 0
       visible: mediaService.hasPlayer
       clip: true
 
@@ -332,7 +308,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded ? 1 : 0
+      opacity: root.isExpanded && !mediaService.hasPlayer ? 1 : 0
       clip: true
 
       Behavior on opacity {
@@ -598,6 +574,27 @@ Item {
                   ctx.arc(wx, cy, 7, 5.8, 6.6, false)
                   ctx.stroke()
                 }
+              }
+            } else if (root.meterMode === "caps" || root.meterMode === "num") {
+              var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
+              ctx.strokeStyle = lit ? Theme.green : Theme.foreground
+              ctx.fillStyle = ctx.strokeStyle
+              ctx.lineWidth = 2
+
+              ctx.beginPath()
+              ctx.rect(cx - 6, cy - 6, 12, 12)
+              ctx.stroke()
+
+              ctx.font = "bold 9px sans-serif"
+              ctx.textAlign = "center"
+              ctx.textBaseline = "middle"
+              ctx.fillText(root.meterMode === "caps" ? "A" : "1", cx, cy + 0.5)
+
+              if (lit) {
+                ctx.fillStyle = Theme.green
+                ctx.beginPath()
+                ctx.arc(cx + 5, cy - 5, 1.5, 0, Math.PI * 2)
+                ctx.fill()
               }
             } else {
               var bp = brightnessService.percent
