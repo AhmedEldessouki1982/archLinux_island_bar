@@ -6,8 +6,6 @@ import "../config"
 PanelWindow {
   id: root
   visible: false
-  implicitWidth: root.hpW
-  implicitHeight: root.hpH
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   aboveWindows: true
@@ -18,17 +16,43 @@ PanelWindow {
   WlrLayershell.layer: WlrLayer.Overlay
 
   anchors.top: true
-  margins.top: 44
+  anchors.left: true
+  anchors.right: true
+  anchors.bottom: true
+
+  Timer {
+    id: autoCloseTimer
+    interval: 5000
+    onTriggered: root.close()
+  }
 
   property bool panelActive: false
   property real batteryPower: 0
   property bool batteryCharging: false
   property int batteryCapacity: 0
 
+  onVisibleChanged: {
+    if (root.visible) autoCloseTimer.restart()
+  }
+
+  MouseArea {
+    anchors.fill: parent
+    onClicked: root.close()
+  }
+
   Item {
     id: container
-    anchors.fill: parent
+    width: root.hpW
+    height: root.hpH
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.topMargin: 44
     opacity: 0
+
+    MouseArea {
+      anchors.fill: parent
+      onClicked: {}
+    }
 
     Behavior on opacity {
       NumberAnimation { duration: 200; easing: Easing.OutQuad }
