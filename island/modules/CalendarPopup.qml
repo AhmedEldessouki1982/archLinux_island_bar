@@ -195,7 +195,7 @@ PanelWindow {
             width: 30
             height: 30
             radius: 15
-            color: isToday ? Theme.accent : (isPast ? Theme.selection : "transparent")
+            color: isToday ? Theme.accent : "transparent"
 
             Text {
               anchors.centerIn: parent
