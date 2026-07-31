@@ -7,19 +7,23 @@ import "../config"
 PanelWindow {
   id: root
   visible: false
-  implicitWidth: 380
-  implicitHeight: 320
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
   aboveWindows: true
 
   WlrLayershell.layer: WlrLayer.Overlay
   anchors.top: true
+  anchors.left: true
   anchors.right: true
-  margins.top: 5
-  margins.right: 5
+  anchors.bottom: true
 
   property var layer: null
+
+  Timer {
+    id: autoCloseTimer
+    interval: 3000
+    onTriggered: root.close()
+  }
 
   function toggle() {
     root.visible = !root.visible
@@ -29,8 +33,22 @@ PanelWindow {
     root.visible = false
   }
 
-  Rectangle {
+  onVisibleChanged: {
+    if (root.visible) autoCloseTimer.restart()
+  }
+
+  MouseArea {
     anchors.fill: parent
+    onClicked: root.close()
+  }
+
+  Rectangle {
+    width: 380
+    height: 320
+    anchors.right: parent.right
+    anchors.top: parent.top
+    anchors.rightMargin: 5
+    anchors.topMargin: 5
     radius: 12
     color: Theme.background
     border.width: 1
@@ -44,8 +62,8 @@ PanelWindow {
       RowLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 34
-        anchors.leftMargin: 12
-        anchors.rightMargin: 8
+        Layout.leftMargin: 12
+        Layout.rightMargin: 8
 
         Text {
           text: "Notifications"
