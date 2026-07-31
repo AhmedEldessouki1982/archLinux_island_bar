@@ -19,7 +19,10 @@ PanelWindow {
     for (var i = 0; i < screens.length; i++) {
       if (screens[i].name === "eDP-1") return screens[i]
     }
-    return null
+    for (var i = 0; i < screens.length; i++) {
+      if (screens[i].name === "eDP-2") return screens[i]
+    }
+    return screens.length > 0 ? screens[0] : null
   }
 
   WlrLayershell.layer: WlrLayer.Overlay

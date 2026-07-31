@@ -32,11 +32,10 @@ PanelWindow {
         body: n.body || "",
         urgency: n.urgency,
         persistent: n.expireTimeout <= 0,
-        expireMs: (n.expireTimeout > 0 ? n.expireTimeout : 5) * 1000
+        deadline: n.expireTimeout > 0 ? Date.now() + n.expireTimeout : 0
       })
       root.notificationCount = historyModel.count
       root.showBanners = true
-      bannerTimer.restart()
     }
   }
 
@@ -46,27 +45,17 @@ PanelWindow {
     root.showBanners = false
   }
 
-  function dismissBanners() {
-    root.showBanners = false
-  }
-
-  Timer {
-    id: bannerTimer
-    interval: 4000
-    onTriggered: root.dismissBanners()
-  }
-
   Timer {
     id: expireTimer
     interval: 1000
     running: root.showBanners
     repeat: true
     onTriggered: {
+      var now = Date.now()
       for (var i = historyModel.count - 1; i >= 0; i--) {
         var item = historyModel.get(i)
         if (item.persistent) continue
-        item.expireMs = Math.max(0, item.expireMs - 1000)
-        if (item.expireMs <= 0) historyModel.remove(i, 1)
+        if (now >= item.deadline) historyModel.remove(i, 1)
       }
       root.notificationCount = historyModel.count
       if (historyModel.count === 0) root.showBanners = false

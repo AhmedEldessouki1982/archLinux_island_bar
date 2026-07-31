@@ -46,7 +46,7 @@ Item {
 
   Timer {
     id: lockTimer
-    interval: 500
+    interval: 2000
     running: true
     repeat: true
     onTriggered: lockProc.running = true
