@@ -11,6 +11,7 @@ Item {
   property bool muted: false
   property bool active: false
   property bool headphoneConnected: false
+  property bool _initialized: false
 
   signal externalChangeDetected()
 
@@ -45,9 +46,19 @@ Item {
         var changed = false
         if (m) {
           var vol = parseFloat(m[1].replace(",", ".")) || 0
-          if (Math.abs(vol - root.volume) > 0.001) { root.volume = vol; changed = true }
+          var firstRead = !root._initialized
+          if (firstRead) {
+            root.volume = vol
+          } else if (Math.abs(vol - root.volume) > 0.001) {
+            root.volume = vol; changed = true
+          }
           var isMuted = line.indexOf("MUTED") >= 0
-          if (isMuted !== root.muted) { root.muted = isMuted; changed = true }
+          if (firstRead) {
+            root.muted = isMuted
+          } else if (isMuted !== root.muted) {
+            root.muted = isMuted; changed = true
+          }
+          root._initialized = true
         }
         if (line.indexOf("Active Port:") >= 0) {
           var hp = line.toLowerCase().indexOf("headphone") >= 0
