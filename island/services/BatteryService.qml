@@ -1,60 +1,41 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import Quickshell.Services.UPower
+
+// UPower verification on Quickshell 0.3.0 (unlike Quickshell.Services.Pipewire,
+// where PwNodeAudio.volume/.muted read 0 and PwLink.state is stuck):
+//   - UPowerDevice.percentage -> 0..1 fraction (NOT 0..100), live
+//   - UPowerDevice.state      -> raw UPowerDeviceState (Charging=1,
+//     Discharging=2, FullyCharged=4, PendingCharge=5); stateChanged fires on
+//     AC plug/unplug
+//   - UPowerDevice.changeRate -> real watts, changeRateChanged fires
+// All three verified against sysfs /sys/class/power_supply/BAT0 through a live
+// AC plug/unplug cycle. No polling fallback needed.
 
 Item {
   id: root
   visible: false
 
-  property int capacity: 0
-  property bool charging: false
-  property real power: 0
+  property var battery: null
+  property int capacity: root.battery ? Math.round(root.battery.percentage * 100) : 0
+  property bool charging: !UPower.onBattery
+  property real power: root.battery ? root.battery.changeRate : 0
 
-  function refresh() {
-    capProc.running = true
-    acProc.running = true
-    pwrProc.running = true
-  }
-
-  Process {
-    id: capProc
-    command: ["sh", "-c", "cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || echo 0"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        root.capacity = parseInt(data.trim()) || 0
+  function pickBattery() {
+    var vals = UPower.devices.values
+    for (var i = 0; i < vals.length; i++) {
+      var d = vals[i]
+      if (d.isLaptopBattery) {
+        root.battery = d
+        return
       }
     }
   }
 
-  Process {
-    id: acProc
-    command: ["sh", "-c", "cat /sys/class/power_supply/ADP0/online 2>/dev/null || echo 0"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        root.charging = data.trim() === "1"
-      }
-    }
+  Connections {
+    target: UPower.devices
+    function onValuesChanged() { root.pickBattery() }
   }
 
-  Process {
-    id: pwrProc
-    command: ["sh", "-c", "cat /sys/class/power_supply/BAT0/power_now 2>/dev/null || echo 0"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        root.power = (parseInt(data.trim()) || 0) / 1000000
-      }
-    }
-  }
-
-  Timer {
-    interval: 10000
-    running: true
-    repeat: true
-    onTriggered: root.refresh()
-  }
-
-  Component.onCompleted: root.refresh()
+  Component.onCompleted: root.pickBattery()
 }
