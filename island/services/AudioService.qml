@@ -12,6 +12,7 @@ Item {
   property bool active: false
   property bool headphoneConnected: false
   property bool _initialized: false
+  property int _activeStreams: 0
 
   signal externalChangeDetected()
 
@@ -35,49 +36,45 @@ Item {
     root.setVolume(Math.max(0, Math.min(1, root.volume + delta)))
   }
 
+  function _isOutputStream(node) {
+    return node && node.isStream && ((node.type & PwNodeType.Sink) !== 0)
+  }
+
+  function _scanStreams() {
+    var count = 0
+    var vals = Pipewire.nodes.values
+    for (var i = 0; i < vals.length; i++) {
+      if (root._isOutputStream(vals[i])) count++
+    }
+    if (count !== root._activeStreams) {
+      root._activeStreams = count
+      root.active = count > 0
+    }
+  }
+
   Process {
     id: readProc
-    command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null && echo PORT && pactl list sinks 2>/dev/null | grep 'Active Port:' | head -1"]
+    command: ["sh", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null"]
     running: false
     stdout: SplitParser {
       onRead: data => {
         var line = data.trim()
         var m = line.match(/Volume:\s+([\d.]+)/)
-        var changed = false
         if (m) {
           var vol = parseFloat(m[1].replace(",", ".")) || 0
+          var isMuted = line.indexOf("MUTED") >= 0
           var firstRead = !root._initialized
           if (firstRead) {
             root.volume = vol
-          } else if (Math.abs(vol - root.volume) > 0.001) {
-            root.volume = vol; changed = true
-          }
-          var isMuted = line.indexOf("MUTED") >= 0
-          if (firstRead) {
             root.muted = isMuted
-          } else if (isMuted !== root.muted) {
-            root.muted = isMuted; changed = true
+            root._initialized = true
+          } else {
+            var changed = false
+            if (Math.abs(vol - root.volume) > 0.001) { root.volume = vol; changed = true }
+            if (isMuted !== root.muted) { root.muted = isMuted; changed = true }
+            if (changed && !setProc.running && !muteProc.running) root.externalChangeDetected()
           }
-          root._initialized = true
         }
-        if (line.indexOf("Active Port:") >= 0) {
-          var hp = line.toLowerCase().indexOf("headphone") >= 0
-          if (hp !== root.headphoneConnected) root.headphoneConnected = hp
-        }
-        if (changed && !setProc.running && !muteProc.running) root.externalChangeDetected()
-      }
-    }
-  }
-
-  Process {
-    id: musicProc
-    command: ["sh", "-c", "pw-dump 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(sum(1 for o in d if o.get('type')=='PipeWire:Interface:Node' and o.get('info',{}).get('props',{}).get('media.class')=='Stream/Output/Audio' and o.get('info',{}).get('state')=='running'))\""]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var n = parseInt(data.trim())
-        var playing = !isNaN(n) && n > 0
-        if (playing !== root.active) root.active = playing
       }
     }
   }
@@ -101,19 +98,19 @@ Item {
 
   Timer {
     id: fullSyncTimer
-    interval: 500
+    interval: 1000
     running: true
     repeat: true
     onTriggered: root.sync()
   }
 
   Timer {
-    id: musicTimer
+    id: streamScanTimer
     interval: 1000
     running: true
     repeat: true
-    onTriggered: musicProc.running = true
+    onTriggered: root._scanStreams()
   }
 
-  Component.onCompleted: { var _ = Pipewire.ready; root.sync(); musicProc.running = true }
+  Component.onCompleted: root.sync()
 }

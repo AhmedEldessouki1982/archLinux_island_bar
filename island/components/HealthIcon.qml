@@ -41,12 +41,4 @@ Canvas {
     ctx.lineTo(14, 7)
     ctx.stroke()
   }
-
-  SequentialAnimation {
-    loops: Animation.Infinite
-    running: true
-    NumberAnimation { target: root; property: "scale"; from: 1.0; to: 1.06; duration: 500; easing.type: Easing.InOutSine }
-    NumberAnimation { target: root; property: "scale"; from: 1.06; to: 1.0; duration: 500; easing.type: Easing.InOutSine }
-    PauseAnimation { duration: 900 }
-  }
 }
