@@ -13,6 +13,7 @@ Item {
   property bool headphoneConnected: false
   property bool _initialized: false
   property int _activeStreams: 0
+  property bool fastPoll: false
 
   signal externalChangeDetected()
 
@@ -98,10 +99,21 @@ Item {
 
   Timer {
     id: fullSyncTimer
-    interval: 1000
+    interval: root.fastPoll ? 150 : 1000
     running: true
     repeat: true
     onTriggered: root.sync()
+  }
+
+  function requestFastPoll() {
+    root.fastPoll = true
+    fastPollResetTimer.restart()
+  }
+
+  Timer {
+    id: fastPollResetTimer
+    interval: 2000
+    onTriggered: root.fastPoll = false
   }
 
   Timer {

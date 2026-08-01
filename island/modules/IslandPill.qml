@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Services.SystemTray
 import "../components"
 import "../services"
@@ -681,6 +682,8 @@ Item {
 
   function onMeterActivity(mode) {
     if (!root.meterReady) return
+    if (mode === "volume") audioService.requestFastPoll()
+    else if (mode === "brightness") brightnessService.requestFastPoll()
     root.showMeter(mode)
   }
 
@@ -693,6 +696,13 @@ Item {
   BatteryService { id: batteryService }
   BrightnessService { id: brightnessService }
   LockService { id: lockService }
+
+  IpcHandler {
+    target: "island"
+    function triggerMeter(mode: string): void {
+      root.onMeterActivity(mode)
+    }
+  }
 
   Connections {
     target: audioService

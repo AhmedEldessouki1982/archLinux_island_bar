@@ -7,6 +7,7 @@ Item {
   visible: false
 
   property real percent: 100
+  property bool fastPoll: false
 
   signal externalChangeDetected()
 
@@ -53,10 +54,22 @@ Item {
   }
 
   Timer {
-    interval: 2000
+    id: pollTimer
+    interval: root.fastPoll ? 150 : 2000
     running: true
     repeat: true
     onTriggered: root.refresh()
+  }
+
+  function requestFastPoll() {
+    root.fastPoll = true
+    fastPollResetTimer.restart()
+  }
+
+  Timer {
+    id: fastPollResetTimer
+    interval: 2000
+    onTriggered: root.fastPoll = false
   }
 
   Component.onCompleted: root.refresh()
