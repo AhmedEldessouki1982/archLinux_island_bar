@@ -60,7 +60,7 @@ Item {
       anchors.fill: parent
       hoverEnabled: true
       onEntered: {
-        root.isExpanded = true
+        if (root.meterMode === "") root.isExpanded = true
         if (root.isHealthPanelOpen) root.resetAutoClose()
       }
       onExited: {
@@ -315,6 +315,7 @@ Item {
             Text {
               anchors.centerIn: parent
               text: "🔔"
+              font.family: Theme.fontFamily
               font.pixelSize: 11
             }
 
@@ -597,6 +598,15 @@ Item {
   }
 
   Timer {
+    id: hoverRecheckTimer
+    interval: 300
+    onTriggered: {
+      if (root.meterMode === "" && mouseArea.containsMouse)
+        root.isExpanded = true
+    }
+  }
+
+  Timer {
     interval: 500
     running: true
     onTriggered: root.meterReady = true
@@ -647,6 +657,8 @@ Item {
 
   function dismissMeter() {
     root.meterMode = ""
+    root.isExpanded = false
+    hoverRecheckTimer.start()
   }
 
   AudioService { id: audioService }
@@ -667,12 +679,12 @@ Item {
 
   Connections {
     target: audioService
-    function onExternalChangeDetected() { root.onMeterActivity("volume") }
+    function onExternalChangeDetected() { if (!root.isHealthPanelOpen) root.onMeterActivity("volume") }
   }
 
   Connections {
     target: brightnessService
-    function onExternalChangeDetected() { root.onMeterActivity("brightness") }
+    function onExternalChangeDetected() { if (!root.isHealthPanelOpen) root.onMeterActivity("brightness") }
   }
 
   Connections {

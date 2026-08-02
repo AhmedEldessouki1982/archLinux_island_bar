@@ -116,6 +116,7 @@ PanelWindow {
               text: "🔔"
               color: Theme.foreground
               visible: model.appIcon === ""
+              font.family: Theme.fontFamily
               font.pixelSize: 14
             }
           }

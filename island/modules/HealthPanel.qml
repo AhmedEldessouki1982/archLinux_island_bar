@@ -21,6 +21,7 @@ Item {
   property real gpuFanSpeed: 0
   property real netRxRate: 0
   property real netTxRate: 0
+  property string wifiSsid: ""
   property real batteryPower: 0
   property bool batteryCharging: false
   property int batteryCapacity: 0
@@ -58,8 +59,8 @@ Item {
 
   // --- panel geometry ---
   property int _colW1: 200
-  property int _colW2: 288
-  property int _colW3: 190
+  property int _colW2: 340
+  property int _colW3: 196
   property int _colGap: 12
   property int _colBlock: 194
   property color cardColor: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
@@ -76,11 +77,6 @@ Item {
     if (b < 1024) return b.toFixed(0) + " B/s"
     if (b < 1048576) return (b / 1024).toFixed(1) + " KB/s"
     return (b / 1048576).toFixed(1) + " MB/s"
-  }
-
-  function formatRam(v) {
-    if (v < 1073741824) return (v / 1048576).toFixed(0) + " MB"
-    return (v / 1073741824).toFixed(1) + " GB"
   }
 
   function levelColor(val, warn, crit) {
@@ -137,28 +133,19 @@ Item {
       && root.gpuPowerStatus !== "unset"
   }
 
-  function gpuExtra() {
-    var extra = ""
-    if (root.gpuMode.length > 0) extra += root.gpuMode
-    if (root.gpuStatusShown()) extra += " " + root.gpuPowerStatus
-    return extra
-  }
-
-  function ramText() {
-    return pad(root.formatRam(root.ramUsed), 6) + " / " + pad(root.formatRam(root.ramTotal), 6) + " [" + pad(isNaN(root.ramPercent) ? 0 : Math.round(root.ramPercent), 3) + "%]"
-  }
-
   function fanText() {
     return "C:" + pad(isNaN(root.cpuFanSpeed) ? 0 : Math.round(root.cpuFanSpeed), 4) + "  G:" + pad(isNaN(root.gpuFanSpeed) ? 0 : Math.round(root.gpuFanSpeed), 4)
   }
 
-  function batText() {
-    if (root.batteryCharging) return pad(root.batteryPower.toFixed(0), 3) + "W"
-    return pad(root.batteryCapacity, 3) + "%"
-  }
-
   function netText() {
     return "\u2193 " + padRight(root.formatBytes(root.netRxRate), 9) + "   \u2191 " + padRight(root.formatBytes(root.netTxRate), 9)
+  }
+
+  function networkSubText() {
+    if (root._iface.length === 0) return "OFFLINE"
+    if (root.wifiSsid.length > 0) return root.wifiSsid
+    if (root._iface.indexOf("wl") === 0) return "WIFI"
+    return "ETHERNET"
   }
 
   // --- calendar navigation (merged from CalendarPopup) ---
@@ -205,6 +192,7 @@ Item {
     gfxModeProc.running = true
     pwrProfileProc.running = true
     sysInfoProc.running = true
+    ssidProc.running = true
     collectData.running = true
     collectGpu.running = true
     if (collectGpu) collectGpu.triggered()
@@ -231,6 +219,7 @@ Item {
       cpuTempProc.running = true
       fanProc.running = true
       netDataProc.running = true
+      ssidProc.running = true
     }
   }
 
@@ -420,6 +409,15 @@ Item {
     }
   }
 
+  Process {
+    id: ssidProc
+    command: ["sh", "-c", "nmcli -t -f ACTIVE,SSID device wifi 2>/dev/null | grep '^yes:' | cut -d: -f2- | head -1"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => root.wifiSsid = data.trim()
+    }
+  }
+
   opacity: root.active ? 1 : 0
   visible: opacity > 0
 
@@ -488,7 +486,7 @@ Item {
             text: Qt.formatDateTime(new Date(), "HH:mm")
             color: Theme.accent
             font.family: Theme.fontFamily
-            font.pixelSize: 14
+            font.pixelSize: Theme.fontSizeValue
             font.bold: true
             Layout.alignment: Qt.AlignHCenter
 
@@ -646,6 +644,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             minValue: 0
             maxValue: 1
+            step: 0.05
             value: audioService.volume
             fillColor: audioService.muted ? Theme.red : Theme.accent
             onChanged: v => {
@@ -686,6 +685,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             minValue: 0
             maxValue: 100
+            step: 5
             value: brightnessService.percent
             fillColor: brightnessService.percent > 20 ? Theme.yellow : Theme.red
             onChanged: v => {
@@ -719,8 +719,8 @@ Item {
         GridLayout {
           Layout.fillWidth: true
           columns: 2
-          columnSpacing: 6
-          rowSpacing: 5
+          columnSpacing: 8
+          rowSpacing: 8
 
           StatTile {
             title: "CPU"
@@ -732,8 +732,7 @@ Item {
           StatTile {
             title: "GPU"
             valueColor: root.loadTempColor(root.gpuLoad, root.gpuTemp)
-            valueText: root.loadTempText(root.gpuLoad, root.gpuTemp, root.gpuExtra())
-            valueSize: 9
+            valueText: root.loadTempText(root.gpuLoad, root.gpuTemp, "")
             GpuIcon {}
           }
 
@@ -748,6 +747,7 @@ Item {
             Layout.fillWidth: true
             title: "NET"
             valueText: root.netText()
+            subText: root.networkSubText()
             NetIcon {}
           }
         }
@@ -766,11 +766,14 @@ Item {
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 44
+          implicitHeight: 54
 
           ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 8
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            anchors.topMargin: 8
+            anchors.bottomMargin: 12
             spacing: 3
 
             RowLayout {
@@ -795,7 +798,7 @@ Item {
               text: root.kernelVersion
               color: Theme.comment
               font.family: Theme.fontFamily
-              font.pixelSize: Theme.fontSizeLabel
+              font.pixelSize: Theme.fontSizeValue
             }
           }
         }
@@ -875,7 +878,7 @@ Item {
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 30
+          implicitHeight: 44
 
           RowLayout {
             anchors.left: parent.left
@@ -916,7 +919,7 @@ Item {
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 30
+          implicitHeight: 44
 
           RowLayout {
             anchors.left: parent.left
@@ -1247,6 +1250,7 @@ Item {
     property real minValue: 0
     property real maxValue: 1
     property real value: 0
+    property real step: 0
     property color fillColor: Theme.accent
     signal changed(real v)
 
@@ -1272,14 +1276,24 @@ Item {
       anchors.fill: parent
       onPressed: mouse => sbar._set(mouse.x)
       onPositionChanged: mouse => { if (pressed) sbar._set(mouse.x) }
+      onWheel: event => {
+        var dir = event.angleDelta.y > 0 ? 1 : -1
+        var effStep = sbar.step > 0 ? sbar.step : (sbar.maxValue - sbar.minValue) / 20
+        sbar._setValue(sbar.value + dir * effStep)
+        event.accepted = true
+      }
     }
 
     function _set(x) {
       if (sbar.width <= 0) return
       var ratio = Math.max(0, Math.min(1, x / sbar.width))
-      var v = sbar.minValue + ratio * (sbar.maxValue - sbar.minValue)
-      if (Math.abs(v - sbar.value) > 0.001)
-        sbar.changed(v)
+      sbar._setValue(sbar.minValue + ratio * (sbar.maxValue - sbar.minValue))
+    }
+
+    function _setValue(v) {
+      var clamped = Math.max(sbar.minValue, Math.min(sbar.maxValue, v))
+      if (Math.abs(clamped - sbar.value) > 0.001)
+        sbar.changed(clamped)
     }
   }
 
@@ -1291,24 +1305,25 @@ Item {
     property string title: ""
     property color valueColor: Theme.foreground
     property string valueText: ""
-    property int valueSize: 10
+    property string subText: ""
+    property int valueSize: Theme.fontSizeValue
 
     radius: 8
     color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
     border.width: 1
     border.color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.55)
-    implicitHeight: 34
+    implicitHeight: tile.subText.length > 0 ? 74 : 56
     Layout.preferredWidth: 140
     Layout.fillWidth: true
 
     RowLayout {
       id: contentArea
-      anchors.left: parent.left
-      anchors.right: parent.right
+      anchors.fill: parent
       anchors.leftMargin: 9
       anchors.rightMargin: 9
-      anchors.verticalCenter: parent.verticalCenter
-      spacing: 7
+      anchors.topMargin: 10
+      anchors.bottomMargin: 10
+      spacing: 9
 
       Item {
         id: iconSlot
@@ -1336,6 +1351,16 @@ Item {
           color: tile.valueColor
           font.family: Theme.fontFamily
           font.pixelSize: tile.valueSize
+          elide: Text.ElideRight
+          Layout.fillWidth: true
+        }
+
+        Text {
+          visible: tile.subText.length > 0
+          text: tile.subText
+          color: Theme.comment
+          font.family: Theme.fontFamily
+          font.pixelSize: Theme.fontSizeLabel
           elide: Text.ElideRight
           Layout.fillWidth: true
         }

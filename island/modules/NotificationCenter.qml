@@ -120,6 +120,7 @@ PanelWindow {
             Text {
               text: model.appIcon !== "" ? "" : "🔔"
               color: Theme.accent
+              font.family: Theme.fontFamily
               font.pixelSize: 14
               Layout.alignment: Qt.AlignVCenter
             }
