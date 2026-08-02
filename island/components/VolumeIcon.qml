@@ -50,6 +50,18 @@ Canvas {
     ctx.rect(mx + 1, my + 1, fillW, mh - 2)
     ctx.fill()
 
+    // slider thumb at fill end
+    var thumbColor = root.muted ? Theme.red : (root.volume > 0 ? Theme.accent : Theme.selection)
+    ctx.fillStyle = Theme.background
+    ctx.beginPath()
+    ctx.arc(mx + 1 + fillW, my + mh / 2, 3.5, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = thumbColor
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.arc(mx + 1 + fillW, my + mh / 2, 3.5, 0, Math.PI * 2)
+    ctx.stroke()
+
     // percentage text
     ctx.fillStyle = root.color
     ctx.font = "bold 8px monospace"

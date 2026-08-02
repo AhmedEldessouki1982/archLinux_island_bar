@@ -214,12 +214,7 @@ Item {
         Layout.minimumWidth: 60
       }
 
-      Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
-        Layout.alignment: Qt.AlignVCenter
-      }
+      VDiv {}
 
       VolumeIcon {
         id: volumeIcon
@@ -248,27 +243,29 @@ Item {
         }
       }
 
-      Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
-        Layout.alignment: Qt.AlignVCenter
-      }
+      VDiv {}
 
       Repeater {
         model: Hyprland.workspaces
 
         Item {
-          width: txt.implicitWidth + 6
+          width: txt.implicitWidth + (modelData?.focused ? 14 : 6)
           height: 20
 
           required property var modelData
+
+          Rectangle {
+            anchors.fill: parent
+            radius: height / 2
+            color: Theme.accent
+            visible: modelData?.focused ?? false
+          }
 
           Text {
             id: txt
             anchors.centerIn: parent
             text: modelData?.id ?? ""
-            color: modelData?.focused ? Theme.accent : Theme.selection
+            color: modelData?.focused ? Theme.background : Theme.comment
             font.pixelSize: 11
             font.bold: modelData?.focused ?? false
             font.letterSpacing: 0.5
@@ -285,12 +282,7 @@ Item {
         }
       }
 
-      Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
-        Layout.alignment: Qt.AlignVCenter
-      }
+      VDiv {}
 
       Text {
         text: Hyprland.activeToplevel?.title ?? ""
@@ -301,93 +293,91 @@ Item {
         Layout.maximumWidth: 140
       }
 
+      VDiv {}
+
+      // --- actions zone: health + notifications + calendar ---
       Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
         Layout.alignment: Qt.AlignVCenter
-      }
+        height: 26
+        radius: 13
+        width: actionsRow.implicitWidth + 16
+        color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.75)
 
-      HealthIcon {
-        id: healthIcon
-        iconColor: Theme.foreground
-        Layout.alignment: Qt.AlignVCenter
-
-        MouseArea {
-          anchors.fill: parent
-          onClicked: root.toggleHealthPanel()
-        }
-      }
-
-      Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
-        Layout.alignment: Qt.AlignVCenter
-      }
-
-      Item {
-        width: 22
-        height: 22
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
+        RowLayout {
+          id: actionsRow
           anchors.centerIn: parent
-          text: "🔔"
-          font.pixelSize: 11
-        }
+          spacing: 6
 
-        Rectangle {
-          anchors.right: parent.right
-          anchors.top: parent.top
-          width: 13
-          height: 13
-          radius: 6.5
-          color: Theme.red
-          border.width: 1
-          border.color: Theme.background
-          visible: root.notificationLayer && root.notificationLayer.notificationCount > 0
+          HealthIcon {
+            id: healthIcon
+            iconColor: Theme.foreground
+            Layout.alignment: Qt.AlignVCenter
 
-          Text {
-            anchors.centerIn: parent
-            text: root.notificationLayer ? Math.min(root.notificationLayer.notificationCount, 9) : ""
-            color: Theme.foreground
-            font.pixelSize: 8
-            font.bold: true
+            MouseArea {
+              anchors.fill: parent
+              onClicked: root.toggleHealthPanel()
+            }
+          }
+
+          Item {
+            width: 22
+            height: 22
+            Layout.alignment: Qt.AlignVCenter
+
+            Text {
+              anchors.centerIn: parent
+              text: "🔔"
+              font.pixelSize: 11
+            }
+
+            Rectangle {
+              anchors.right: parent.right
+              anchors.top: parent.top
+              width: 13
+              height: 13
+              radius: 6.5
+              color: Theme.red
+              border.width: 1
+              border.color: Theme.background
+              visible: root.notificationLayer && root.notificationLayer.notificationCount > 0
+
+              Text {
+                anchors.centerIn: parent
+                text: root.notificationLayer ? Math.min(root.notificationLayer.notificationCount, 9) : ""
+                color: Theme.foreground
+                font.pixelSize: 8
+                font.bold: true
+              }
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.toggleNotificationCenter()
+            }
+          }
+
+          Item {
+            width: 22
+            height: 22
+            Layout.alignment: Qt.AlignVCenter
+
+            Text {
+              anchors.centerIn: parent
+              text: "📅"
+              font.pixelSize: 11
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.toggleCalendar()
+            }
           }
         }
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.toggleNotificationCenter()
-        }
       }
 
-      Item {
-        width: 22
-        height: 22
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
-          anchors.centerIn: parent
-          text: "📅"
-          font.pixelSize: 11
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.toggleCalendar()
-        }
-      }
-
-      Rectangle {
-        width: 1
-        height: 14
-        color: Theme.selection
-        Layout.alignment: Qt.AlignVCenter
-      }
+      VDiv {}
 
       BatteryIcon {
         percent: batteryService.capacity
@@ -611,6 +601,14 @@ Item {
       }
     }
 
+  }
+
+  component VDiv: Rectangle {
+    width: 1
+    height: 16
+    color: Theme.comment
+    opacity: 0.4
+    Layout.alignment: Qt.AlignVCenter
   }
 
   Timer {
