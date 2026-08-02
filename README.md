@@ -1,42 +1,34 @@
-# Island — macOS Dynamic Island-style Status Bar for Hyprland
+# Island — a macOS Dynamic Island-style status bar for Hyprland
 
-A sleek, interactive pill-shaped status bar for **Hyprland** (Wayland) built with **Quickshell/QML**. Inspired by the iPhone 14 Pro's Dynamic Island and macOS menu bar.
+A single morphing pill that expands on hover into a full status cluster, built with Quickshell/QML and running on Wayland under Hyprland.
 
-![Dracula Theme](https://img.shields.io/badge/theme-Dracula-ff79c6)
+![demo](./docs/demo.gif)
 
 ---
 
 ## Features
 
-### Idle Mode (narrow pill)
-- **EQ Bars** — animated audio visualizer (appears when audio plays)
-- **Workspace** — current Hyprland workspace number
-- **Window title** — focused toplevel title
-- **Clock** — current time (HH:mm, updates every second)
-- **Date** — day, month, year
-- **System Tray** — StatusNotifierItem icons
+- **Morphing pill** — three states in one bar: a narrow idle pill, a hover-expanded layout, and a compact centered meter for transient feedback (volume / brightness / keyboard-lock OSD).
+- **Volume + brightness control** — scroll to adjust, click to mute / toggle; each shows a compact centered meter that pops up on bind, triggered over Hyprland IPC from your hardware keys.
+- **Caps / Num lock OSD** — a short-lived, centered popup that appears when either lock key changes.
+- **Headphone jack detection** — the volume icon reflects the active `wpctl` sink port.
+- **EQ visualizer** — hand-drawn animated bars that appear while audio plays.
+- **Notifications** — banner + center, with deadline-based expiry for transient notifications and true pinning for persistent ones.
+- **Calendar popup** — click a date to open it.
+- **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 10 s idle.
+- **Native Quickshell integration** — battery/charging read straight from the built-in **UPower** service (event-driven, zero polling); active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
+- **Dracula throughout** — one singleton theme, a single palette, no hard-coded colors.
+- **Hand-drawn icons** — battery, network, meter bars and the health heart are drawn directly on Qt `Canvas` items; no icon-font glyph set.
 
-### Expanded Mode (hover to reveal)
-Smoothly animates to a wider pill showing:
-- **Network** — IP address with WiFi/Ethernet/disconnected indicator
-- **Volume** — meter bar, percentage, scroll-to-adjust, click-to-mute
-- **Brightness** — sun icon, slotted bar, scroll-to-adjust, click-to-toggle (20%–80%)
-- **Workspace Dots** — clickable workspace switcher
-- **Health toggle** — pulsing heart icon to open the monitoring panel
-- **Battery** — animated icon with percentage (green when charging, red ≤ 20%)
+---
 
-### Floating Health Panel
-A popup overlay with real-time system monitoring:
-- **CPU** — load + temperature (color-coded thresholds)
-- **GPU** — load, temperature, mode, power (via `nvidia-smi` / `supergfxctl`)
-- **RAM** — used / total with percentage
-- **FAN** — CPU + GPU fan speeds (RPM)
-- **BAT** — power draw (W) when charging, capacity (%) when discharging
-- **PWR** — power profile (via `asusctl`)
-- **NET** — download / upload rates
-- **Kernel + user info** in footer
+## Why this isn't just another rice
 
-Auto-closes after 10s of inactivity; polls every 2s.
+Quickshell ships native services (UPower, and a hostile Pipewire module), but Quickshell **0.3.0**'s Pipewire audio/volume read-back is broken — `PwNodeAudio.volume`/`mute` read 0 and `PwLink.state` is stuck. So the services here are event-driven where the native module is reliable, and fall back to a polled CLI (`wpctl`, `brightnessctl`) where it isn't, with temporary speed-ups only while an OSD is on screen.
+
+The payoff is **idle CPU around 0.1%** instead of the slow battery drain from an infinite `SequentialAnimation` repaint loop or an aggressive polling loop. The OSD meter layers also react instantly because they're a low-cost repaint triggered over IPC, not a 2-second poll.
+
+None of that is a substitute for benchmarking on your own hardware — it's simply what the implementation was tuned for, and the reasoning is written into the service sources.
 
 ---
 
@@ -44,57 +36,27 @@ Auto-closes after 10s of inactivity; polls every 2s.
 
 | Dependency | Purpose |
 |---|---|
-| [Quickshell](https://github.com/Quickshell/Quickshell) | QML shell runtime for Wayland |
+| [Quickshell](https://github.com/Quickshell/Quickshell) ≥ 0.3.0 | QML shell runtime for Wayland |
 | Qt 6 (Quick, Wayland, QML) | UI framework |
-| Hyprland | Wayland compositor |
-| PipeWire + wireplumber | Audio (`wpctl`) |
+| [Hyprland](https://github.com/hyprwm/Hyprland) | Wayland compositor |
+| PipeWire + wireplumber | Audio (the `wpctl` control) |
 | `brightnessctl` | Backlight control |
-| `nvidia-smi` | GPU monitoring (optional) |
-| `supergfxctl` | ASUS GPU mode switching (optional) |
-| `asusctl` | ASUS power profiles (optional) |
+| `upower` | Battery/charging events (for the native UPower service) |
+| _optional_ `asusctl` | ASUS power-profile readout in the health panel |
+| _optional_ `supergfxctl` | ASUS GPU mode/status readout |
+| _optional_ `nvidia-utils` | GPU load/temp via `nvidia-smi` |
+| _optional_ `lm_sensors` | CPU/GPU temperature fallback |
 
----
+### 0. Install Quickshell
 
-## Installation
-
-### 1. Install Quickshell
-
-Quickshell is not in most distro repos — you need to build it from source.
-
-#### Prerequisites
-
-Install Qt6 and build dependencies:
-
-<details>
-<summary><b>Arch Linux</b></summary>
+Arch (and most rolling distros) ship it:
 
 ```bash
-sudo pacman -S --needed git cmake ninja qt6-base qt6-declarative qt6-wayland \
-  wayland-protocols pipewire wireplumber brightnessctl
+# Arch / package manager that has it in the repos
+sudo pacman -S quickshell
 ```
-</details>
 
-<details>
-<summary><b>Ubuntu / Debian</b></summary>
-
-```bash
-sudo apt install git cmake ninja-build qt6-base-dev qt6-declarative-dev \
-  qt6-wayland libwayland-dev libpipewire-0.3-dev libpulse-dev \
-  brightnessctl pipewire pipewire-pulse wireplumber
-```
-</details>
-
-<details>
-<summary><b>Fedora</b></summary>
-
-```bash
-sudo dnf install git cmake ninja-build qt6-qtbase-devel qt6-qtdeclarative-devel \
-  qt6-qtwayland-devel wayland-devel pipewire-devel pulseaudio-libs-devel \
-  brightnessctl pipewire wireplumber
-```
-</details>
-
-#### Build Quickshell from source
+Otherwise build from source ([upstream README](https://github.com/Quickshell/Quickshell)):
 
 ```bash
 git clone https://github.com/Quickshell/Quickshell.git
@@ -102,91 +64,81 @@ cd Quickshell
 cmake -B build -G Ninja
 cmake --build build
 sudo cmake --install build
-```
-
-Verify it installed:
-
-```bash
+# verify
 quickshell --version
 ```
 
-### 2. Install Island
+### 1. Install Island
 
 ```bash
-# Clone directly into Quickshell's config directory
-git clone https://github.com/yourusername/quickshell ~/.config/quickshell
+# Clone into Quickshell's config directory
+git clone git@github.com:AhmedEldessouki1982/archLinux_island_bar.git ~/.config/quickshell
 
-# Or clone elsewhere and symlink
-git clone https://github.com/yourusername/quickshell ~/projects/quickshell
+# …or clone elsewhere and symlink
 ln -sf ~/projects/quickshell ~/.config/quickshell
 ```
 
-### 3. Optional Dependencies
+### 2. Optional hardware extras
 
-These enable extra hardware monitoring features:
-
-| Package | Purpose | Install |
-|---|---|---|
-| `nvidia-smi` | NVIDIA GPU stats | `pacman -S nvidia-utils` / `apt install nvidia-utils` |
-| `supergfxctl` | ASUS GPU mode switching | AUR / [GitHub](https://github.com/asus-linux/supergfxctl) |
-| `asusctl` | ASUS power profiles | AUR / [GitHub](https://github.com/asus-linux/asusctl) |
-| `lm_sensors` | CPU/GPU temperature | `pacman -S lm_sensors` / `apt install lm-sensors` |
+| Package | Used for |
+|---|---|
+| `asusctl` | ASUS power profile |
+| `supergfxctl` | ASUS GPU mode switching |
+| `lm_sensors` / `nvidia-utils` | temperature / NVIDIA GPU stats |
 
 ---
 
 ## Usage
 
 ```bash
-quickshell ~/.config/quickshell/island/shell.qml
+quickshell -c island
 ```
 
-If Quickshell is configured to autoload `~/.config/quickshell/`, it will pick up `island/shell.qml` automatically.
+If Quickshell is set to autoload a config layout, place or symlink it so it stays under `~/.config/quickshell`.
+
+To bind the volume/brightness hardware keys, call the trigger IPC from your keybind: `quickshell -c island ipc call island triggerMeter <mode>`, e.g. `triggerMeter volume`.
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 island/
-├── shell.qml              # Entry point — PanelWindow + FloatingHealth + IslandPill
+├── shell.qml              # Entry — PanelWindow + every floating layer + pill
 ├── config/
 │   ├── qmldir             # QML module definition (Theme singleton)
-│   └── Theme.qml          # Dracula color palette
+│   └── Theme.qml          # Dracula palette, single source of truth
 ├── components/
 │   ├── EQBars.qml         # Animated equalizer bars
 │   ├── BatteryIcon.qml    # Canvas-drawn battery
-│   ├── BrightnessIcon.qml # Sun icon with bar
-│   ├── HealthIcon.qml     # Pulsing heart icon
-│   ├── NetworkIcon.qml    # WiFi/Ethernet/disconnected icon
-│   ├── VolumeIcon.qml     # Speaker/headphone icon
-│   └── WorkspaceDot.qml   # Workspace indicator dot
+│   ├── BrightnessIcon.qml # Sun + meter (with slider thumb)
+│   ├── HealthIcon.qml     # Health panel toggle icon
+│   ├── NetworkIcon.qml    # WiFi / ethernet / disconnected
+│   └── VolumeIcon.qml     # Speaker/headphone + meter (with slider thumb)
 ├── services/
-│   ├── AudioService.qml   # PipeWire audio control
-│   ├── BatteryService.qml # Battery readout via sysfs
-│   ├── BrightnessService.qml # Backlight control
-│   └── NetworkService.qml # Network detection via ip
+│   ├── AudioService.qml   # Pipewire stream detect; volume/mute via wpctl
+│   ├── BatteryService.qml # Native UPower (no polling)
+│   ├── BrightnessService.qml # Backlight via brightnessctl
+│   ├── LockService.qml    # Caps/Num-OSD (LED sysfs) 
+│   └── NetworkService.qml # Network readout
 └── modules/
-    ├── IslandPill.qml     # Main pill bar (idle + expanded)
-    ├── FloatingHealth.qml # Health panel popup window
-    └── HealthPanel.qml    # CPU/GPU/RAM/FAN/BAT/PWR/NET monitor
+    ├── IslandPill.qml     # The pill — idle / hover / meter states
+    ├── HealthPanel.qml    # CPU / GPU / RAM / FAN / NET / PWR monitor
+    ├── NotificationLayer.qml # Banner stack w/ expiry
+    ├── NotificationCenter.qml # Full notification history
+    └── CalendarPopup.qml  # Calendar overlay
 ```
 
 ---
 
-## Configuration
+## Known limitations & tested-on
 
-Colors are defined in `island/config/Theme.qml` (Dracula palette). Modify them to customize the look.
-
----
-
-## ASUS ROG Laptop Support
-
-Island detects ASUS hardware and reads:
-- GPU mode via `supergfxctl`
-- Power profile via `asusctl`
-- Fan speeds from hwmon sysfs
-
----
+- **ASUS**-only extras (`asusctl`, `supergfxctl`, and the fan readback) are gated: without that hardware they simply stay empty — nothing breaks.
+- **Quickshell 0.3.0 quirks** are worked around, not hidden:
+  - Pipewire audio read/write is bypassed via `wpctl` (see the opening comment in `BatteryService`/`AudioService`);
+  - the "bell"/"calendar" glyphs are rendered with the system emoji font, not the hand-drawn canvas set;
+  - the volume/brightness meter temporarily blooms the poll rate (150 ms) only while its OSD is on screen, then returns to the normal slow poll;
+- **Tested on**: Hyprland 0.56, Quickshell 0.3.0 (Qt6), Arch `extra`; screen selector defaults to `eDP-1` then `eDP-2`, then the first output.
 
 ## License
 
