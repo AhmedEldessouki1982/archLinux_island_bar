@@ -27,7 +27,7 @@ Item {
 
   Process {
     id: getProc
-    command: ["sh", "-c", "brightnessctl get 2>/dev/null && echo ' ' && brightnessctl max 2>/dev/null"]
+    command: ["sh", "-c", "echo \"$(brightnessctl get 2>/dev/null) $(brightnessctl max 2>/dev/null)\""]
     running: false
     stdout: SplitParser {
       onRead: data => {

@@ -19,6 +19,7 @@ Item {
 
   function sync() {
     readProc.running = true
+    portProc.running = true
   }
 
   function setVolume(v) {
@@ -90,6 +91,22 @@ Item {
     id: muteProc
     command: ["sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null"]
     running: false
+  }
+
+  Process {
+    id: portProc
+    command: ["sh", "-c", "pactl list sinks 2>/dev/null | awk -v s=\"$(pactl get-default-sink)\" 'index($0, \"Name: \" s) { f=1 } f && /Active Port:/ { print $3; exit }'"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var port = data.trim()
+        if (!port) return
+        var hp = port.indexOf("headphone") >= 0
+        if (hp !== root.headphoneConnected) {
+          root.headphoneConnected = hp
+        }
+      }
+    }
   }
 
   Connections {
