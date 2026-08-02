@@ -38,4 +38,13 @@ Item {
   }
 
   Component.onCompleted: root.pickBattery()
+
+  Timer {
+    interval: 2000
+    running: true
+    repeat: true
+    onTriggered: {
+      if (!root.battery) root.pickBattery()
+    }
+  }
 }

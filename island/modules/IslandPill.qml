@@ -15,12 +15,16 @@ Item {
   property bool isHealthPanelOpen: false
   property int pillHeight: 35
   property var healthWindow: null
+
+  onHealthWindowChanged: {
+    if (root.healthWindow)
+      root.healthWindow.closed.connect(() => root.isHealthPanelOpen = false)
+  }
   property string meterMode: ""
   property int meterPillWidth: 240
   property bool meterReady: false
   property var notificationLayer: null
   property var notificationCenter: null
-  property var calendarPopup: null
 
   width: parent.width
   height: root.pillHeight
@@ -63,6 +67,17 @@ Item {
         if (!root.isHealthPanelOpen) root.isExpanded = false
         if (root.isHealthPanelOpen) root.resetAutoClose()
       }
+      onWheel: (event) => {
+        var dir = event.angleDelta.y > 0 ? 1 : -1
+        if (root.meterMode === "brightness") {
+          root.onMeterActivity("brightness")
+          brightnessService.stepPercent(dir * 5)
+        } else {
+          root.onMeterActivity("volume")
+          audioService.stepVolume(dir * 0.05)
+        }
+        event.accepted = true
+      }
     }
 
     RowLayout {
@@ -88,6 +103,7 @@ Item {
       Text {
         text: Hyprland.focusedWorkspace?.id ?? ""
         color: Theme.pink
+        font.family: Theme.fontFamily
         font.pixelSize: 12
         font.bold: true
         font.letterSpacing: 0.5
@@ -96,6 +112,7 @@ Item {
       Text {
         text: Hyprland.activeToplevel?.title ?? ""
         color: Theme.foreground
+        font.family: Theme.fontFamily
         font.pixelSize: 12
         font.letterSpacing: 0.3
         elide: Text.ElideRight
@@ -107,6 +124,7 @@ Item {
         id: timeText
         text: Qt.formatDateTime(new Date(), "HH:mm")
         color: Theme.accent
+        font.family: Theme.fontFamily
         font.pixelSize: 12
         font.letterSpacing: 0.5
         font.bold: true
@@ -122,19 +140,15 @@ Item {
       Text {
         text: Qt.formatDateTime(new Date(), "dd MMM yyyy")
         color: Theme.yellow
+        font.family: Theme.fontFamily
         font.pixelSize: 11
         font.bold: true
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.toggleCalendar()
-        }
       }
 
       Text {
         text: "|"
         color: Theme.selection
+        font.family: Theme.fontFamily
         font.pixelSize: 14
         font.bold: true
         Layout.alignment: Qt.AlignVCenter
@@ -209,38 +223,10 @@ Item {
       Text {
         text: networkService.ipAddress
         color: Theme.cyan
+        font.family: Theme.fontFamily
         font.pixelSize: 11
         font.letterSpacing: 0.3
         Layout.minimumWidth: 60
-      }
-
-      VDiv {}
-
-      VolumeIcon {
-        id: volumeIcon
-        color: audioService.muted ? Theme.red : Theme.foreground
-        volume: audioService.volume
-        muted: audioService.muted
-        headphoneConnected: audioService.headphoneConnected
-        Layout.alignment: Qt.AlignVCenter
-        onScrollRequested: delta => audioService.stepVolume(delta)
-        onToggleMuteRequested: audioService.toggleMute()
-      }
-
-      BrightnessIcon {
-        percent: brightnessService.percent
-        Layout.alignment: Qt.AlignVCenter
-        color: Theme.foreground
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onWheel: event => {
-            var delta = event.angleDelta.y > 0 ? 5 : -5
-            brightnessService.stepPercent(delta)
-          }
-          onClicked: brightnessService.setPercent(brightnessService.percent > 50 ? 20 : 80)
-        }
       }
 
       VDiv {}
@@ -266,6 +252,7 @@ Item {
             anchors.centerIn: parent
             text: modelData?.id ?? ""
             color: modelData?.focused ? Theme.background : Theme.comment
+            font.family: Theme.fontFamily
             font.pixelSize: 11
             font.bold: modelData?.focused ?? false
             font.letterSpacing: 0.5
@@ -287,6 +274,7 @@ Item {
       Text {
         text: Hyprland.activeToplevel?.title ?? ""
         color: Theme.foreground
+        font.family: Theme.fontFamily
         font.pixelSize: 11
         elide: Text.ElideRight
         maximumLineCount: 1
@@ -295,7 +283,7 @@ Item {
 
       VDiv {}
 
-      // --- actions zone: health + notifications + calendar ---
+      // --- actions zone: health + notifications ---
       Rectangle {
         Layout.alignment: Qt.AlignVCenter
         height: 26
@@ -345,6 +333,7 @@ Item {
                 anchors.centerIn: parent
                 text: root.notificationLayer ? Math.min(root.notificationLayer.notificationCount, 9) : ""
                 color: Theme.foreground
+                font.family: Theme.fontFamily
                 font.pixelSize: 8
                 font.bold: true
               }
@@ -354,24 +343,6 @@ Item {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
               onClicked: root.toggleNotificationCenter()
-            }
-          }
-
-          Item {
-            width: 22
-            height: 22
-            Layout.alignment: Qt.AlignVCenter
-
-            Text {
-              anchors.centerIn: parent
-              text: "📅"
-              font.pixelSize: 11
-            }
-
-            MouseArea {
-              anchors.fill: parent
-              cursorShape: Qt.PointingHandCursor
-              onClicked: root.toggleCalendar()
             }
           }
         }
@@ -471,7 +442,7 @@ Item {
               ctx.rect(cx - 6, cy - 6, 12, 12)
               ctx.stroke()
 
-              ctx.font = "bold 9px sans-serif"
+              ctx.font = "bold 9px 'JetBrainsMono Nerd Font'"
               ctx.textAlign = "center"
               ctx.textBaseline = "middle"
               ctx.fillText(root.meterMode === "caps" ? "A" : "1", cx, cy + 0.5)
@@ -592,6 +563,7 @@ Item {
             }
             return Theme.yellow
           }
+          font.family: Theme.fontFamily
           font.pixelSize: 13
           font.bold: true
           font.letterSpacing: 0.5
@@ -636,7 +608,6 @@ Item {
       root.isHealthPanelOpen = false
     } else {
       if (root.notificationCenter) root.notificationCenter.close()
-      if (root.calendarPopup) root.calendarPopup.close()
       root.healthWindow.open()
       root.isHealthPanelOpen = true
       resetAutoClose()
@@ -647,19 +618,8 @@ Item {
     if (root.notificationCenter && root.notificationCenter.visible) {
       root.notificationCenter.close()
     } else {
-      if (root.calendarPopup) root.calendarPopup.close()
       if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
       if (root.notificationCenter) root.notificationCenter.toggle()
-    }
-  }
-
-  function toggleCalendar() {
-    if (root.calendarPopup && root.calendarPopup.visible) {
-      root.calendarPopup.close()
-    } else {
-      if (root.notificationCenter) root.notificationCenter.close()
-      if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
-      if (root.calendarPopup) root.calendarPopup.toggle()
     }
   }
 
@@ -700,6 +660,9 @@ Item {
     function triggerMeter(mode: string): void {
       root.onMeterActivity(mode)
     }
+    function toggleHealth(): void {
+      root.toggleHealthPanel()
+    }
   }
 
   Connections {
@@ -717,15 +680,4 @@ Item {
     function onCapsChanged() { root.onMeterActivity("caps") }
     function onNumChanged() { root.onMeterActivity("num") }
   }
-
-  function setupHealthBindings() {
-    if (root.healthWindow) {
-      root.healthWindow.batteryPower = Qt.binding(() => batteryService.power)
-      root.healthWindow.batteryCharging = Qt.binding(() => batteryService.charging)
-      root.healthWindow.batteryCapacity = Qt.binding(() => batteryService.capacity)
-    }
-  }
-
-  onHealthWindowChanged: root.setupHealthBindings()
-  Component.onCompleted: root.setupHealthBindings()
 }

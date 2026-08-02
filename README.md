@@ -107,14 +107,12 @@ island/
 ├── shell.qml              # Entry — PanelWindow + every floating layer + pill
 ├── config/
 │   ├── qmldir             # QML module definition (Theme singleton)
-│   └── Theme.qml          # Dracula palette, single source of truth
+│   └── Theme.qml          # Dracula palette + font/type scale, single source of truth
 ├── components/
 │   ├── EQBars.qml         # Animated equalizer bars
 │   ├── BatteryIcon.qml    # Canvas-drawn battery
-│   ├── BrightnessIcon.qml # Sun + meter (with slider thumb)
 │   ├── HealthIcon.qml     # Health panel toggle icon
-│   ├── NetworkIcon.qml    # WiFi / ethernet / disconnected
-│   └── VolumeIcon.qml     # Speaker/headphone + meter (with slider thumb)
+│   └── NetworkIcon.qml    # WiFi / ethernet / disconnected
 ├── services/
 │   ├── AudioService.qml   # Pipewire stream detect; volume/mute via wpctl
 │   ├── BatteryService.qml # Native UPower (no polling)
@@ -123,10 +121,10 @@ island/
 │   └── NetworkService.qml # Network readout
 └── modules/
     ├── IslandPill.qml     # The pill — idle / hover / meter states
-    ├── HealthPanel.qml    # CPU / GPU / RAM / FAN / NET / PWR monitor
+    ├── FloatingHealth.qml # Overlay window hosting the consolidated panel
+    ├── HealthPanel.qml    # 3-column panel: rings+calendar / sliders+tiles / battery+identity
     ├── NotificationLayer.qml # Banner stack w/ expiry
-    ├── NotificationCenter.qml # Full notification history
-    └── CalendarPopup.qml  # Calendar overlay
+    └── NotificationCenter.qml # Full notification history
 ```
 
 ---

@@ -43,11 +43,6 @@ PanelWindow {
     layer: notificationLayer
   }
 
-  CalendarPopup {
-    id: calendarPopup
-    screen: root.screen
-  }
-
   IslandPill {
     id: islandPill
     anchors.horizontalCenter: parent.horizontalCenter
@@ -56,6 +51,5 @@ PanelWindow {
     healthWindow: floatingHealth
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
-    calendarPopup: calendarPopup
   }
 }

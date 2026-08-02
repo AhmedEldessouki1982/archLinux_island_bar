@@ -128,6 +128,7 @@ PanelWindow {
             Text {
               text: model.appName !== "" ? model.appName : "Notification"
               color: Theme.comment
+              font.family: Theme.fontFamily
               font.pixelSize: 9
               font.bold: true
               font.letterSpacing: 0.5
@@ -135,6 +136,7 @@ PanelWindow {
             Text {
               text: model.summary
               color: Theme.foreground
+              font.family: Theme.fontFamily
               font.pixelSize: 12
               font.bold: true
               elide: Text.ElideRight
@@ -143,6 +145,7 @@ PanelWindow {
             Text {
               text: model.body
               color: Theme.comment
+              font.family: Theme.fontFamily
               font.pixelSize: 11
               wrapMode: Text.WordWrap
               elide: Text.ElideRight
@@ -163,6 +166,7 @@ PanelWindow {
               anchors.centerIn: parent
               text: "✕"
               color: Theme.comment
+              font.family: Theme.fontFamily
               font.pixelSize: 10
             }
 

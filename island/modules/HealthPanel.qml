@@ -37,8 +37,37 @@ Item {
   property int _lastTx: 0
   property string _iface: ""
 
-  readonly property real contentWidth: Math.max(370, infoGrid.implicitWidth + panelPadding * 2)
-  readonly property real contentHeight: infoGrid.implicitHeight + footerRow.implicitHeight + 37
+  // --- forwarded services (instantiated in FloatingHealth) ---
+  property var audioService: null
+  property var brightnessService: null
+  property var batteryService: null
+
+  onBatteryServiceChanged: {
+    if (root.batteryService) {
+      root.batteryCapacity = Qt.binding(() => root.batteryService.capacity)
+      root.batteryCharging = Qt.binding(() => root.batteryService.charging)
+      root.batteryPower = Qt.binding(() => root.batteryService.power)
+    }
+  }
+
+  // --- calendar state (merged from CalendarPopup) ---
+  property int year: new Date().getFullYear()
+  property int month: new Date().getMonth()
+
+  ListModel { id: gridModel }
+
+  // --- panel geometry ---
+  property int _colW1: 200
+  property int _colW2: 288
+  property int _colW3: 190
+  property int _colGap: 12
+  property int _colBlock: 194
+  property color cardColor: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
+  property color cardBorder: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.55)
+
+  readonly property real contentWidth: root.panelPadding * 2 + root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
+  readonly property real gridHeight: Math.ceil(gridModel.count / 7) * 28 - 2
+  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + ringRow.height + 10 + calCol.height)
 
   width: contentWidth
   height: contentHeight
@@ -60,6 +89,12 @@ Item {
     return Theme.foreground
   }
 
+  function ringColor(v) {
+    if (v >= 85) return Theme.red
+    if (v >= 60) return Theme.yellow
+    return Theme.green
+  }
+
   function loadTempColor(load, temp) {
     var lc = levelColor(load, 60, 80)
     var tc = levelColor(temp, 65, 80)
@@ -73,6 +108,94 @@ Item {
     if (pct <= 15) return Theme.red
     if (pct <= 30) return Theme.yellow
     return Theme.foreground
+  }
+
+  // --- fixed-width value formatting (monospace subtext keeps columns aligned) ---
+
+  function pad(s, w) {
+    var str = String(s)
+    while (str.length < w) str = " " + str
+    return str
+  }
+
+  function padRight(s, w) {
+    var str = String(s)
+    while (str.length < w) str += " "
+    return str
+  }
+
+  function loadTempText(load, temp, extra) {
+    var t = pad(isNaN(load) ? 0 : Math.round(load), 3) + "% \u00b7 " + pad(isNaN(temp) ? 0 : temp.toFixed(0), 2) + "\u00b0"
+    if (extra && extra.length > 0) t += " " + extra
+    return t
+  }
+
+  function gpuStatusShown() {
+    return root.gpuPowerStatus.length > 0
+      && root.gpuPowerStatus !== "active"
+      && root.gpuPowerStatus !== "unknown"
+      && root.gpuPowerStatus !== "unset"
+  }
+
+  function gpuExtra() {
+    var extra = ""
+    if (root.gpuMode.length > 0) extra += root.gpuMode
+    if (root.gpuStatusShown()) extra += " " + root.gpuPowerStatus
+    return extra
+  }
+
+  function ramText() {
+    return pad(root.formatRam(root.ramUsed), 6) + " / " + pad(root.formatRam(root.ramTotal), 6) + " [" + pad(isNaN(root.ramPercent) ? 0 : Math.round(root.ramPercent), 3) + "%]"
+  }
+
+  function fanText() {
+    return "C:" + pad(isNaN(root.cpuFanSpeed) ? 0 : Math.round(root.cpuFanSpeed), 4) + "  G:" + pad(isNaN(root.gpuFanSpeed) ? 0 : Math.round(root.gpuFanSpeed), 4)
+  }
+
+  function batText() {
+    if (root.batteryCharging) return pad(root.batteryPower.toFixed(0), 3) + "W"
+    return pad(root.batteryCapacity, 3) + "%"
+  }
+
+  function netText() {
+    return "\u2193 " + padRight(root.formatBytes(root.netRxRate), 9) + "   \u2191 " + padRight(root.formatBytes(root.netTxRate), 9)
+  }
+
+  // --- calendar navigation (merged from CalendarPopup) ---
+
+  function rebuild() {
+    gridModel.clear()
+    var first = new Date(root.year, root.month, 1)
+    var startDow = first.getDay()
+    var days = new Date(root.year, root.month + 1, 0).getDate()
+    var now = new Date()
+    for (var i = 0; i < startDow; i++)
+      gridModel.append({ label: "", isToday: false, isPast: false })
+    for (var d = 1; d <= days; d++) {
+      gridModel.append({
+        label: String(d),
+        isToday: d === now.getDate() && root.month === now.getMonth() && root.year === now.getFullYear(),
+        isPast: new Date(root.year, root.month, d) < new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      })
+    }
+  }
+
+  function prevMonth() {
+    root.month -= 1
+    if (root.month < 0) {
+      root.month = 11
+      root.year -= 1
+    }
+    root.rebuild()
+  }
+
+  function nextMonth() {
+    root.month += 1
+    if (root.month > 11) {
+      root.month = 0
+      root.year += 1
+    }
+    root.rebuild()
   }
 
   function start() {
@@ -119,6 +242,13 @@ Item {
     onTriggered: {
       gpuDataProc.running = true
     }
+  }
+
+  Timer {
+    interval: 60000
+    running: true
+    repeat: true
+    onTriggered: root.rebuild()
   }
 
   Process {
@@ -297,242 +427,536 @@ Item {
     NumberAnimation { duration: 100 }
   }
 
-  GridLayout {
-    id: infoGrid
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.top: parent.top
-    anchors.topMargin: root.panelPadding
-    columns: 2
-    columnSpacing: 16
-    rowSpacing: 6
+  Component.onCompleted: root.rebuild()
 
-    // --- CPU row ---
+  // --- three-column layout ---
+
+  ColumnLayout {
+    id: panelLayout
+    anchors.fill: parent
+    anchors.margins: root.panelPadding
+    spacing: 0
+
     RowLayout {
+      id: columnsRow
       Layout.fillWidth: true
-      spacing: 6
+      Layout.alignment: Qt.AlignTop
+      spacing: root._colGap
 
-      CpuIcon { Layout.alignment: Qt.AlignVCenter }
-
+      // ---------- LEFT: rings + calendar ----------
       ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
+        Layout.preferredWidth: root._colW1
+        Layout.alignment: Qt.AlignTop
+        spacing: 10
 
-        Text {
-          text: "CPU"
-          color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
-        }
-        Text {
-          text: (isNaN(root.cpuLoad) ? 0 : Math.round(root.cpuLoad)) + "%  " + (isNaN(root.cpuTemp) ? 0 : root.cpuTemp.toFixed(0)) + "°"
-          color: root.loadTempColor(root.cpuLoad, root.cpuTemp)
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
-        }
-      }
-    }
+        RowLayout {
+          id: ringRow
+          Layout.preferredWidth: root._colBlock
+          Layout.alignment: Qt.AlignHCenter
+          spacing: 10
 
-    // --- GPU row ---
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
-
-      GpuIcon { Layout.alignment: Qt.AlignVCenter }
-
-      ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
-          text: "GPU"
-          color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
-        }
-        Text {
-          text: {
-            var extra = ""
-            if (root.gpuMode.length > 0) extra += "  " + root.gpuMode
-            if (root.gpuPowerStatus.length > 0 && root.gpuPowerStatus !== "active") extra += " " + root.gpuPowerStatus
-            return (isNaN(root.gpuLoad) ? 0 : Math.round(root.gpuLoad)) + "%  " + (isNaN(root.gpuTemp) ? 0 : root.gpuTemp.toFixed(0)) + "°" + extra
+          MeterRing {
+            value: root.cpuLoad / 100
+            ringColor: root.ringColor(root.cpuLoad)
+            label: "CPU"
+            CpuIcon {}
           }
-          color: root.loadTempColor(root.gpuLoad, root.gpuTemp)
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
+
+          MeterRing {
+            value: root.ramPercent / 100
+            ringColor: root.ringColor(root.ramPercent)
+            label: "RAM"
+            RamIcon {}
+          }
+
+          MeterRing {
+            value: root.gpuLoad / 100
+            ringColor: root.ringColor(root.gpuLoad)
+            label: "GPU"
+            GpuIcon {}
+          }
+        }
+
+        ColumnLayout {
+          id: calCol
+          Layout.preferredWidth: root._colBlock
+          Layout.alignment: Qt.AlignHCenter
+          spacing: 4
+
+          Text {
+            id: calendarClock
+            text: Qt.formatDateTime(new Date(), "HH:mm")
+            color: Theme.accent
+            font.family: Theme.fontFamily
+            font.pixelSize: 14
+            font.bold: true
+            Layout.alignment: Qt.AlignHCenter
+
+            Timer {
+              interval: 1000
+              running: true
+              repeat: true
+              onTriggered: parent.text = Qt.formatDateTime(new Date(), "HH:mm")
+            }
+          }
+
+          RowLayout {
+            id: monthRow
+            Layout.fillWidth: true
+            spacing: 6
+
+            Text {
+              text: "\u25c0"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              Layout.alignment: Qt.AlignVCenter
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.prevMonth()
+              }
+            }
+
+            Text {
+              text: Qt.formatDate(new Date(root.year, root.month, 1), "MMMM yyyy")
+              color: Theme.foreground
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeTitle
+              font.bold: true
+              horizontalAlignment: Text.AlignHCenter
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
+            }
+
+            Text {
+              text: "\u25b6"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              Layout.alignment: Qt.AlignVCenter
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.nextMonth()
+              }
+            }
+          }
+
+          Grid {
+            id: weekdayGrid
+            Layout.alignment: Qt.AlignHCenter
+            columns: 7
+            spacing: 2
+
+            Repeater {
+              model: ["S", "M", "T", "W", "T", "F", "S"]
+
+              Text {
+                width: 26
+                height: 14
+                text: modelData
+                color: Theme.comment
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeLabel
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+              }
+            }
+          }
+
+          Grid {
+            id: dayGrid
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredHeight: Math.ceil(gridModel.count / 7) * 28 - 2
+            Layout.minimumHeight: Math.ceil(gridModel.count / 7) * 28 - 2
+            height: Math.ceil(gridModel.count / 7) * 28 - 2
+            columns: 7
+            spacing: 2
+
+            Repeater {
+              model: gridModel
+
+              Rectangle {
+                required property string label
+                required property bool isToday
+                required property bool isPast
+                width: 26
+                height: 26
+                radius: 13
+                color: isToday ? Theme.accent : "transparent"
+
+                Text {
+                  anchors.centerIn: parent
+                  text: parent.label
+                  color: isToday ? Theme.background
+                                 : (isPast ? Theme.comment : Theme.foreground)
+                  font.family: Theme.fontFamily
+                  font.pixelSize: isToday ? 12 : 11
+                  font.bold: isToday
+                }
+              }
+            }
+          }
         }
       }
-    }
 
-    // --- RAM row ---
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
-
-      RamIcon { Layout.alignment: Qt.AlignVCenter }
-
+      // ---------- MIDDLE: sliders + tiles ----------
       ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
+        Layout.preferredWidth: root._colW2
+        Layout.alignment: Qt.AlignTop
+        spacing: 8
 
         Text {
-          text: "RAM"
+          text: "CONTROLS"
           color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
+          font.family: Theme.fontFamily
+          font.pixelSize: Theme.fontSizeLabel
+          font.bold: true
+          font.letterSpacing: 1.6
         }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: 8
+
+          Item {
+            width: 16
+            height: 16
+            Layout.alignment: Qt.AlignVCenter
+
+            SpeakerIcon {
+              anchors.fill: parent
+              volume: audioService.volume
+              muted: audioService.muted
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: audioService.toggleMute()
+            }
+          }
+
+          SliderBar {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            minValue: 0
+            maxValue: 1
+            value: audioService.volume
+            fillColor: audioService.muted ? Theme.red : Theme.accent
+            onChanged: v => {
+              audioService.requestFastPoll()
+              audioService.setVolume(v)
+            }
+          }
+
+          Text {
+            text: Math.round(audioService.volume * 100) + "%"
+            color: audioService.muted ? Theme.red : Theme.accent
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSizeValue
+            font.bold: true
+            horizontalAlignment: Text.AlignRight
+            Layout.preferredWidth: 36
+            Layout.alignment: Qt.AlignVCenter
+          }
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: 8
+
+          Item {
+            width: 16
+            height: 16
+            Layout.alignment: Qt.AlignVCenter
+
+            SunIcon {
+              anchors.fill: parent
+              percent: brightnessService.percent
+            }
+          }
+
+          SliderBar {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            minValue: 0
+            maxValue: 100
+            value: brightnessService.percent
+            fillColor: brightnessService.percent > 20 ? Theme.yellow : Theme.red
+            onChanged: v => {
+              brightnessService.requestFastPoll()
+              brightnessService.setPercent(v)
+            }
+          }
+
+          Text {
+            text: Math.round(brightnessService.percent) + "%"
+            color: Theme.yellow
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSizeValue
+            font.bold: true
+            horizontalAlignment: Text.AlignRight
+            Layout.preferredWidth: 36
+            Layout.alignment: Qt.AlignVCenter
+          }
+        }
+
         Text {
-          text: formatRam(root.ramUsed) + " / " + formatRam(root.ramTotal) + "  [" + (isNaN(root.ramPercent) ? 0 : Math.round(root.ramPercent)) + "%]"
-          color: root.levelColor(root.ramPercent, 70, 85)
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
+          text: "SYSTEM"
+          color: Theme.comment
+          font.family: Theme.fontFamily
+          font.pixelSize: Theme.fontSizeLabel
+          font.bold: true
+          font.letterSpacing: 1.6
+          anchors.topMargin: 2
+        }
+
+        GridLayout {
+          Layout.fillWidth: true
+          columns: 2
+          columnSpacing: 6
+          rowSpacing: 5
+
+          StatTile {
+            title: "CPU"
+            valueColor: root.loadTempColor(root.cpuLoad, root.cpuTemp)
+            valueText: root.loadTempText(root.cpuLoad, root.cpuTemp, "")
+            CpuIcon {}
+          }
+
+          StatTile {
+            title: "GPU"
+            valueColor: root.loadTempColor(root.gpuLoad, root.gpuTemp)
+            valueText: root.loadTempText(root.gpuLoad, root.gpuTemp, root.gpuExtra())
+            valueSize: 9
+            GpuIcon {}
+          }
+
+          StatTile {
+            title: "FAN"
+            valueText: root.fanText()
+            FanIcon {}
+          }
+
+          StatTile {
+            Layout.columnSpan: 2
+            Layout.fillWidth: true
+            title: "NET"
+            valueText: root.netText()
+            NetIcon {}
+          }
         }
       }
-    }
 
-    // --- FAN row ---
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
-
-      FanIcon { Layout.alignment: Qt.AlignVCenter }
-
+      // ---------- RIGHT: battery / power / gpu / identity ----------
       ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
+        Layout.preferredWidth: root._colW3
+        Layout.alignment: Qt.AlignTop
+        spacing: 8
 
-        Text {
-          text: "FAN"
-          color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
+        Rectangle {
+          id: identityCard
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 44
+
+          ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 3
+
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: 6
+
+              TuxIcon { Layout.alignment: Qt.AlignVCenter }
+
+              Text {
+                text: root.userName + "@" + root.hostName
+                color: Theme.foreground
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeTitle
+                font.bold: true
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+              }
+            }
+
+            Text {
+              text: root.kernelVersion
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+            }
+          }
         }
-        Text {
-          text: "C:" + (isNaN(root.cpuFanSpeed) ? 0 : root.cpuFanSpeed.toFixed(0)) + "  G:" + (isNaN(root.gpuFanSpeed) ? 0 : root.gpuFanSpeed.toFixed(0))
-          color: Theme.foreground
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
+
+        Rectangle {
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 62
+
+          ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 3
+
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: 6
+
+              BatIcon { Layout.alignment: Qt.AlignVCenter }
+
+              Text {
+                text: root.batteryCharging ? "CHARGING" : "BATTERY"
+                color: Theme.comment
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeLabel
+                font.bold: true
+                font.letterSpacing: 1.2
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+              }
+            }
+
+            RowLayout {
+              Layout.fillWidth: true
+
+              Text {
+                text: root.batteryCapacity + "%"
+                color: root.batteryColor(root.batteryCapacity, root.batteryCharging)
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeHero
+                font.bold: true
+              }
+
+              Item { Layout.fillWidth: true }
+
+              Text {
+                text: root.batteryPower.toFixed(0) + " W"
+                color: Theme.comment
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeLabel
+                Layout.alignment: Qt.AlignVCenter
+              }
+            }
+
+            Rectangle {
+              Layout.fillWidth: true
+              height: 4
+              radius: 2
+              color: Theme.selection
+
+              Rectangle {
+                width: parent.width * Math.max(0, Math.min(1, root.batteryCapacity / 100))
+                height: parent.height
+                radius: parent.radius
+                color: root.batteryColor(root.batteryCapacity, root.batteryCharging)
+              }
+            }
+          }
+        }
+
+        Rectangle {
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 30
+
+          RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 6
+
+            PwrIcon { Layout.alignment: Qt.AlignVCenter }
+
+            Text {
+              text: "PROFILE"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              font.bold: true
+              font.letterSpacing: 1.2
+              Layout.alignment: Qt.AlignVCenter
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+              text: root.powerProfile.length > 0 ? root.powerProfile : "--"
+              color: root.powerProfile === "Performance" ? Theme.green : root.powerProfile === "Quiet" ? Theme.cyan : Theme.foreground
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeValue
+              font.bold: true
+              Layout.alignment: Qt.AlignVCenter
+            }
+          }
+        }
+
+        Rectangle {
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 30
+
+          RowLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 6
+
+            GpuIcon { Layout.alignment: Qt.AlignVCenter }
+
+            Text {
+              text: "GPU"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              font.bold: true
+              font.letterSpacing: 1.2
+              Layout.alignment: Qt.AlignVCenter
+            }
+
+            Text {
+              text: {
+                var t = root.gpuMode.length > 0 ? root.gpuMode : "--"
+                if (root.gpuStatusShown())
+                  t += " \u00b7 " + root.gpuPowerStatus
+                return t
+              }
+              color: Theme.pink
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeValue
+              font.bold: true
+              elide: Text.ElideRight
+              horizontalAlignment: Text.AlignRight
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
+            }
+          }
         }
       }
-    }
-
-    // --- BAT row ---
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
-
-      BatIcon { Layout.alignment: Qt.AlignVCenter }
-
-      ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
-          text: root.batteryCharging ? "CHR" : "BAT"
-          color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
-        }
-        Text {
-          text: root.batteryCharging ? root.batteryPower.toFixed(0) + "W" : root.batteryCapacity + "%"
-          color: root.batteryColor(root.batteryCapacity, root.batteryCharging)
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
-        }
-      }
-    }
-
-    // --- PWR row ---
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
-
-      PwrIcon { Layout.alignment: Qt.AlignVCenter }
-
-      ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
-          text: "PWR"
-          color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
-        }
-        Text {
-          text: root.powerProfile
-          color: root.powerProfile === "Performance" ? Theme.green : root.powerProfile === "Quiet" ? Theme.blue : Theme.foreground
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
-        }
-      }
-    }
-
-    // --- NET row (spans 2 columns) ---
-    RowLayout {
-      Layout.columnSpan: 2
-      Layout.fillWidth: true
-      spacing: 6
-
-      NetIcon { Layout.alignment: Qt.AlignVCenter }
-
-      ColumnLayout {
-        spacing: 1
-        Layout.alignment: Qt.AlignVCenter
-
-        Text {
-          text: "NET"
-          color: Theme.comment
-          font.pixelSize: 9
-          font.letterSpacing: 0.5
-        }
-        Text {
-          text: "\u2193 " + formatBytes(root.netRxRate) + "  \u2191 " + formatBytes(root.netTxRate)
-          color: Theme.foreground
-          font.pixelSize: 12
-          font.letterSpacing: 0.3
-        }
-      }
-    }
-  }
-
-  Rectangle {
-    id: separatorLine
-    width: parent.width - root.panelPadding * 2
-    height: 1
-    color: Theme.selection
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.top: infoGrid.bottom
-    anchors.topMargin: 8
-  }
-
-  RowLayout {
-    id: footerRow
-    anchors.left: parent.left
-    anchors.leftMargin: root.panelPadding
-    anchors.right: parent.right
-    anchors.rightMargin: root.panelPadding
-    anchors.top: separatorLine.bottom
-    anchors.topMargin: 6
-    spacing: 6
-
-    TuxIcon { Layout.alignment: Qt.AlignVCenter }
-
-    Text {
-      text: root.kernelVersion
-      color: Theme.comment
-      font.pixelSize: 9
-      font.family: "monospace"
-      Layout.alignment: Qt.AlignVCenter
-    }
-
-    Item { Layout.fillWidth: true }
-
-    Text {
-      text: root.userName + "@" + root.hostName
-      color: Theme.comment
-      font.pixelSize: 9
-      font.family: "monospace"
-      Layout.alignment: Qt.AlignVCenter
     }
   }
 
@@ -640,7 +1064,6 @@ Item {
     width: 16; height: 16
     onPaint: {
       var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
       ctx.strokeStyle = Theme.green; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
       ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(5, 8); ctx.lineTo(8, 8); ctx.lineTo(6, 15)
       ctx.stroke()
@@ -686,5 +1109,237 @@ Item {
       ctx.beginPath(); ctx.arc(11, 14.5, 1.8, 0, Math.PI * 2); ctx.fill()
     }
     Component.onCompleted: requestPaint()
+  }
+
+  component SpeakerIcon: Canvas {
+    id: sicon
+    width: 16; height: 16
+    property real volume: 0
+    property bool muted: false
+    onVolumeChanged: requestPaint()
+    onMutedChanged: requestPaint()
+    onPaint: {
+      var ctx = getContext("2d")
+      ctx.clearRect(0, 0, width, height)
+      var c = 8
+      ctx.fillStyle = sicon.muted ? Theme.red : Theme.accent
+      ctx.strokeStyle = sicon.muted ? Theme.red : Theme.accent
+      ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.beginPath(); ctx.rect(c - 5, c - 4, 4, 8); ctx.fill()
+      ctx.beginPath(); ctx.moveTo(c - 1, c - 5); ctx.lineTo(c + 4, c - 9); ctx.lineTo(c + 4, c + 9); ctx.lineTo(c - 1, c + 5); ctx.closePath(); ctx.fill()
+      if (!sicon.muted && sicon.volume > 0) {
+        ctx.beginPath(); ctx.arc(c + 6, c, 3, 5.8, 6.6, false); ctx.stroke()
+        if (sicon.volume > 0.33) { ctx.beginPath(); ctx.arc(c + 6, c, 5, 5.8, 6.6, false); ctx.stroke() }
+        if (sicon.volume > 0.66) { ctx.beginPath(); ctx.arc(c + 6, c, 7, 5.8, 6.6, false); ctx.stroke() }
+      }
+    }
+    Component.onCompleted: requestPaint()
+  }
+
+  component SunIcon: Canvas {
+    id: sun
+    width: 16; height: 16
+    property real percent: 100
+    onPercentChanged: requestPaint()
+    onPaint: {
+      var ctx = getContext("2d")
+      ctx.clearRect(0, 0, width, height)
+      var c = 8
+      ctx.strokeStyle = Theme.yellow
+      ctx.lineWidth = 1.5; ctx.lineCap = "round"
+      ctx.beginPath(); ctx.arc(c, c, 3.5, 0, Math.PI * 2); ctx.stroke()
+      ctx.lineWidth = 2
+      for (var i = 0; i < 4; i++) {
+        var a = i * Math.PI / 2
+        ctx.beginPath()
+        ctx.moveTo(c + Math.cos(a) * 5.2, c + Math.sin(a) * 5.2)
+        ctx.lineTo(c + Math.cos(a) * 7.5, c + Math.sin(a) * 7.5)
+        ctx.stroke()
+      }
+    }
+    Component.onCompleted: requestPaint()
+  }
+
+  // --- animated circular progress ring ---
+
+  component MeterRing: Item {
+    id: ring
+    default property alias ringContent: iconSlot.data
+    property real value: 0
+    property color ringColor: Theme.green
+    property string label: ""
+    property real arc: 0
+
+    implicitWidth: 58
+    implicitHeight: 92
+
+    Behavior on arc {
+      NumberAnimation { duration: 450; easing: Easing.OutCubic }
+    }
+
+    onValueChanged: ring.arc = Math.max(0, Math.min(1, ring.value))
+
+    Canvas {
+      id: ringCanvas
+      width: 52
+      height: 52
+      anchors.top: parent.top
+      anchors.horizontalCenter: parent.horizontalCenter
+
+      onPaint: {
+        var ctx = getContext("2d")
+        ctx.clearRect(0, 0, width, height)
+        var c = 26, r = 20, lw = 4.5
+        ctx.lineCap = "round"
+        ctx.lineWidth = lw
+        ctx.strokeStyle = Qt.rgba(Theme.comment.r, Theme.comment.g, Theme.comment.b, 0.5)
+        ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.stroke()
+        if (ring.arc > 0.005) {
+          ctx.strokeStyle = ring.ringColor
+          ctx.beginPath()
+          ctx.arc(c, c, r, -Math.PI / 2, -Math.PI / 2 + ring.arc * Math.PI * 2, false)
+          ctx.stroke()
+        }
+      }
+
+      Connections {
+        target: ring
+        function onArcChanged() { ringCanvas.requestPaint() }
+      }
+    }
+
+    Item {
+      id: iconSlot
+      width: 16
+      height: 16
+      anchors.centerIn: ringCanvas
+    }
+
+    Text {
+      id: pctText
+      text: Math.round(ring.value * 100) + "%"
+      color: ring.ringColor
+      font.family: Theme.fontFamily
+      font.pixelSize: Theme.fontSizeValue
+      font.bold: true
+      anchors.top: ringCanvas.bottom
+      anchors.topMargin: 6
+      anchors.horizontalCenter: parent.horizontalCenter
+    }
+
+    Text {
+      text: ring.label
+      color: Theme.comment
+      font.family: Theme.fontFamily
+      font.pixelSize: Theme.fontSizeLabel
+      font.bold: true
+      font.letterSpacing: 1.2
+      anchors.top: pctText.bottom
+      anchors.topMargin: 3
+      anchors.horizontalCenter: parent.horizontalCenter
+    }
+  }
+
+  // --- draggable slider bar ---
+
+  component SliderBar: Rectangle {
+    id: sbar
+    property real minValue: 0
+    property real maxValue: 1
+    property real value: 0
+    property color fillColor: Theme.accent
+    signal changed(real v)
+
+    implicitHeight: 5
+    radius: 2.5
+    color: Theme.selection
+
+    Rectangle {
+      id: sbarFill
+      height: parent.height
+      radius: parent.radius
+      color: sbar.fillColor
+      width: sbar.maxValue > sbar.minValue
+        ? Math.max(0, Math.min(parent.width, parent.width * (sbar.value - sbar.minValue) / (sbar.maxValue - sbar.minValue)))
+        : 0
+
+      Behavior on width {
+        NumberAnimation { duration: 110; easing: Easing.OutQuad }
+      }
+    }
+
+    MouseArea {
+      anchors.fill: parent
+      onPressed: mouse => sbar._set(mouse.x)
+      onPositionChanged: mouse => { if (pressed) sbar._set(mouse.x) }
+    }
+
+    function _set(x) {
+      if (sbar.width <= 0) return
+      var ratio = Math.max(0, Math.min(1, x / sbar.width))
+      var v = sbar.minValue + ratio * (sbar.maxValue - sbar.minValue)
+      if (Math.abs(v - sbar.value) > 0.001)
+        sbar.changed(v)
+    }
+  }
+
+  // --- stat tile (icon + bold title + mono subtext) ---
+
+  component StatTile: Rectangle {
+    id: tile
+    default property alias tileContent: iconSlot.data
+    property string title: ""
+    property color valueColor: Theme.foreground
+    property string valueText: ""
+    property int valueSize: 10
+
+    radius: 8
+    color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
+    border.width: 1
+    border.color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.55)
+    implicitHeight: 34
+    Layout.preferredWidth: 140
+    Layout.fillWidth: true
+
+    RowLayout {
+      id: contentArea
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.leftMargin: 9
+      anchors.rightMargin: 9
+      anchors.verticalCenter: parent.verticalCenter
+      spacing: 7
+
+      Item {
+        id: iconSlot
+        width: 16
+        height: 16
+        Layout.alignment: Qt.AlignVCenter
+      }
+
+      ColumnLayout {
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
+        spacing: 1
+
+        Text {
+          text: tile.title
+          color: Theme.foreground
+          font.family: Theme.fontFamily
+          font.pixelSize: Theme.fontSizeTitle
+          font.bold: true
+          font.letterSpacing: 0.6
+        }
+
+        Text {
+          text: tile.valueText
+          color: tile.valueColor
+          font.family: Theme.fontFamily
+          font.pixelSize: tile.valueSize
+          elide: Text.ElideRight
+          Layout.fillWidth: true
+        }
+      }
+    }
   }
 }

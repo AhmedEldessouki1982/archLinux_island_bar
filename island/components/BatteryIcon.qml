@@ -79,7 +79,7 @@ Canvas {
 
     // percentage text
     ctx.fillStyle = root.fillColor
-    ctx.font = "bold 12px monospace"
+    ctx.font = "bold 12px 'JetBrainsMono Nerd Font'"
     ctx.textAlign = "left"
     ctx.textBaseline = "middle"
     ctx.fillText(Math.round(root.percent) + "%", bx + bw + 8, cy)

@@ -13,4 +13,10 @@ QtObject {
   property color pink: "#ff79c6"
   property color red: "#ff5555"
   property color yellow: "#f1fa8c"
+
+  property string fontFamily: "JetBrainsMono Nerd Font"
+  property int fontSizeLabel: 12
+  property int fontSizeTitle: 15
+  property int fontSizeValue: 14
+  property int fontSizeHero: 20
 }

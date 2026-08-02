@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 import "../config"
+import "../services"
 
 PanelWindow {
   id: root
@@ -10,8 +11,10 @@ PanelWindow {
   exclusionMode: ExclusionMode.Ignore
   aboveWindows: true
 
-  property int hpW: 340
-  property int hpH: 205
+  property int hpW: 0
+  property int hpH: 0
+
+  signal closed()
 
   WlrLayershell.layer: WlrLayer.Overlay
 
@@ -27,9 +30,14 @@ PanelWindow {
   }
 
   property bool panelActive: false
-  property real batteryPower: 0
-  property bool batteryCharging: false
-  property int batteryCapacity: 0
+
+  AudioService { id: _audioService }
+  BrightnessService { id: _brightnessService }
+  BatteryService { id: _batteryService }
+
+  property var audioService: _audioService
+  property var brightnessService: _brightnessService
+  property var batteryService: _batteryService
 
   onVisibleChanged: {
     if (root.visible) autoCloseTimer.restart()
@@ -70,15 +78,61 @@ PanelWindow {
         id: healthPanel
         anchors.fill: parent
         active: root.panelActive
-        batteryPower: root.batteryPower
-        batteryCharging: root.batteryCharging
-        batteryCapacity: root.batteryCapacity
+        audioService: root.audioService
+        brightnessService: root.brightnessService
+        batteryService: root.batteryService
 
         Component.onCompleted: {
-          root.hpW = healthPanel.contentWidth + 24
-          root.hpH = healthPanel.contentHeight
+          root.hpW = Qt.binding(() => healthPanel.contentWidth + 24)
+          root.hpH = Qt.binding(() => healthPanel.contentHeight)
         }
       }
+    }
+
+    // --- corner dots (cosmetic "hardware panel" accent) ---
+
+    Rectangle {
+      width: 5
+      height: 5
+      radius: 2.5
+      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.topMargin: 7
+      anchors.leftMargin: 9
+    }
+
+    Rectangle {
+      width: 5
+      height: 5
+      radius: 2.5
+      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.topMargin: 7
+      anchors.rightMargin: 9
+    }
+
+    Rectangle {
+      width: 5
+      height: 5
+      radius: 2.5
+      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      anchors.bottomMargin: 7
+      anchors.leftMargin: 9
+    }
+
+    Rectangle {
+      width: 5
+      height: 5
+      radius: 2.5
+      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      anchors.bottomMargin: 7
+      anchors.rightMargin: 9
     }
   }
 
@@ -95,5 +149,6 @@ PanelWindow {
     healthPanel.stop()
     root.panelActive = false
     root.visible = false
+    root.closed()
   }
 }

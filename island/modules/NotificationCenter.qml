@@ -68,6 +68,7 @@ PanelWindow {
         Text {
           text: "Notifications"
           color: Theme.foreground
+          font.family: Theme.fontFamily
           font.pixelSize: 12
           font.bold: true
           font.letterSpacing: 0.5
@@ -78,6 +79,7 @@ PanelWindow {
         Text {
           text: "Clear all"
           color: Theme.red
+          font.family: Theme.fontFamily
           font.pixelSize: 10
           font.bold: true
 
@@ -129,6 +131,7 @@ PanelWindow {
               Text {
                 text: model.summary
                 color: Theme.foreground
+                font.family: Theme.fontFamily
                 font.pixelSize: 11
                 font.bold: true
                 elide: Text.ElideRight
@@ -137,6 +140,7 @@ PanelWindow {
               Text {
                 text: model.body
                 color: Theme.comment
+                font.family: Theme.fontFamily
                 font.pixelSize: 10
                 elide: Text.ElideRight
                 maximumLineCount: 2
@@ -148,6 +152,7 @@ PanelWindow {
             Text {
               text: model.appName
               color: Theme.comment
+              font.family: Theme.fontFamily
               font.pixelSize: 9
               Layout.alignment: Qt.AlignTop
             }
@@ -174,6 +179,7 @@ PanelWindow {
             anchors.centerIn: parent
             text: "No notifications"
             color: Theme.comment
+            font.family: Theme.fontFamily
             font.pixelSize: 11
           }
         }
