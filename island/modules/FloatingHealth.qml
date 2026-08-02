@@ -75,7 +75,7 @@ PanelWindow {
         batteryCapacity: root.batteryCapacity
 
         Component.onCompleted: {
-          root.hpW = healthPanel.contentWidth
+          root.hpW = healthPanel.contentWidth + 24
           root.hpH = healthPanel.contentHeight
         }
       }

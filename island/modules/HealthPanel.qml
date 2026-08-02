@@ -31,12 +31,14 @@ Item {
   property string userName: ""
   property string hostName: ""
 
+  property int panelPadding: 14
+
   property int _lastRx: 0
   property int _lastTx: 0
   property string _iface: ""
 
-  readonly property real contentWidth: Math.max(370, infoGrid.implicitWidth + 20)
-  readonly property real contentHeight: infoGrid.implicitHeight + footerRow.implicitHeight + 33
+  readonly property real contentWidth: Math.max(370, infoGrid.implicitWidth + panelPadding * 2)
+  readonly property real contentHeight: infoGrid.implicitHeight + footerRow.implicitHeight + 37
 
   width: contentWidth
   height: contentHeight
@@ -297,10 +299,9 @@ Item {
 
   GridLayout {
     id: infoGrid
+    anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
-    anchors.left: parent.left
-    anchors.topMargin: 10
-    anchors.leftMargin: 10
+    anchors.topMargin: root.panelPadding
     columns: 2
     columnSpacing: 16
     rowSpacing: 6
@@ -496,7 +497,7 @@ Item {
 
   Rectangle {
     id: separatorLine
-    width: parent.width - 20
+    width: parent.width - root.panelPadding * 2
     height: 1
     color: Theme.selection
     anchors.horizontalCenter: parent.horizontalCenter
@@ -507,9 +508,9 @@ Item {
   RowLayout {
     id: footerRow
     anchors.left: parent.left
-    anchors.leftMargin: 10
+    anchors.leftMargin: root.panelPadding
     anchors.right: parent.right
-    anchors.rightMargin: 10
+    anchors.rightMargin: root.panelPadding
     anchors.top: separatorLine.bottom
     anchors.topMargin: 6
     spacing: 6
