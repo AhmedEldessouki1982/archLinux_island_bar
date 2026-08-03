@@ -422,7 +422,7 @@ Item {
   visible: opacity > 0
 
   Behavior on opacity {
-    NumberAnimation { duration: 100 }
+    NumberAnimation { duration: Theme.animDurationFast }
   }
 
   Component.onCompleted: root.rebuild()
@@ -1192,7 +1192,7 @@ Item {
     implicitHeight: 92
 
     Behavior on arc {
-      NumberAnimation { duration: 450; easing: Easing.OutCubic }
+      NumberAnimation { duration: Theme.animDurationSlow; easing: Easing.OutCubic }
     }
 
     onValueChanged: ring.arc = Math.max(0, Math.min(1, ring.value))
@@ -1284,7 +1284,7 @@ Item {
         : 0
 
       Behavior on width {
-        NumberAnimation { duration: 110; easing: Easing.OutQuad }
+        NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
       }
     }
 

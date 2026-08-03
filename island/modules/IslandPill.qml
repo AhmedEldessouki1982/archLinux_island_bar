@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -29,6 +30,18 @@ Item {
   width: parent.width
   height: root.pillHeight
 
+  DropShadow {
+    id: pillShadow
+    anchors.fill: pill
+    source: pill
+    radius: 16
+    samples: 24
+    horizontalOffset: 0
+    verticalOffset: 4
+    color: Qt.rgba(0, 0, 0, 0.4)
+    transparentBorder: true
+  }
+
   Rectangle {
     id: pill
     anchors.horizontalCenter: parent.horizontalCenter
@@ -43,15 +56,17 @@ Item {
 
     Behavior on width {
       NumberAnimation {
-        duration: 300
-        easing: Easing.OutCubic
+        duration: Theme.animDurationSlow
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.3
       }
     }
 
     Behavior on radius {
       NumberAnimation {
-        duration: 300
-        easing: Easing.OutCubic
+        duration: Theme.animDurationSlow
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.3
       }
     }
 
@@ -92,7 +107,7 @@ Item {
       clip: true
 
       Behavior on opacity {
-        NumberAnimation { duration: 150; easing: Easing.OutQuad }
+        NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
       }
 
       EQBars {
@@ -204,7 +219,7 @@ Item {
       clip: true
 
       Behavior on opacity {
-        NumberAnimation { duration: 200; easing: Easing.OutQuad }
+        NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
       }
 
       NetworkIcon {
@@ -235,23 +250,16 @@ Item {
         model: Hyprland.workspaces
 
         Item {
-          width: txt.implicitWidth + (modelData?.focused ? 14 : 6)
+          width: txt.implicitWidth + 6
           height: 20
 
           required property var modelData
-
-          Rectangle {
-            anchors.fill: parent
-            radius: height / 2
-            color: Theme.accent
-            visible: modelData?.focused ?? false
-          }
 
           Text {
             id: txt
             anchors.centerIn: parent
             text: modelData?.id ?? ""
-            color: modelData?.focused ? Theme.background : Theme.comment
+            color: modelData?.focused ? Theme.yellow : Theme.comment
             font.family: Theme.fontFamily
             font.pixelSize: 11
             font.bold: modelData?.focused ?? false
@@ -370,7 +378,7 @@ Item {
       clip: false
 
       Behavior on opacity {
-        NumberAnimation { duration: 200; easing: Easing.OutQuad }
+        NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
       }
 
       Rectangle {
@@ -544,7 +552,7 @@ Item {
             }
 
             Behavior on width {
-              NumberAnimation { duration: 100; easing: Easing.OutQuad }
+              NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
             }
           }
         }
@@ -572,6 +580,41 @@ Item {
           Layout.alignment: Qt.AlignVCenter
           Layout.minimumWidth: 38
         }
+      }
+    }
+
+    Canvas {
+      id: pillBorder
+      anchors.fill: parent
+      antialiasing: true
+      property real boundRadius: parent.radius
+      onBoundRadiusChanged: requestPaint()
+      onWidthChanged: requestPaint()
+      onHeightChanged: requestPaint()
+      onPaint: {
+        var ctx = getContext("2d")
+        ctx.clearRect(0, 0, width, height)
+        var g = ctx.createLinearGradient(0, 0, width, height)
+        g.addColorStop(0, Theme.borderA)
+        g.addColorStop(1, Theme.borderB)
+        ctx.strokeStyle = g
+        ctx.lineWidth = 1.5
+        ctx.lineCap = "round"
+        var x = 0.75, y = 0.75
+        var w = width - 1.5, h = height - 1.5
+        var r = Math.min(parent.radius, w / 2, h / 2)
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.lineTo(x + w - r, y)
+        ctx.arcTo(x + w, y, x + w, y + r, r)
+        ctx.lineTo(x + w, y + h - r)
+        ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+        ctx.lineTo(x + r, y + h)
+        ctx.arcTo(x, y + h, x, y + h - r, r)
+        ctx.lineTo(x, y + r)
+        ctx.arcTo(x, y, x + r, y, r)
+        ctx.closePath()
+        ctx.stroke()
       }
     }
 

@@ -11,7 +11,7 @@ PanelWindow {
   color: "transparent"
   exclusionMode: ExclusionMode.Normal
   aboveWindows: true
-  implicitHeight: 38
+  implicitHeight: 60
   exclusiveZone: 38
 
   screen: {
