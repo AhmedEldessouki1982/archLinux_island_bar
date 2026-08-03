@@ -141,7 +141,7 @@ Item {
         text: Qt.formatDateTime(new Date(), "dd MMM yyyy")
         color: Theme.yellow
         font.family: Theme.fontFamily
-        font.pixelSize: 11
+        font.pixelSize: 13
         font.bold: true
       }
 
@@ -387,6 +387,7 @@ Item {
 
         Canvas {
           id: meterIcon
+          antialiasing: true
           width: 22
           height: 22
           Layout.alignment: Qt.AlignVCenter
@@ -404,7 +405,7 @@ Item {
               var vol = audioService.volume
               ctx.strokeStyle = muted ? Theme.red : Theme.accent
               ctx.fillStyle = ctx.strokeStyle
-              ctx.lineWidth = 2
+              ctx.lineWidth = Theme.iconLineWidth
 
               ctx.beginPath()
               ctx.rect(cx - 4, cy - 4, 3, 8)
@@ -437,7 +438,7 @@ Item {
               var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
               ctx.strokeStyle = lit ? Theme.green : Theme.foreground
               ctx.fillStyle = ctx.strokeStyle
-              ctx.lineWidth = 2
+              ctx.lineWidth = Theme.iconLineWidth
 
               ctx.beginPath()
               ctx.rect(cx - 6, cy - 6, 12, 12)
@@ -462,7 +463,7 @@ Item {
               ctx.globalAlpha = 0.35 + 0.65 * ratio
 
               var coreR = 3 + 2 * ratio
-              ctx.lineWidth = 2
+              ctx.lineWidth = Theme.iconLineWidth
               ctx.beginPath()
               ctx.arc(cx, cy, coreR, 0, Math.PI * 2)
               ctx.stroke()
@@ -472,7 +473,7 @@ Item {
               var inner = coreR + 1
               for (var i = 0; i < rayCount; i++) {
                 var a = i * Math.PI * 2 / rayCount - Math.PI / 2
-                ctx.lineWidth = 1.8
+                ctx.lineWidth = Theme.iconLineWidth
                 ctx.beginPath()
                 ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner)
                 ctx.lineTo(cx + Math.cos(a) * (inner + rayLen), cy + Math.sin(a) * (inner + rayLen))

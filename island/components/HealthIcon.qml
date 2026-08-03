@@ -3,8 +3,9 @@ import "../config"
 
 Canvas {
   id: root
-  width: 16
-  height: 16
+  antialiasing: true
+  width: Theme.iconSize
+  height: Theme.iconSize
 
   property color iconColor: Theme.foreground
 
@@ -27,7 +28,7 @@ Canvas {
     ctx.globalAlpha = 1.0
 
     ctx.strokeStyle = root.iconColor
-    ctx.lineWidth = 1.5
+    ctx.lineWidth = Theme.iconLineWidth
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
     ctx.stroke()

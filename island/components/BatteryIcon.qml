@@ -3,8 +3,9 @@ import "../config"
 
 Canvas {
   id: root
+  antialiasing: true
   width: 56
-  height: 16
+  height: Theme.iconSize
 
   property int percent: 100
   property bool charging: false
@@ -24,7 +25,7 @@ Canvas {
 
     ctx.strokeStyle = root.fillColor
     ctx.fillStyle = root.fillColor
-    ctx.lineWidth = 1.2
+    ctx.lineWidth = Theme.iconLineWidth
 
     // nub on right
     ctx.beginPath()

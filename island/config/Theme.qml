@@ -19,4 +19,7 @@ QtObject {
   property int fontSizeTitle: 15
   property int fontSizeValue: 14
   property int fontSizeHero: 20
+
+  property real iconLineWidth: 1.5
+  property int iconSize: 16
 }

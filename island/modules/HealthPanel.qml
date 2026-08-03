@@ -737,6 +737,13 @@ Item {
           }
 
           StatTile {
+            title: "RAM"
+            valueColor: root.ringColor(root.ramPercent)
+            valueText: (root.ramUsed / (1024*1024*1024)).toFixed(1) + " / " + (root.ramTotal / (1024*1024*1024)).toFixed(1) + " GB"
+            RamIcon {}
+          }
+
+          StatTile {
             title: "FAN"
             valueText: root.fanText()
             FanIcon {}
@@ -966,11 +973,12 @@ Item {
   // --- Canvas Icons (Lucide-style) ---
 
   component CpuIcon: Canvas {
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.accent; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.strokeStyle = Theme.accent; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
       ctx.beginPath(); ctx.rect(3, 3, 10, 10); ctx.stroke()
       ctx.beginPath(); ctx.rect(5.5, 5.5, 5, 5); ctx.stroke()
       for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.rect(5 + i * 3, 0, 2, 3); ctx.fill() }
@@ -980,11 +988,12 @@ Item {
   }
 
   component GpuIcon: Canvas {
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.pink; ctx.fillStyle = Theme.pink; ctx.lineWidth = 1.5; ctx.lineCap = "round"
+      ctx.strokeStyle = Theme.pink; ctx.fillStyle = Theme.pink; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
       ctx.beginPath(); ctx.rect(3, 3, 10, 10); ctx.stroke()
       ctx.beginPath(); ctx.rect(5.5, 5.5, 5, 5); ctx.stroke()
       for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.rect(0, 5 + i * 3, 2, 2); ctx.fill() }
@@ -994,11 +1003,11 @@ Item {
   }
 
   component RamIcon: Canvas {
-    width: 16; height: 16; antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize; antialiasing: true
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.cyan; ctx.fillStyle = Theme.cyan; ctx.lineWidth = 1.5; ctx.lineCap = "round"
+      ctx.strokeStyle = Theme.cyan; ctx.fillStyle = Theme.cyan; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
       // DIMM body
       ctx.beginPath(); ctx.rect(3, 2, 10, 12); ctx.stroke()
       // gold pins at bottom
@@ -1016,11 +1025,12 @@ Item {
   }
 
   component FanIcon: Canvas {
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.orange; ctx.fillStyle = Theme.orange; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.strokeStyle = Theme.orange; ctx.fillStyle = Theme.orange; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
       // outer ring
       ctx.beginPath(); ctx.arc(8, 8, 5.5, 0, Math.PI * 2); ctx.stroke()
       // three smooth blades using bezier curves
@@ -1043,19 +1053,20 @@ Item {
   }
 
   component BatIcon: Canvas {
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
       ctx.strokeStyle = root.batteryCharging ? Theme.green : Theme.foreground
       ctx.fillStyle = root.batteryCharging ? Theme.green : Theme.foreground
-      ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
       ctx.beginPath(); ctx.rect(1, 3, 10, 10); ctx.stroke()
       ctx.beginPath(); ctx.rect(11, 5.5, 3, 5); ctx.fill()
       var fillW = Math.max(0, Math.min(8, 8 * root.batteryCapacity / 100))
       if (fillW > 0) { ctx.beginPath(); ctx.rect(3, 5, fillW, 6); ctx.fill() }
       if (root.batteryCharging) {
-        ctx.strokeStyle = Theme.background; ctx.lineWidth = 1.5; ctx.lineCap = "round"
+        ctx.strokeStyle = Theme.background; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
         ctx.beginPath(); ctx.moveTo(7, 4); ctx.lineTo(5, 8); ctx.lineTo(7, 8); ctx.lineTo(5, 12)
         ctx.stroke()
       }
@@ -1064,10 +1075,11 @@ Item {
   }
 
   component PwrIcon: Canvas {
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     onPaint: {
       var ctx = getContext("2d")
-      ctx.strokeStyle = Theme.green; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.strokeStyle = Theme.green; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
       ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(5, 8); ctx.lineTo(8, 8); ctx.lineTo(6, 15)
       ctx.stroke()
     }
@@ -1075,11 +1087,12 @@ Item {
   }
 
   component NetIcon: Canvas {
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.green; ctx.fillStyle = Theme.green; ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.strokeStyle = Theme.green; ctx.fillStyle = Theme.green; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
       ctx.beginPath(); ctx.moveTo(8, 2); ctx.lineTo(4, 7); ctx.lineTo(8, 12); ctx.stroke()
       ctx.moveTo(8, 2); ctx.lineTo(12, 7); ctx.lineTo(8, 12); ctx.stroke()
     }
@@ -1087,7 +1100,7 @@ Item {
   }
 
   component TuxIcon: Canvas {
-    width: 16; height: 16; antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize; antialiasing: true
     onPaint: {
       var ctx = getContext("2d")
       ctx.clearRect(0, 0, width, height)
@@ -1116,7 +1129,8 @@ Item {
 
   component SpeakerIcon: Canvas {
     id: sicon
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     property real volume: 0
     property bool muted: false
     onVolumeChanged: requestPaint()
@@ -1127,7 +1141,7 @@ Item {
       var c = 8
       ctx.fillStyle = sicon.muted ? Theme.red : Theme.accent
       ctx.strokeStyle = sicon.muted ? Theme.red : Theme.accent
-      ctx.lineWidth = 1.5; ctx.lineCap = "round"; ctx.lineJoin = "round"
+      ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
       ctx.beginPath(); ctx.rect(c - 5, c - 4, 4, 8); ctx.fill()
       ctx.beginPath(); ctx.moveTo(c - 1, c - 5); ctx.lineTo(c + 4, c - 9); ctx.lineTo(c + 4, c + 9); ctx.lineTo(c - 1, c + 5); ctx.closePath(); ctx.fill()
       if (!sicon.muted && sicon.volume > 0) {
@@ -1141,7 +1155,8 @@ Item {
 
   component SunIcon: Canvas {
     id: sun
-    width: 16; height: 16
+    antialiasing: true
+    width: Theme.iconSize; height: Theme.iconSize
     property real percent: 100
     onPercentChanged: requestPaint()
     onPaint: {
@@ -1149,9 +1164,9 @@ Item {
       ctx.clearRect(0, 0, width, height)
       var c = 8
       ctx.strokeStyle = Theme.yellow
-      ctx.lineWidth = 1.5; ctx.lineCap = "round"
+      ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
       ctx.beginPath(); ctx.arc(c, c, 3.5, 0, Math.PI * 2); ctx.stroke()
-      ctx.lineWidth = 2
+      ctx.lineWidth = Theme.iconLineWidth
       for (var i = 0; i < 4; i++) {
         var a = i * Math.PI / 2
         ctx.beginPath()
@@ -1184,6 +1199,7 @@ Item {
 
     Canvas {
       id: ringCanvas
+      antialiasing: true
       width: 52
       height: 52
       anchors.top: parent.top
