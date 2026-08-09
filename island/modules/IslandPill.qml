@@ -16,6 +16,7 @@ Item {
   property bool isHealthPanelOpen: false
   property int pillHeight: 35
   property var healthWindow: null
+  property var sharedBrightnessService: null
 
   onHealthWindowChanged: {
     if (root.healthWindow)
@@ -719,6 +720,8 @@ Item {
   BrightnessService { id: brightnessService }
   LockService { id: lockService }
 
+  Component.onCompleted: root.sharedBrightnessService = brightnessService
+
   IpcHandler {
     target: "island"
     function triggerMeter(mode: string): void {
@@ -726,6 +729,10 @@ Item {
     }
     function toggleHealth(): void {
       root.toggleHealthPanel()
+    }
+    function adjustBrightness(delta: int): void {
+      root.onMeterActivity("brightness")
+      brightnessService.stepPercent(delta)
     }
   }
 

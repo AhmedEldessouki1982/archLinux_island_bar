@@ -52,4 +52,10 @@ PanelWindow {
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
   }
+
+  Binding {
+    target: floatingHealth
+    property: "brightnessService"
+    value: islandPill.sharedBrightnessService
+  }
 }

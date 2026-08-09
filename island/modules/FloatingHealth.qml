@@ -32,11 +32,10 @@ PanelWindow {
   property bool panelActive: false
 
   AudioService { id: _audioService }
-  BrightnessService { id: _brightnessService }
   BatteryService { id: _batteryService }
 
   property var audioService: _audioService
-  property var brightnessService: _brightnessService
+  property var brightnessService: null
   property var batteryService: _batteryService
 
   onVisibleChanged: {
