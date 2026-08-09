@@ -676,7 +676,7 @@ Item {
 
             SunIcon {
               anchors.fill: parent
-              percent: brightnessService.percent
+              percent: brightnessService.displayPercent
             }
           }
 
@@ -686,8 +686,8 @@ Item {
             minValue: 0
             maxValue: 100
             step: 5
-            value: brightnessService.percent
-            fillColor: brightnessService.percent > 20 ? Theme.yellow : Theme.red
+            value: brightnessService.displayPercent
+            fillColor: brightnessService.displayPercent > 20 ? Theme.yellow : Theme.red
             onChanged: v => {
               brightnessService.requestFastPoll()
               brightnessService.setPercent(v)
@@ -695,7 +695,7 @@ Item {
           }
 
           Text {
-            text: Math.round(brightnessService.percent) + "%"
+            text: Math.round(brightnessService.displayPercent) + "%"
             color: Theme.yellow
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSizeValue

@@ -466,7 +466,7 @@ Item {
                 ctx.fill()
               }
             } else {
-              var bp = brightnessService.percent
+              var bp = brightnessService.displayPercent
               var ratio = Math.max(0, Math.min(1, bp / 100))
               ctx.strokeStyle = Theme.yellow
               ctx.fillStyle = Theme.yellow
@@ -546,7 +546,7 @@ Item {
                   ? (lockService.capsOn ? 1 : 0)
                   : root.meterMode === "num"
                     ? (lockService.numOn ? 1 : 0)
-                    : (brightnessService.percent / 100)
+                    : (brightnessService.displayPercent / 100)
               return Math.max(0, Math.min(maxW, maxW * pct))
             }
             color: {
@@ -556,7 +556,7 @@ Item {
                 var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
                 return lit ? Theme.green : Theme.red
               }
-              return brightnessService.percent > 20 ? Theme.yellow : Theme.red
+              return brightnessService.displayPercent > 20 ? Theme.yellow : Theme.red
             }
 
             Behavior on width {
@@ -571,7 +571,7 @@ Item {
               return Math.round(audioService.volume * 100) + "%"
             if (root.meterMode === "caps") return "CAPS"
             if (root.meterMode === "num") return "NUM"
-            return Math.round(brightnessService.percent) + "%"
+            return Math.round(brightnessService.displayPercent) + "%"
           }
           color: {
             if (root.meterMode === "volume") return Theme.accent

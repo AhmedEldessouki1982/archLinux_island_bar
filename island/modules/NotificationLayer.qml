@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Notifications
 import "../config"
@@ -70,6 +71,31 @@ PanelWindow {
     target: server
     function onNotification(n) { root.historyModel.add(n) }
   }
+
+  // --- registration diagnostics: verify we own org.freedesktop.Notifications ---
+  Process {
+    id: regCheckProc
+    command: ["sh", "-c", "out=$(dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.GetConnectionUnixProcessID string:org.freedesktop.Notifications 2>/dev/null | grep -o '[0-9]*' | tail -1); [ -n \"$out\" ] && echo \"$out\" || echo \"NO-OWNER\""]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var v = String(data).trim()
+        var owner = parseInt(v, 10)
+        var ok = !isNaN(owner) && owner === Quickshell.processId
+        console.log("[notif] org.freedesktop.Notifications owner pid=" + v + " self=" + Quickshell.processId + " => " + (ok ? "REGISTERED OK" : "NOT REGISTERED (conflict or absent)"))
+      }
+    }
+  }
+
+  Timer {
+    id: regRecheckTimer
+    interval: 30000
+    running: true
+    repeat: true
+    onTriggered: regCheckProc.running = true
+  }
+
+  Component.onCompleted: regCheckProc.running = true
 
   ColumnLayout {
     anchors.horizontalCenter: parent.horizontalCenter

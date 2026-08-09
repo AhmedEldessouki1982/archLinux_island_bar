@@ -6,8 +6,10 @@ Item {
   id: root
   visible: false
 
-  property real percent: 100
+  property real percent: 95
+  property int realMaxPercent: 95
   property bool fastPoll: false
+  readonly property real displayPercent: Math.max(0, Math.min(100, Math.round(root.percent / root.realMaxPercent * 100)))
 
   signal externalChangeDetected()
 
@@ -16,13 +18,15 @@ Item {
   }
 
   function setPercent(v) {
-    var p = Math.max(1, Math.min(100, Math.round(v)))
+    var realTarget = Math.round(v / 100 * root.realMaxPercent)
+    var p = Math.max(1, Math.min(root.realMaxPercent, realTarget))
     root.percent = p
     setProc.running = true
   }
 
   function stepPercent(delta) {
-    root.setPercent(root.percent + delta)
+    var d = Math.max(1, Math.min(100, root.displayPercent + delta))
+    root.setPercent(d)
   }
 
   Process {
