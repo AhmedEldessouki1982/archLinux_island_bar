@@ -23,6 +23,7 @@ Item {
   }
   property string meterMode: ""
   property int meterPillWidth: 240
+  property int meterMaxBarWidth: root.meterPillWidth - 104
   property bool meterReady: false
   property var notificationLayer: null
   property var notificationCenter: null
@@ -368,6 +369,7 @@ Item {
 
     Item {
       id: meterLayout
+      height: parent.height
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
       anchors.leftMargin: 12
@@ -375,7 +377,7 @@ Item {
       anchors.rightMargin: 12
       opacity: root.meterMode !== "" ? 1 : 0
       visible: root.meterMode !== ""
-      clip: false
+      clip: true
 
       Behavior on opacity {
         NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
@@ -476,6 +478,12 @@ Item {
               ctx.arc(cx, cy, coreR, 0, Math.PI * 2)
               ctx.stroke()
 
+              ctx.globalAlpha = 0.15 + 0.85 * ratio
+              ctx.beginPath()
+              ctx.arc(cx, cy, coreR - Theme.iconLineWidth / 2, 0, Math.PI * 2)
+              ctx.fill()
+              ctx.globalAlpha = 0.35 + 0.65 * ratio
+
               var rayCount = ratio > 0.6 ? 8 : (ratio > 0.15 ? 4 : 0)
               var rayLen = 2.5 + 2 * ratio
               var inner = coreR + 1
@@ -517,8 +525,8 @@ Item {
         Rectangle {
           id: meterBarBg
           Layout.alignment: Qt.AlignVCenter
-          Layout.fillWidth: true
-          Layout.minimumWidth: 120
+          Layout.preferredWidth: root.meterMaxBarWidth
+          Layout.minimumWidth: root.meterMaxBarWidth
           height: 14
           radius: 7
           color: Theme.selection
@@ -531,7 +539,7 @@ Item {
             anchors.leftMargin: 1.5
             radius: parent.radius - 1.5
             width: {
-              var maxW = meterBarBg.width - 3
+              var maxW = root.meterMaxBarWidth - 3
               var pct = root.meterMode === "volume"
                 ? (audioService.muted ? 0 : audioService.volume)
                 : root.meterMode === "caps"
