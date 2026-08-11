@@ -25,7 +25,7 @@ PanelWindow {
 
   Timer {
     id: autoCloseTimer
-    interval: 5000
+    interval: 8000
     onTriggered: root.close()
   }
 
@@ -33,10 +33,12 @@ PanelWindow {
 
   AudioService { id: _audioService }
   BatteryService { id: _batteryService }
+  WeatherService { id: _weatherService }
 
   property var audioService: _audioService
   property var brightnessService: null
   property var batteryService: _batteryService
+  property var weatherService: _weatherService
 
   onVisibleChanged: {
     if (root.visible) autoCloseTimer.restart()
@@ -80,6 +82,7 @@ PanelWindow {
         audioService: root.audioService
         brightnessService: root.brightnessService
         batteryService: root.batteryService
+        weatherService: root.weatherService
 
         Component.onCompleted: {
           root.hpW = Qt.binding(() => healthPanel.contentWidth + 24)

@@ -42,6 +42,7 @@ Item {
   property var audioService: null
   property var brightnessService: null
   property var batteryService: null
+  property var weatherService: null
 
   onBatteryServiceChanged: {
     if (root.batteryService) {
@@ -104,6 +105,17 @@ Item {
     if (pct <= 15) return Theme.red
     if (pct <= 30) return Theme.yellow
     return Theme.foreground
+  }
+
+  function weatherStatus(code) {
+    if (code === 0) return "Clear"
+    if (code >= 1 && code <= 3) return "Partly Cloudy"
+    if (code === 45 || code === 48) return "Foggy"
+    if (code >= 51 && code <= 67) return "Raining"
+    if (code >= 71 && code <= 77) return "Snowing"
+    if (code >= 80 && code <= 82) return "Showers"
+    if (code >= 95 && code <= 99) return "Storm"
+    return "--"
   }
 
   // --- fixed-width value formatting (monospace subtext keeps columns aligned) ---
@@ -963,6 +975,48 @@ Item {
               horizontalAlignment: Text.AlignRight
               Layout.fillWidth: true
               Layout.alignment: Qt.AlignVCenter
+            }
+          }
+        }
+
+        Rectangle {
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 62
+
+          ColumnLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            anchors.topMargin: 15
+            anchors.bottomMargin: 15
+            spacing: 2
+
+            Text {
+              text: "WEATHER"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              font.bold: true
+              font.letterSpacing: 1.2
+            }
+
+            Text {
+              Layout.fillWidth: true
+              text: {
+                if (!root.weatherService) return "--"
+                var c = root.weatherService.city
+                if (c.length === 0) return "--"
+                return c + " \u00b7 " + Math.round(root.weatherService.tempC) + "\u00b0C \u00b7 " + root.weatherStatus(root.weatherService.weatherCode)
+              }
+              color: Theme.cyan
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeValue
+              font.bold: true
+              wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             }
           }
         }
