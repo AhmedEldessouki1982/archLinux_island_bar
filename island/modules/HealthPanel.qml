@@ -69,7 +69,7 @@ Item {
 
   readonly property real contentWidth: root.panelPadding * 2 + root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
   readonly property real gridHeight: Math.ceil(gridModel.count / 7) * 28 - 2
-  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + ringRow.height + 10 + calCol.height)
+  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + Math.max(ringRow.height + 10 + calCol.height, rightCol.implicitHeight))
 
   width: contentWidth
   height: contentHeight
@@ -774,6 +774,7 @@ Item {
 
       // ---------- RIGHT: battery / power / gpu / identity ----------
       ColumnLayout {
+        id: rightCol
         Layout.preferredWidth: root._colW3
         Layout.alignment: Qt.AlignTop
         spacing: 8
@@ -985,39 +986,44 @@ Item {
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 62
+          implicitHeight: weatherLabel.height + weatherValue.height + 32
 
-          ColumnLayout {
-            anchors.fill: parent
+          Text {
+            id: weatherLabel
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
             anchors.leftMargin: 8
             anchors.rightMargin: 8
             anchors.topMargin: 15
-            anchors.bottomMargin: 15
-            spacing: 2
+            text: "WEATHER"
+            color: Theme.comment
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSizeLabel
+            font.bold: true
+            font.letterSpacing: 1.2
+          }
 
-            Text {
-              text: "WEATHER"
-              color: Theme.comment
-              font.family: Theme.fontFamily
-              font.pixelSize: Theme.fontSizeLabel
-              font.bold: true
-              font.letterSpacing: 1.2
+          Text {
+            id: weatherValue
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: weatherLabel.bottom
+            anchors.topMargin: 2
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            height: contentHeight
+            text: {
+              if (!root.weatherService) return "--"
+              var c = root.weatherService.city
+              if (c.length === 0) return "--"
+              return c + " \u00b7 " + Math.round(root.weatherService.tempC) + "\u00b0C \u00b7 " + root.weatherStatus(root.weatherService.weatherCode)
             }
-
-            Text {
-              Layout.fillWidth: true
-              text: {
-                if (!root.weatherService) return "--"
-                var c = root.weatherService.city
-                if (c.length === 0) return "--"
-                return c + " \u00b7 " + Math.round(root.weatherService.tempC) + "\u00b0C \u00b7 " + root.weatherStatus(root.weatherService.weatherCode)
-              }
-              color: Theme.cyan
-              font.family: Theme.fontFamily
-              font.pixelSize: Theme.fontSizeValue
-              font.bold: true
-              wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            }
+            color: Theme.cyan
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSizeValue
+            font.bold: true
+            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
           }
         }
       }
