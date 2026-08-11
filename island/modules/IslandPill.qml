@@ -16,6 +16,8 @@ Item {
   property bool isHealthPanelOpen: false
   property int pillHeight: 35
   property var healthWindow: null
+  property var batteryLimitWindow: null
+  property alias batteryService: _batteryService
   property var sharedBrightnessService: null
 
   onHealthWindowChanged: {
@@ -361,10 +363,21 @@ Item {
 
       VDiv {}
 
-      BatteryIcon {
-        percent: batteryService.capacity
-        charging: batteryService.charging
+      MouseArea {
         Layout.alignment: Qt.AlignVCenter
+        width: 56
+        height: Theme.iconSize
+        cursorShape: Qt.PointingHandCursor
+
+        BatteryIcon {
+          anchors.fill: parent
+          percent: _batteryService.capacity
+          charging: _batteryService.charging
+        }
+
+        onClicked: {
+          if (root.batteryLimitWindow) root.batteryLimitWindow.open()
+        }
       }
     }
 
@@ -716,7 +729,7 @@ Item {
 
   AudioService { id: audioService }
   NetworkService { id: networkService }
-  BatteryService { id: batteryService }
+  BatteryService { id: _batteryService }
   BrightnessService { id: brightnessService }
   LockService { id: lockService }
 

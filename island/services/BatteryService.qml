@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.UPower
 
 // UPower verification on Quickshell 0.3.0 (unlike Quickshell.Services.Pipewire,
@@ -20,6 +21,35 @@ Item {
   property int capacity: root.battery ? Math.round(root.battery.percentage * 100) : 0
   property bool charging: !UPower.onBattery
   property real power: root.battery ? root.battery.changeRate : 0
+  property int chargeLimit: 0
+
+  function refreshChargeLimit() {
+    getLimitProc.running = true
+  }
+
+  function setLimit(pct) {
+    root.chargeLimit = Math.max(20, Math.min(100, pct))
+    setLimitProc.running = true
+  }
+
+  Process {
+    id: getLimitProc
+    command: ["sh", "-c", "echo \"$(asusctl battery info 2>/dev/null)\" | grep -o '[0-9]*' | head -1"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var v = parseInt(String(data).trim(), 10)
+        if (!isNaN(v) && v >= 20 && v <= 100) root.chargeLimit = v
+      }
+    }
+  }
+
+  Process {
+    id: setLimitProc
+    command: ["sh", "-c", "asusctl battery limit " + root.chargeLimit + " 2>/dev/null"]
+    running: false
+    onExited: () => { root.refreshChargeLimit() }
+  }
 
   function pickBattery() {
     var vals = UPower.devices.values
@@ -37,7 +67,10 @@ Item {
     function onValuesChanged() { root.pickBattery() }
   }
 
-  Component.onCompleted: root.pickBattery()
+  Component.onCompleted: {
+    root.pickBattery()
+    root.refreshChargeLimit()
+  }
 
   Timer {
     interval: 2000
@@ -46,5 +79,12 @@ Item {
     onTriggered: {
       if (!root.battery) root.pickBattery()
     }
+  }
+
+  Timer {
+    interval: 10000
+    running: true
+    repeat: true
+    onTriggered: root.refreshChargeLimit()
   }
 }

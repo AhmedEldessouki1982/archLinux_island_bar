@@ -32,6 +32,11 @@ PanelWindow {
     screen: root.screen
   }
 
+  BatteryLimitPopup {
+    id: batteryLimitPopup
+    screen: root.screen
+  }
+
   NotificationLayer {
     id: notificationLayer
     screen: root.screen
@@ -49,6 +54,7 @@ PanelWindow {
     anchors.top: parent.top
     anchors.topMargin: 2
     healthWindow: floatingHealth
+    batteryLimitWindow: batteryLimitPopup
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
   }
@@ -57,5 +63,11 @@ PanelWindow {
     target: floatingHealth
     property: "brightnessService"
     value: islandPill.sharedBrightnessService
+  }
+
+  Binding {
+    target: batteryLimitPopup
+    property: "batteryService"
+    value: islandPill.batteryService
   }
 }
