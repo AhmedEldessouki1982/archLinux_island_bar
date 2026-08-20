@@ -22,6 +22,7 @@ QtObject {
 
   property real iconLineWidth: 1.5
   property int iconSize: 16
+  property int iconFontSize: 17
 
   property int animDurationFast: 150
   property int animDurationNormal: 250

@@ -164,6 +164,10 @@ Item {
         font.bold: true
       }
 
+      RegWarningIcon {
+        Layout.alignment: Qt.AlignVCenter
+      }
+
       Text {
         text: "|"
         color: Theme.selection
@@ -233,10 +237,6 @@ Item {
         connected: networkService.connected
         type: networkService.type
         Layout.alignment: Qt.AlignVCenter
-        Connections {
-          target: networkService
-          function onTypeChanged() { parent.requestPaint() }
-        }
       }
 
       Text {
@@ -307,6 +307,10 @@ Item {
           id: actionsRow
           anchors.centerIn: parent
           spacing: 6
+
+          RegWarningIcon {
+            Layout.alignment: Qt.AlignVCenter
+          }
 
           HealthIcon {
             id: healthIcon
@@ -409,131 +413,54 @@ Item {
         anchors.right: parent.right
         spacing: 10
 
-        Canvas {
+        Text {
           id: meterIcon
-          antialiasing: true
           width: 22
           height: 22
           Layout.alignment: Qt.AlignVCenter
 
-          onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
-            ctx.lineCap = "round"
-            ctx.lineJoin = "round"
-            ctx.globalAlpha = 1
+          font.family: Theme.fontFamily
+          horizontalAlignment: Text.AlignHCenter
+          verticalAlignment: Text.AlignVCenter
 
-            var cx = 11, cy = 11
+          text: {
             if (root.meterMode === "volume") {
-              var muted = audioService.muted
-              var vol = audioService.volume
-              ctx.strokeStyle = muted ? Theme.red : Theme.accent
-              ctx.fillStyle = ctx.strokeStyle
-              ctx.lineWidth = Theme.iconLineWidth
-
-              ctx.beginPath()
-              ctx.rect(cx - 4, cy - 4, 3, 8)
-              ctx.fill()
-              ctx.beginPath()
-              ctx.moveTo(cx - 1, cy - 5)
-              ctx.lineTo(cx + 3, cy - 8)
-              ctx.lineTo(cx + 3, cy + 8)
-              ctx.lineTo(cx - 1, cy + 5)
-              ctx.closePath()
-              ctx.fill()
-
-              if (!muted && vol > 0) {
-                var wx = cx + 4
-                ctx.beginPath()
-                ctx.arc(wx, cy, 3, 5.8, 6.6, false)
-                ctx.stroke()
-                if (vol > 0.33) {
-                  ctx.beginPath()
-                  ctx.arc(wx, cy, 5, 5.8, 6.6, false)
-                  ctx.stroke()
-                }
-                if (vol > 0.66) {
-                  ctx.beginPath()
-                  ctx.arc(wx, cy, 7, 5.8, 6.6, false)
-                  ctx.stroke()
-                }
-              }
+              if (audioService.headphoneConnected && audioService.micConnected) return "\uF02D6"
+              if (audioService.headphoneConnected) return "\uF02CB"
+              if (audioService.micConnected) return "\uF036C"
+              if (audioService.muted) return "\uF026"
+              var v = audioService.volume
+              if (v >= 0.67) return "\uF028"
+              if (v >= 0.34) return "\uF027"
+              if (v > 0) return "\uF026"
+              return "\uF026"
             } else if (root.meterMode === "caps" || root.meterMode === "num") {
-              var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
-              ctx.strokeStyle = lit ? Theme.green : Theme.foreground
-              ctx.fillStyle = ctx.strokeStyle
-              ctx.lineWidth = Theme.iconLineWidth
-
-              ctx.beginPath()
-              ctx.rect(cx - 6, cy - 6, 12, 12)
-              ctx.stroke()
-
-              ctx.font = "bold 9px 'JetBrainsMono Nerd Font'"
-              ctx.textAlign = "center"
-              ctx.textBaseline = "middle"
-              ctx.fillText(root.meterMode === "caps" ? "A" : "1", cx, cy + 0.5)
-
-              if (lit) {
-                ctx.fillStyle = Theme.green
-                ctx.beginPath()
-                ctx.arc(cx + 5, cy - 5, 1.5, 0, Math.PI * 2)
-                ctx.fill()
-              }
+              return root.meterMode === "caps" ? "A" : "1"
             } else {
-              var bp = brightnessService.displayPercent
-              var ratio = Math.max(0, Math.min(1, bp / 100))
-              ctx.strokeStyle = Theme.yellow
-              ctx.fillStyle = Theme.yellow
-              ctx.globalAlpha = 0.35 + 0.65 * ratio
-
-              var coreR = 3 + 2 * ratio
-              ctx.lineWidth = Theme.iconLineWidth
-              ctx.beginPath()
-              ctx.arc(cx, cy, coreR, 0, Math.PI * 2)
-              ctx.stroke()
-
-              ctx.globalAlpha = 0.15 + 0.85 * ratio
-              ctx.beginPath()
-              ctx.arc(cx, cy, coreR - Theme.iconLineWidth / 2, 0, Math.PI * 2)
-              ctx.fill()
-              ctx.globalAlpha = 0.35 + 0.65 * ratio
-
-              var rayCount = ratio > 0.6 ? 8 : (ratio > 0.15 ? 4 : 0)
-              var rayLen = 2.5 + 2 * ratio
-              var inner = coreR + 1
-              for (var i = 0; i < rayCount; i++) {
-                var a = i * Math.PI * 2 / rayCount - Math.PI / 2
-                ctx.lineWidth = Theme.iconLineWidth
-                ctx.beginPath()
-                ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner)
-                ctx.lineTo(cx + Math.cos(a) * (inner + rayLen), cy + Math.sin(a) * (inner + rayLen))
-                ctx.stroke()
-              }
-              ctx.globalAlpha = 1
+              return "\uF006D"
             }
           }
 
-          Connections {
-            target: root
-            function onMeterModeChanged() { meterIcon.requestPaint() }
+          color: {
+            if (root.meterMode === "volume") {
+              return audioService.muted ? Theme.red : Theme.accent
+            } else if (root.meterMode === "caps" || root.meterMode === "num") {
+              return (root.meterMode === "caps" ? lockService.capsOn : lockService.numOn) ? Theme.green : Theme.foreground
+            } else {
+              return Theme.yellow
+            }
           }
 
-          Connections {
-            target: audioService
-            function onVolumeChanged() { if (root.meterMode === "volume") meterIcon.requestPaint() }
-            function onMutedChanged() { if (root.meterMode === "volume") meterIcon.requestPaint() }
+          opacity: {
+            if (root.meterMode === "brightness") {
+              var ratio = Math.max(0, Math.min(1, brightnessService.displayPercent / 100))
+              return 0.35 + 0.65 * ratio
+            }
+            return 1
           }
 
-          Connections {
-            target: brightnessService
-            function onPercentChanged() { if (root.meterMode === "brightness") meterIcon.requestPaint() }
-          }
-
-          Connections {
-            target: lockService
-            function onCapsChanged() { if (root.meterMode === "caps") meterIcon.requestPaint() }
-            function onNumChanged() { if (root.meterMode === "num") meterIcon.requestPaint() }
-          }
+          font.bold: root.meterMode === "caps" || root.meterMode === "num"
+          font.pixelSize: root.meterMode === "caps" || root.meterMode === "num" ? 20 : 24
         }
 
         Rectangle {
@@ -648,6 +575,18 @@ Item {
     color: Theme.comment
     opacity: 0.4
     Layout.alignment: Qt.AlignVCenter
+  }
+
+component RegWarningIcon: Text {
+    id: regWarn
+    text: "\uF0026"
+    color: Theme.yellow
+    font.family: Theme.fontFamily
+    font.pixelSize: 17
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
+    Layout.alignment: Qt.AlignVCenter
+    visible: root.notificationLayer ? root.notificationLayer.registrationFailed : false
   }
 
   Timer {

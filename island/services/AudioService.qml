@@ -11,6 +11,7 @@ Item {
   property bool muted: false
   property bool active: false
   property bool headphoneConnected: false
+  property bool micConnected: false
   property bool _initialized: false
   property int _activeStreams: 0
   property bool fastPoll: false
@@ -20,6 +21,7 @@ Item {
   function sync() {
     readProc.running = true
     portProc.running = true
+    sourcePortProc.running = true
   }
 
   function setVolume(v) {
@@ -104,6 +106,25 @@ Item {
         var hp = port.indexOf("headphone") >= 0
         if (hp !== root.headphoneConnected) {
           root.headphoneConnected = hp
+        }
+      }
+    }
+  }
+
+  Process {
+    id: sourcePortProc
+    command: ["sh", "-c", "pactl list sources 2>/dev/null | awk -v s=\"$(pactl get-default-source)\" 'index($0, \"Name: \" s) { f=1 } f && /Active Port:/ { print $3; exit }'"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var port = data.trim()
+        if (!port) return
+        // Only treat an *external* mic (headset/front/etc.) as "connected" —
+        // the built-in analog-input-internal-mic is always present and must
+        // not flip the icon into the headset state.
+        var mic = port.indexOf("mic") >= 0 && port.indexOf("internal") < 0
+        if (mic !== root.micConnected) {
+          root.micConnected = mic
         }
       }
     }

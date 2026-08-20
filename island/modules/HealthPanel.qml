@@ -642,6 +642,8 @@ Item {
               anchors.fill: parent
               volume: audioService.volume
               muted: audioService.muted
+              headphoneConnected: audioService.headphoneConnected
+              micConnected: audioService.micConnected
             }
 
             MouseArea {
@@ -1032,210 +1034,121 @@ Item {
 
   // --- Canvas Icons (Lucide-style) ---
 
-  component CpuIcon: Canvas {
-    antialiasing: true
+  component CpuIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.accent; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
-      ctx.beginPath(); ctx.rect(3, 3, 10, 10); ctx.stroke()
-      ctx.beginPath(); ctx.rect(5.5, 5.5, 5, 5); ctx.stroke()
-      for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.rect(5 + i * 3, 0, 2, 3); ctx.fill() }
-      for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.rect(5 + i * 3, 13, 2, 3); ctx.fill() }
-    }
-    Component.onCompleted: requestPaint()
+    text: "\uF041A"
+    color: Theme.accent
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component GpuIcon: Canvas {
-    antialiasing: true
+  component GpuIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.pink; ctx.fillStyle = Theme.pink; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
-      ctx.beginPath(); ctx.rect(3, 3, 10, 10); ctx.stroke()
-      ctx.beginPath(); ctx.rect(5.5, 5.5, 5, 5); ctx.stroke()
-      for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.rect(0, 5 + i * 3, 2, 2); ctx.fill() }
-      for (var i = 0; i < 3; i++) { ctx.beginPath(); ctx.rect(14, 5 + i * 3, 2, 2); ctx.fill() }
-    }
-    Component.onCompleted: requestPaint()
+    text: "\uF0380"
+    color: Theme.pink
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component RamIcon: Canvas {
-    width: Theme.iconSize; height: Theme.iconSize; antialiasing: true
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.cyan; ctx.fillStyle = Theme.cyan; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
-      // DIMM body
-      ctx.beginPath(); ctx.rect(3, 2, 10, 12); ctx.stroke()
-      // gold pins at bottom
-      for (var i = 0; i < 6; i++) {
-        ctx.beginPath(); ctx.rect(4 + i * 1.5, 12, 1.2, 3); ctx.fill()
-      }
-      // alignment notch
-      ctx.fillStyle = Theme.background
-      ctx.beginPath(); ctx.rect(7, 5, 2, 2); ctx.fill()
-      // top chip markers
-      ctx.fillStyle = Theme.cyan
-      ctx.beginPath(); ctx.rect(4.5, 4, 3, 3.5); ctx.fill()
-    }
-    Component.onCompleted: requestPaint()
-  }
-
-  component FanIcon: Canvas {
-    antialiasing: true
+  component RamIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.orange; ctx.fillStyle = Theme.orange; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
-      // outer ring
-      ctx.beginPath(); ctx.arc(8, 8, 5.5, 0, Math.PI * 2); ctx.stroke()
-      // three smooth blades using bezier curves
-      for (var i = 0; i < 3; i++) {
-        var a = i * Math.PI * 2 / 3 - Math.PI / 2
-        var ax = Math.cos(a), ay = Math.sin(a)
-        var bx = Math.cos(a + 0.5), by = Math.sin(a + 0.5)
-        var cx = Math.cos(a - 0.5), cy = Math.sin(a - 0.5)
-        ctx.beginPath(); ctx.moveTo(8, 8)
-        ctx.bezierCurveTo(8 + ax * 2, 8 + ay * 2, 8 + bx * 5, 8 + by * 5, 8 + ax * 5.5, 8 + ay * 5.5)
-        ctx.bezierCurveTo(8 + cx * 5, 8 + cy * 5, 8 + ax * 2, 8 + ay * 2, 8, 8)
-        ctx.fill()
-      }
-      // center hub
-      ctx.fillStyle = Theme.background
-      ctx.beginPath(); ctx.arc(8, 8, 1.8, 0, Math.PI * 2); ctx.fill()
-      ctx.strokeStyle = Theme.orange; ctx.beginPath(); ctx.arc(8, 8, 1.8, 0, Math.PI * 2); ctx.stroke()
-    }
-    Component.onCompleted: requestPaint()
+    text: "\uF049B"
+    color: Theme.cyan
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component BatIcon: Canvas {
-    antialiasing: true
+  component FanIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = root.batteryCharging ? Theme.green : Theme.foreground
-      ctx.fillStyle = root.batteryCharging ? Theme.green : Theme.foreground
-      ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
-      ctx.beginPath(); ctx.rect(1, 3, 10, 10); ctx.stroke()
-      ctx.beginPath(); ctx.rect(11, 5.5, 3, 5); ctx.fill()
-      var fillW = Math.max(0, Math.min(8, 8 * root.batteryCapacity / 100))
-      if (fillW > 0) { ctx.beginPath(); ctx.rect(3, 5, fillW, 6); ctx.fill() }
-      if (root.batteryCharging) {
-        ctx.strokeStyle = Theme.background; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
-        ctx.beginPath(); ctx.moveTo(7, 4); ctx.lineTo(5, 8); ctx.lineTo(7, 8); ctx.lineTo(5, 12)
-        ctx.stroke()
-      }
-    }
-    Component.onCompleted: requestPaint()
+    text: "\uF0130"
+    color: Theme.orange
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component PwrIcon: Canvas {
-    antialiasing: true
+  component BatIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.strokeStyle = Theme.green; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
-      ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(5, 8); ctx.lineTo(8, 8); ctx.lineTo(6, 15)
-      ctx.stroke()
-    }
-    Component.onCompleted: requestPaint()
+    text: root.batteryCharging ? "\uF0216" : "\uF0218"
+    color: root.batteryCharging ? Theme.green : (root.batteryCapacity > 20 ? Theme.foreground : Theme.red)
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component NetIcon: Canvas {
-    antialiasing: true
+  component PwrIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.strokeStyle = Theme.green; ctx.fillStyle = Theme.green; ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
-      ctx.beginPath(); ctx.moveTo(8, 2); ctx.lineTo(4, 7); ctx.lineTo(8, 12); ctx.stroke()
-      ctx.moveTo(8, 2); ctx.lineTo(12, 7); ctx.lineTo(8, 12); ctx.stroke()
-    }
-    Component.onCompleted: requestPaint()
+    text: "\uF0195"
+    color: Theme.green
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component TuxIcon: Canvas {
-    width: Theme.iconSize; height: Theme.iconSize; antialiasing: true
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      ctx.fillStyle = Theme.comment
-      // body
-      ctx.beginPath(); ctx.arc(8, 11, 5, 0, Math.PI * 2); ctx.fill()
-      // head
-      ctx.beginPath(); ctx.arc(8, 5, 3.5, 0, Math.PI * 2); ctx.fill()
-      // eyes (white)
-      ctx.fillStyle = Theme.background
-      ctx.beginPath(); ctx.arc(6, 4.5, 1.2, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(10, 4.5, 1.2, 0, Math.PI * 2); ctx.fill()
-      // pupils
-      ctx.fillStyle = Theme.comment
-      ctx.beginPath(); ctx.arc(6.5, 4.5, 0.5, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(10.5, 4.5, 0.5, 0, Math.PI * 2); ctx.fill()
-      // beak
-      ctx.fillStyle = Theme.orange
-      ctx.beginPath(); ctx.moveTo(7, 6.5); ctx.lineTo(9, 6.5); ctx.lineTo(8, 8); ctx.closePath(); ctx.fill()
-      // feet
-      ctx.beginPath(); ctx.arc(5, 14.5, 1.8, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(11, 14.5, 1.8, 0, Math.PI * 2); ctx.fill()
-    }
-    Component.onCompleted: requestPaint()
+  component NetIcon: Text {
+    width: Theme.iconSize; height: Theme.iconSize
+    text: "\uF06A9"
+    color: Theme.green
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
-  component SpeakerIcon: Canvas {
+  component TuxIcon: Text {
+    width: Theme.iconSize; height: Theme.iconSize
+    text: "\uF17C"
+    color: Theme.comment
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
+  }
+
+  component SpeakerIcon: Text {
     id: sicon
-    antialiasing: true
-    width: Theme.iconSize; height: Theme.iconSize
     property real volume: 0
     property bool muted: false
-    onVolumeChanged: requestPaint()
-    onMutedChanged: requestPaint()
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      var c = 8
-      ctx.fillStyle = sicon.muted ? Theme.red : Theme.accent
-      ctx.strokeStyle = sicon.muted ? Theme.red : Theme.accent
-      ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"; ctx.lineJoin = "round"
-      ctx.beginPath(); ctx.rect(c - 5, c - 4, 4, 8); ctx.fill()
-      ctx.beginPath(); ctx.moveTo(c - 1, c - 5); ctx.lineTo(c + 4, c - 9); ctx.lineTo(c + 4, c + 9); ctx.lineTo(c - 1, c + 5); ctx.closePath(); ctx.fill()
-      if (!sicon.muted && sicon.volume > 0) {
-        ctx.beginPath(); ctx.arc(c + 6, c, 3, 5.8, 6.6, false); ctx.stroke()
-        if (sicon.volume > 0.33) { ctx.beginPath(); ctx.arc(c + 6, c, 5, 5.8, 6.6, false); ctx.stroke() }
-        if (sicon.volume > 0.66) { ctx.beginPath(); ctx.arc(c + 6, c, 7, 5.8, 6.6, false); ctx.stroke() }
-      }
+    property bool headphoneConnected: false
+    property bool micConnected: false
+
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
+    color: sicon.muted ? Theme.red : Theme.accent
+    text: {
+      if (sicon.headphoneConnected && sicon.micConnected) return "\uF02D6"
+      if (sicon.headphoneConnected) return "\uF02CB"
+      if (sicon.micConnected) return "\uF036C"
+      if (sicon.muted) return "\uF026"
+      var v = sicon.volume
+      if (v >= 0.67) return "\uF028"
+      if (v >= 0.34) return "\uF027"
+      if (v > 0) return "\uF026"
+      return "\uF026"
     }
-    Component.onCompleted: requestPaint()
   }
 
-  component SunIcon: Canvas {
+  component SunIcon: Text {
     id: sun
-    antialiasing: true
     width: Theme.iconSize; height: Theme.iconSize
     property real percent: 100
-    onPercentChanged: requestPaint()
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.clearRect(0, 0, width, height)
-      var c = 8
-      ctx.strokeStyle = Theme.yellow
-      ctx.lineWidth = Theme.iconLineWidth; ctx.lineCap = "round"
-      ctx.beginPath(); ctx.arc(c, c, 3.5, 0, Math.PI * 2); ctx.stroke()
-      ctx.lineWidth = Theme.iconLineWidth
-      for (var i = 0; i < 4; i++) {
-        var a = i * Math.PI / 2
-        ctx.beginPath()
-        ctx.moveTo(c + Math.cos(a) * 5.2, c + Math.sin(a) * 5.2)
-        ctx.lineTo(c + Math.cos(a) * 7.5, c + Math.sin(a) * 7.5)
-        ctx.stroke()
-      }
-    }
-    Component.onCompleted: requestPaint()
+    text: "\uF0651"
+    color: Theme.yellow
+    font.family: Theme.fontFamily
+    font.pixelSize: Theme.iconFontSize
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
   }
 
   // --- animated circular progress ring ---

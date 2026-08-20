@@ -21,6 +21,8 @@ PanelWindow {
   property bool showBanners: false
   property int notificationCount: 0
   property alias historyModel: historyModel
+  property bool registrationFailed: false
+  property var server: null
 
   ListModel {
     id: historyModel
@@ -32,8 +34,8 @@ PanelWindow {
         summary: n.summary || "",
         body: n.body || "",
         urgency: n.urgency,
-        persistent: n.expireTimeout <= 0,
-        deadline: n.expireTimeout > 0 ? Date.now() + n.expireTimeout : 0
+        persistent: true,
+        deadline: 0
       })
       root.notificationCount = historyModel.count
       root.showBanners = true
@@ -52,23 +54,25 @@ PanelWindow {
     running: root.showBanners
     repeat: true
     onTriggered: {
-      var now = Date.now()
-      for (var i = historyModel.count - 1; i >= 0; i--) {
-        var item = historyModel.get(i)
-        if (item.persistent) continue
-        if (now >= item.deadline) historyModel.remove(i, 1)
-      }
+      // All notifications are persistent by default; they are only removed via
+      // the manual "✕" click or the clear-all action. Nothing auto-expires.
       root.notificationCount = historyModel.count
       if (historyModel.count === 0) root.showBanners = false
     }
   }
 
-  NotificationServer {
-    id: server
+  Component {
+    id: serverComponent
+    NotificationServer {}
+  }
+
+  function spawnServer() {
+    if (root.server) root.server.destroy()
+    root.server = serverComponent.createObject(root)
   }
 
   Connections {
-    target: server
+    target: root.server
     function onNotification(n) { root.historyModel.add(n) }
   }
 
@@ -82,9 +86,23 @@ PanelWindow {
         var v = String(data).trim()
         var owner = parseInt(v, 10)
         var ok = !isNaN(owner) && owner === Quickshell.processId
+        root.registrationFailed = !ok
         console.log("[notif] org.freedesktop.Notifications owner pid=" + v + " self=" + Quickshell.processId + " => " + (ok ? "REGISTERED OK" : "NOT REGISTERED (conflict or absent)"))
+        if (!ok && isNaN(owner)) {
+          // The name is free but we don't hold it (we were never registered or
+          // the claim was lost). Respawn the server to re-attempt registration.
+          // This is a best-effort recovery — Quickshell 0.3.0's NotificationServer
+          // exposes no public retry/re-claim API, so recreation is the only option.
+          respawnCooldown.restart()
+        }
       }
     }
+  }
+
+  Timer {
+    id: respawnCooldown
+    interval: 5000
+    onTriggered: root.spawnServer()
   }
 
   Timer {
@@ -95,7 +113,10 @@ PanelWindow {
     onTriggered: regCheckProc.running = true
   }
 
-  Component.onCompleted: regCheckProc.running = true
+  Component.onCompleted: {
+    root.spawnServer()
+    regCheckProc.running = true
+  }
 
   ColumnLayout {
     anchors.horizontalCenter: parent.horizontalCenter
