@@ -17,7 +17,7 @@ Item {
 
     Text {
       Layout.alignment: Qt.AlignVCenter
-      text: root.charging ? "\uF0216" : "\uF0218"
+      text: root.charging ? "󰂄" : "󰁹"
       color: root.fillColor
       font.family: Theme.fontFamily
       font.pixelSize: Theme.iconFontSize

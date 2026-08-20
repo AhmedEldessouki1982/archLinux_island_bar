@@ -425,9 +425,9 @@ Item {
 
           text: {
             if (root.meterMode === "volume") {
-              if (audioService.headphoneConnected && audioService.micConnected) return "\uF02D6"
-              if (audioService.headphoneConnected) return "\uF02CB"
-              if (audioService.micConnected) return "\uF036C"
+              if (audioService.headphoneConnected && audioService.micConnected) return "󰋎"
+              if (audioService.headphoneConnected) return "󰋋"
+              if (audioService.micConnected) return "󰍬"
               if (audioService.muted) return "\uF026"
               var v = audioService.volume
               if (v >= 0.67) return "\uF028"
@@ -437,7 +437,7 @@ Item {
             } else if (root.meterMode === "caps" || root.meterMode === "num") {
               return root.meterMode === "caps" ? "A" : "1"
             } else {
-              return "\uF006D"
+              return "󰖨"
             }
           }
 
@@ -579,7 +579,7 @@ Item {
 
 component RegWarningIcon: Text {
     id: regWarn
-    text: "\uF0026"
+    text: "󰀦"
     color: Theme.yellow
     font.family: Theme.fontFamily
     font.pixelSize: 17

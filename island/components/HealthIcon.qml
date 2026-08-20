@@ -9,7 +9,7 @@ Text {
 
   property color iconColor: Theme.foreground
 
-  text: "\uF08D2"
+  text: "󰋑"
   color: root.iconColor
   font.family: Theme.fontFamily
   font.pixelSize: Theme.iconFontSize

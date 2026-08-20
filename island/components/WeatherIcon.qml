@@ -15,14 +15,14 @@ Text {
   verticalAlignment: Text.AlignVCenter
 
   text: {
-    if (root.weatherCode === 0) return "\uF0651"
-    if (root.weatherCode <= 3) return "\uF0625"
-    if (root.weatherCode === 45 || root.weatherCode === 48) return "\uF0631"
+    if (root.weatherCode === 0) return "󰖙"
+    if (root.weatherCode <= 3) return "󰖕"
+    if (root.weatherCode === 45 || root.weatherCode === 48) return "󰖑"
     if ((root.weatherCode >= 51 && root.weatherCode <= 67) ||
-        (root.weatherCode >= 80 && root.weatherCode <= 82)) return "\uF0645"
-    if (root.weatherCode >= 71 && root.weatherCode <= 77) return "\uF0649"
-    if (root.weatherCode >= 95 && root.weatherCode <= 99) return "\uF0634"
-    return "\uF0633"
+        (root.weatherCode >= 80 && root.weatherCode <= 82)) return "󰖗"
+    if (root.weatherCode >= 71 && root.weatherCode <= 77) return "󰖘"
+    if (root.weatherCode >= 95 && root.weatherCode <= 99) return "󰖓"
+    return "󰖐"
   }
 
   color: {

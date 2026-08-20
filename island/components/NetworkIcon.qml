@@ -16,8 +16,8 @@ Text {
   verticalAlignment: Text.AlignVCenter
 
   text: {
-    if (!root.connected) return "\uF06B4"
-    if (root.type === "ethernet") return "\uF0333"
-    return "\uF06A9"
+    if (!root.connected) return "󰖪"
+    if (root.type === "ethernet") return "󰈀"
+    return "󰖩"
   }
 }

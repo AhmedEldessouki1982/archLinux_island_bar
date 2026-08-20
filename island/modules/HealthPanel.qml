@@ -1036,7 +1036,7 @@ Item {
 
   component CpuIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: "\uF041A"
+    text: "󰻠"
     color: Theme.accent
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1046,7 +1046,7 @@ Item {
 
   component GpuIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: "\uF0380"
+    text: "󰘚"
     color: Theme.pink
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1056,7 +1056,7 @@ Item {
 
   component RamIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: "\uF049B"
+    text: "󰍛"
     color: Theme.cyan
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1066,7 +1066,7 @@ Item {
 
   component FanIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: "\uF0130"
+    text: "󰈐"
     color: Theme.orange
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1076,7 +1076,7 @@ Item {
 
   component BatIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: root.batteryCharging ? "\uF0216" : "\uF0218"
+    text: root.batteryCharging ? "󰂄" : "󰁹"
     color: root.batteryCharging ? Theme.green : (root.batteryCapacity > 20 ? Theme.foreground : Theme.red)
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1086,7 +1086,7 @@ Item {
 
   component PwrIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: "\uF0195"
+    text: "󰐥"
     color: Theme.green
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1096,7 +1096,7 @@ Item {
 
   component NetIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
-    text: "\uF06A9"
+    text: "󰖩"
     color: Theme.green
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
@@ -1127,9 +1127,9 @@ Item {
     verticalAlignment: Text.AlignVCenter
     color: sicon.muted ? Theme.red : Theme.accent
     text: {
-      if (sicon.headphoneConnected && sicon.micConnected) return "\uF02D6"
-      if (sicon.headphoneConnected) return "\uF02CB"
-      if (sicon.micConnected) return "\uF036C"
+      if (sicon.headphoneConnected && sicon.micConnected) return "󰋎"
+      if (sicon.headphoneConnected) return "󰋋"
+      if (sicon.micConnected) return "󰍬"
       if (sicon.muted) return "\uF026"
       var v = sicon.volume
       if (v >= 0.67) return "\uF028"
@@ -1143,7 +1143,7 @@ Item {
     id: sun
     width: Theme.iconSize; height: Theme.iconSize
     property real percent: 100
-    text: "\uF0651"
+    text: "󰖙"
     color: Theme.yellow
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
