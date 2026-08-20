@@ -23,14 +23,16 @@ Item {
 
     // Percentage text on the right side
     Text {
-      anchors.verticalCenter: root.verticalCenter
-      anchors.right: root.right
-      anchors.rightMargin: 4
+      Layout.right: root.right
+      Layout.rightMargin: 4
+      Layout.verticalCenter: root.verticalCenter
       text: Math.round(root.percent) + "%"
       color: root.charging ? Theme.green : root.batteryColor()
       font.family: Theme.fontFamily
       font.pixelSize: 15
       font.bold: true
+      Layout.horizontalAlignment: Text.AlignHCenter
+      Layout.verticalAlignment: Text.AlignVCenter
     }
   }
 
@@ -80,4 +82,4 @@ Item {
     }
 
     ctx.restore()
-  }}
+  }
