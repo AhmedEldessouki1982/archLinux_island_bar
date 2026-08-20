@@ -9,27 +9,75 @@ Item {
 
   property int percent: 100
   property bool charging: false
-  property color fillColor: root.charging ? Theme.green : (root.percent > 20 ? Theme.foreground : Theme.red)
 
   RowLayout {
     anchors.fill: parent
-    spacing: 6
+    spacing: 4
 
-    Text {
-      Layout.alignment: Qt.AlignVCenter
-      text: root.charging ? "󰂄" : "󰁹"
-      color: root.fillColor
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.iconFontSize
+    // Battery Canvas - draws the battery shape
+    Canvas {
+      id: batteryCanvas
+      anchors.fill: parent
+      onPaint: drawBattery
     }
 
+    // Percentage text on the right side
     Text {
-      Layout.alignment: Qt.AlignVCenter
+      anchors.verticalCenter: root.verticalCenter
+      anchors.right: root.right
+      anchors.rightMargin: 4
       text: Math.round(root.percent) + "%"
-      color: root.fillColor
+      color: root.charging ? Theme.green : root.batteryColor()
       font.family: Theme.fontFamily
-      font.pixelSize: 12
+      font.pixelSize: 15
       font.bold: true
     }
   }
-}
+
+  function batteryColor() {
+    var pct = root.percent
+    if (root.charging) return Theme.green
+    if (pct <= 10) return Theme.red
+    if (pct <= 20) return Theme.orange
+    return Theme.foreground
+  }
+
+  function drawBattery(ctx) {
+    var w = root.width
+    var h = root.height
+    var pct = root.percent
+
+    ctx.clearRect(0, 0, w, h)
+
+    ctx.save()
+
+    // Draw battery body background
+    ctx.fillStyle = Theme.background
+    ctx.fillRect(0, 0, w, h)
+
+    // Draw battery outline
+    ctx.strokeStyle = Theme.foreground
+    ctx.lineWidth = 1
+    ctx.strokeRect(1, 1, root.width - 2, root.height - 2)
+
+    // Draw terminal on right
+    ctx.fillStyle = Theme.foreground
+    ctx.fillRect(
+      root.width - 8,
+      4,
+      4,
+      root.height - 8
+    )
+
+    // Draw battery fill based on percentage
+    var fillWidth = Math.max(1, Math.floor((root.width - 8) * root.percent / 100))
+    ctx.fillStyle = root.charging ? Theme.green : root.batteryColor()
+
+    if (root.percent >= 100) {
+      ctx.fillRect(2, 2, root.width - 6, root.height - 4)
+    } else if (root.percent > 0) {
+      ctx.fillRect(2, 2, Math.max(1, fillWidth), root.height - 4)
+    }
+
+    ctx.restore()
+  }}
