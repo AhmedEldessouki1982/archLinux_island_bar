@@ -16,6 +16,10 @@ Item {
     spacing: 6
 
     Text {
+      width: Theme.iconSize
+      height: Theme.iconSize
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
       Layout.alignment: Qt.AlignVCenter
       text: root.charging ? "󰂄" : "󰁹"
       color: root.fillColor
@@ -24,12 +28,15 @@ Item {
     }
 
     Text {
+      width: Theme.iconSize
+      height: Theme.iconSize
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
       Layout.alignment: Qt.AlignVCenter
       text: Math.round(root.percent) + "%"
       color: root.fillColor
       font.family: Theme.fontFamily
-      font.pixelSize: 12
-      font.bold: true
+      font.pixelSize: Theme.iconFontSize
     }
   }
 }
