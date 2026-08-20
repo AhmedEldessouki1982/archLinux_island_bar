@@ -45,9 +45,6 @@ Item {
     spacing: 6
 
     Text {
-      id: batteryGlyphText
-      width: Theme.iconSize
-      height: Theme.iconSize
       horizontalAlignment: Text.AlignHCenter
       verticalAlignment: Text.AlignVCenter
       Layout.alignment: Qt.AlignVCenter
@@ -58,9 +55,6 @@ Item {
     }
 
     Text {
-      id: percentageText
-      width: Theme.iconSize
-      height: Theme.iconSize
       horizontalAlignment: Text.AlignHCenter
       verticalAlignment: Text.AlignVCenter
       Layout.alignment: Qt.AlignVCenter
