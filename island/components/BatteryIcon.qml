@@ -36,7 +36,7 @@ Item {
       text: Math.round(root.percent) + "%"
       color: root.fillColor
       font.family: Theme.fontFamily
-      font.pixelSize: Theme.iconFontSize
+      font.pixelSize: 15
     }
   }
 }
