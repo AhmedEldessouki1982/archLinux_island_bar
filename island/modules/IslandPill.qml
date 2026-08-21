@@ -126,17 +126,7 @@ Item {
         font.pixelSize: 12
         font.bold: true
         font.letterSpacing: 0.5
-      }
-
-      Text {
-        text: Hyprland.activeToplevel?.title ?? ""
-        color: Theme.foreground
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-        font.letterSpacing: 0.3
-        elide: Text.ElideRight
-        maximumLineCount: 1
-        Layout.maximumWidth: 140
+        Layout.alignment: Qt.AlignVCenter
       }
 
       Text {
@@ -147,6 +137,7 @@ Item {
         font.pixelSize: 12
         font.letterSpacing: 0.5
         font.bold: true
+        Layout.alignment: Qt.AlignVCenter
 
         Timer {
           interval: 1000
@@ -162,6 +153,7 @@ Item {
         font.family: Theme.fontFamily
         font.pixelSize: 13
         font.bold: true
+        Layout.alignment: Qt.AlignVCenter
       }
 
       RegWarningIcon {
@@ -213,6 +205,24 @@ Item {
           }
         }
       }
+
+      Item {
+        Layout.fillWidth: true
+      }
+
+      VDiv {}
+
+      Text {
+        text: Math.round(_batteryService.capacity) + "%"
+        color: _batteryService.charging ? Theme.green
+          : _batteryService.capacity <= 10 ? Theme.red
+          : _batteryService.capacity <= 20 ? Theme.orange
+          : Theme.foreground
+        font.family: Theme.fontFamily
+        font.pixelSize: 12
+        font.bold: true
+        Layout.alignment: Qt.AlignVCenter
+      }
     }
 
     RowLayout {
@@ -246,6 +256,7 @@ Item {
         font.pixelSize: 11
         font.letterSpacing: 0.3
         Layout.minimumWidth: 60
+        Layout.alignment: Qt.AlignVCenter
       }
 
       VDiv {}
@@ -256,6 +267,7 @@ Item {
         Item {
           width: txt.implicitWidth + 6
           height: 20
+          Layout.alignment: Qt.AlignVCenter
 
           required property var modelData
 
@@ -291,6 +303,7 @@ Item {
         elide: Text.ElideRight
         maximumLineCount: 1
         Layout.maximumWidth: 140
+        Layout.alignment: Qt.AlignVCenter
       }
 
       VDiv {}
@@ -330,9 +343,10 @@ Item {
 
             Text {
               anchors.centerIn: parent
-              text: "🔔"
+              text: "\uF0F3"
+              color: Theme.foreground
               font.family: Theme.fontFamily
-              font.pixelSize: 11
+              font.pixelSize: Theme.iconFontSize
             }
 
             Rectangle {

@@ -9,6 +9,7 @@ Item {
 
   property int percent: 100
   property bool charging: false
+  property int glyphNudge: -2
 
   // ---- battery glyph selection based on percentage & charging ----
   function batteryGlyph() {
@@ -39,31 +40,30 @@ Item {
   }
 
   RowLayout {
-    anchors.fill: parent
+    anchors.centerIn: parent
     spacing: 4
 
-    Text {
+    Item {
       width: Theme.iconSize
       height: Theme.iconSize
-      horizontalAlignment: Text.AlignHCenter
-      verticalAlignment: Text.AlignVCenter
       Layout.alignment: Qt.AlignVCenter
-      text: root.batteryGlyph()
-      color: root.batteryColor()
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.iconFontSize
+
+      Text {
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: root.glyphNudge
+        text: root.batteryGlyph()
+        color: root.batteryColor()
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.iconFontSize
+      }
     }
 
     Text {
-      width: Theme.iconSize
-      height: Theme.iconSize
-      horizontalAlignment: Text.AlignHCenter
-      verticalAlignment: Text.AlignVCenter
       Layout.alignment: Qt.AlignVCenter
       text: Math.round(root.percent) + "%"
       color: root.batteryColor()
       font.family: Theme.fontFamily
-      font.pixelSize: 15
+      font.pixelSize: Theme.fontSizeLabel
     }
   }
 }

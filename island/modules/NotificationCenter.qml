@@ -118,7 +118,7 @@ PanelWindow {
             spacing: 10
 
             Text {
-              text: model.appIcon !== "" ? "" : "🔔"
+              text: model.appIcon !== "" ? "" : "\uF0F3"
               color: Theme.accent
               font.family: Theme.fontFamily
               font.pixelSize: 14

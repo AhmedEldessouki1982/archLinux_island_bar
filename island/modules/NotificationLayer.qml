@@ -160,11 +160,11 @@ PanelWindow {
             }
             Text {
               anchors.centerIn: parent
-              text: "🔔"
+              text: "\uF0F3"
               color: Theme.foreground
               visible: model.appIcon === ""
               font.family: Theme.fontFamily
-              font.pixelSize: 14
+              font.pixelSize: 18
             }
           }
 
