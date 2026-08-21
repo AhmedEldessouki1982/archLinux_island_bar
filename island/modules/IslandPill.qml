@@ -343,8 +343,8 @@ Item {
 
             Text {
               anchors.centerIn: parent
-              text: "\uF0F3"
-              color: Theme.foreground
+              text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
+              color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
               font.family: Theme.fontFamily
               font.pixelSize: Theme.iconFontSize
             }
@@ -358,7 +358,7 @@ Item {
               color: Theme.red
               border.width: 1
               border.color: Theme.background
-              visible: root.notificationLayer && root.notificationLayer.notificationCount > 0
+              visible: root.notificationLayer && !root.notificationLayer.dnd && root.notificationLayer.notificationCount > 0
 
               Text {
                 anchors.centerIn: parent

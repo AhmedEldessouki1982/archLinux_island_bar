@@ -70,4 +70,12 @@ PanelWindow {
     property: "batteryService"
     value: islandPill.batteryService
   }
+
+  Connections {
+    target: notificationLayer
+
+    function onMoreClicked() {
+      notificationCenter.open()
+    }
+  }
 }
