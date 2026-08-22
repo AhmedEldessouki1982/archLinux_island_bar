@@ -30,9 +30,18 @@ Item {
   property bool meterReady: false
   property var notificationLayer: null
   property var notificationCenter: null
+  property bool readyForDisplay: false
 
   width: parent.width
   height: root.pillHeight
+
+  Timer {
+    id: bootDelayTimer
+    interval: 3000
+    running: true
+    repeat: false
+    onTriggered: root.readyForDisplay = true
+  }
 
   DropShadow {
     id: pillShadow
@@ -215,6 +224,7 @@ Item {
       Text {
         text: Math.round(_batteryService.capacity) + "%"
         color: _batteryService.charging ? Theme.green
+          : !root.readyForDisplay ? Theme.foreground
           : _batteryService.capacity <= 10 ? Theme.red
           : _batteryService.capacity <= 20 ? Theme.orange
           : Theme.foreground
@@ -718,3 +728,4 @@ component RegWarningIcon: Text {
     function onNumChanged() { root.onMeterActivity("num") }
   }
 }
+

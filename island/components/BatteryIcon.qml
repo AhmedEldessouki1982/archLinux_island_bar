@@ -59,7 +59,8 @@ Item {
     }
 
     Text {
-      Layout.alignment: Qt.AlignVCenter
+      Layout.preferredWidth: 32
+      Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
       text: Math.round(root.percent) + "%"
       color: root.batteryColor()
       font.family: Theme.fontFamily
