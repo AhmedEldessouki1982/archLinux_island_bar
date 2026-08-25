@@ -37,7 +37,7 @@ Item {
 
   Timer {
     id: bootDelayTimer
-    interval: 3000
+    interval: 5000
     running: true
     repeat: false
     onTriggered: root.readyForDisplay = true
@@ -213,10 +213,6 @@ Item {
             }
           }
         }
-      }
-
-      Item {
-        Layout.fillWidth: true
       }
 
       VDiv {}
@@ -728,4 +724,5 @@ component RegWarningIcon: Text {
     function onNumChanged() { root.onMeterActivity("num") }
   }
 }
+
 
