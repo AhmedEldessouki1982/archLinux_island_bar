@@ -15,6 +15,10 @@ Item {
   property bool _initialized: false
   property int _activeStreams: 0
   property bool fastPoll: false
+  property var sinks: []
+  property var sources: []
+  property string defaultSink: ""
+  property string defaultSource: ""
 
   signal externalChangeDetected()
 
@@ -22,6 +26,25 @@ Item {
     readProc.running = true
     portProc.running = true
     sourcePortProc.running = true
+  }
+
+  function refreshDevices() {
+    sinkListProc.running = true
+    sourceListProc.running = true
+  }
+
+  function setDefaultSink(name) {
+    if (!name)
+      return
+    setSinkProc.command = ["pactl", "set-default-sink", name]
+    setSinkProc.running = true
+  }
+
+  function setDefaultSource(name) {
+    if (!name)
+      return
+    setSourceProc.command = ["pactl", "set-default-source", name]
+    setSourceProc.running = true
   }
 
   function setVolume(v) {
@@ -90,6 +113,76 @@ Item {
   }
 
   Process {
+    id: sinkListProc
+    command: ["sh", "-c", "pactl list short sinks 2>/dev/null"]
+    running: false
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var out = []
+        var lines = this.text.trim().split("\n")
+        for (var i = 0; i < lines.length; i++) {
+          var f = lines[i].split("\t")
+          if (f.length >= 3)
+            out.push({name: f[1], desc: f[2]})
+        }
+        root.sinks = out
+        defaultSinkProc.running = true
+      }
+    }
+  }
+
+  Process {
+    id: sourceListProc
+    command: ["sh", "-c", "pactl list short sources 2>/dev/null"]
+    running: false
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var out = []
+        var lines = this.text.trim().split("\n")
+        for (var i = 0; i < lines.length; i++) {
+          var f = lines[i].split("\t")
+          if (f.length >= 3)
+            out.push({name: f[1], desc: f[2]})
+        }
+        root.sources = out
+        defaultSourceProc.running = true
+      }
+    }
+  }
+
+  Process {
+    id: defaultSinkProc
+    command: ["sh", "-c", "pactl get-default-sink 2>/dev/null"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => root.defaultSink = data.trim()
+    }
+  }
+
+  Process {
+    id: defaultSourceProc
+    command: ["sh", "-c", "pactl get-default-source 2>/dev/null"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => root.defaultSource = data.trim()
+    }
+  }
+
+  Process {
+    id: setSinkProc
+    command: ["true"]
+    running: false
+    onExited: root.refreshDevices()
+  }
+
+  Process {
+    id: setSourceProc
+    command: ["true"]
+    running: false
+    onExited: root.refreshDevices()
+  }
+
+  Process {
     id: muteProc
     command: ["sh", "-c", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null"]
     running: false
@@ -132,7 +225,13 @@ Item {
 
   Connections {
     target: Pipewire
-    function onDefaultAudioSinkChanged() { root.sync() }
+    function onDefaultAudioSinkChanged() {
+      root.sync()
+      root.refreshDevices()
+    }
+    function onDefaultAudioSourceChanged() {
+      root.refreshDevices()
+    }
   }
 
   Timer {

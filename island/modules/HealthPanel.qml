@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import "../config"
+import "../components"
 
 Item {
   id: root
@@ -43,6 +44,7 @@ Item {
   property var brightnessService: null
   property var batteryService: null
   property var weatherService: null
+  property var networkService: null
 
   onBatteryServiceChanged: {
     if (root.batteryService) {
@@ -150,14 +152,18 @@ Item {
   }
 
   function netText() {
-    return "\u2193 " + padRight(root.formatBytes(root.netRxRate), 9) + "   \u2191 " + padRight(root.formatBytes(root.netTxRate), 9)
+    var base = "\u2193 " + padRight(root.formatBytes(root.netRxRate), 9) + "   \u2191 " + padRight(root.formatBytes(root.netTxRate), 9)
+    var lat = root.networkService && root.networkService.latencyMs >= 0 ? Math.round(root.networkService.latencyMs) + "ms" : "--ms"
+    return base + " \u00b7 " + lat
   }
 
   function networkSubText() {
-    if (root._iface.length === 0) return "OFFLINE"
-    if (root.wifiSsid.length > 0) return root.wifiSsid
-    if (root._iface.indexOf("wl") === 0) return "WIFI"
-    return "ETHERNET"
+    if (root._iface.length === 0)
+      return "OFFLINE"
+    var ssid = root.wifiSsid.length > 0 ? root.wifiSsid : (root._iface.indexOf("wl") === 0 ? "WIFI" : "ETHERNET")
+    if (root.networkService && root.networkService.latencyMs >= 0)
+      return ssid + " \u00b7 " + Math.round(root.networkService.latencyMs) + "ms (" + root.networkService.qualityStatus + ")"
+    return ssid
   }
 
   // --- calendar navigation (merged from CalendarPopup) ---
@@ -677,6 +683,40 @@ Item {
             Layout.preferredWidth: 36
             Layout.alignment: Qt.AlignVCenter
           }
+
+          Item {
+            id: deviceMenuAnchor
+            width: 14
+            height: 16
+            Layout.alignment: Qt.AlignVCenter
+
+            Text {
+              anchors.centerIn: parent
+              text: "\uF078"
+              color: chevronMouse.containsMouse ? Theme.accent : Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: 11
+            }
+
+            MouseArea {
+              id: chevronMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                if (audioService)
+                  audioService.refreshDevices()
+                audioDeviceMenu.open()
+              }
+            }
+
+            AudioDeviceMenu {
+              id: audioDeviceMenu
+              x: -(width - parent.width)
+              y: parent.height + 6
+              audioService: root.audioService
+            }
+          }
         }
 
         RowLayout {
@@ -769,6 +809,7 @@ Item {
             title: "NET"
             valueText: root.netText()
             subText: root.networkSubText()
+            subTextColor: root.networkService ? root.networkService.qualityColor : Theme.comment
             NetIcon {}
           }
         }
@@ -1295,6 +1336,7 @@ Item {
     property color valueColor: Theme.foreground
     property string valueText: ""
     property string subText: ""
+    property color subTextColor: Theme.comment
     property int valueSize: Theme.fontSizeValue
 
     radius: 8
@@ -1347,7 +1389,7 @@ Item {
         Text {
           visible: tile.subText.length > 0
           text: tile.subText
-          color: Theme.comment
+          color: tile.subTextColor
           font.family: Theme.fontFamily
           font.pixelSize: Theme.fontSizeLabel
           elide: Text.ElideRight

@@ -71,6 +71,12 @@ PanelWindow {
     value: islandPill.batteryService
   }
 
+  Binding {
+    target: floatingHealth
+    property: "networkService"
+    value: islandPill.networkService
+  }
+
   Connections {
     target: notificationLayer
 
@@ -79,3 +85,4 @@ PanelWindow {
     }
   }
 }
+

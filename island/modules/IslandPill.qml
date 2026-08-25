@@ -18,6 +18,7 @@ Item {
   property var healthWindow: null
   property var batteryLimitWindow: null
   property alias batteryService: _batteryService
+  property alias networkService: _networkService
   property var sharedBrightnessService: null
 
   onHealthWindowChanged: {
@@ -341,6 +342,8 @@ Item {
               onClicked: root.toggleHealthPanel()
             }
           }
+
+          KbLayoutIcon {}
 
           Item {
             width: 22
@@ -687,7 +690,7 @@ component RegWarningIcon: Text {
   }
 
   AudioService { id: audioService }
-  NetworkService { id: networkService }
+  NetworkService { id: _networkService }
   BatteryService { id: _batteryService }
   BrightnessService { id: brightnessService }
   LockService { id: lockService }

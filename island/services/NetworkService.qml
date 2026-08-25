@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../config"
 
 Item {
   id: root
@@ -9,6 +10,15 @@ Item {
   property bool connected: false
   property string ipAddress: "..."
   property string type: "wifi"
+  property real latencyMs: -1
+  property string pingHost: "8.8.8.8"
+
+  readonly property string qualityStatus: root.latencyMs < 0 ? "Unknown"
+    : root.latencyMs <= 30 ? "Good"
+    : root.latencyMs <= 80 ? "OK" : "Poor"
+  readonly property color qualityColor: root.latencyMs < 0 ? Theme.comment
+    : root.latencyMs <= 30 ? Theme.green
+    : root.latencyMs <= 80 ? Theme.yellow : Theme.orange
 
   function refreshIp() {
     ipProcess.running = true
@@ -43,6 +53,35 @@ Item {
     running: false
     stdout: SplitParser {
       onRead: data => root.ipAddress = data.trim()
+    }
+  }
+
+  Process {
+    id: pingProcess
+    command: ["sh", "-c", "ping -c1 -W2 " + root.pingHost + " 2>/dev/null | grep -oP 'time=\\K[\\d.]+'"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var v = parseFloat(data.trim())
+        if (!isNaN(v))
+          root.latencyMs = v
+      }
+    }
+    onExited: code => {
+      if (code !== 0)
+        root.latencyMs = -1
+    }
+  }
+
+  Timer {
+    interval: 10000
+    running: true
+    repeat: true
+    onTriggered: {
+      if (root.connected)
+        pingProcess.running = true
+      else
+        root.latencyMs = -1
     }
   }
 

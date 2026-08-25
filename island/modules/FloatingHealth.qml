@@ -37,6 +37,7 @@ PanelWindow {
 
   property var audioService: _audioService
   property var brightnessService: null
+  property var networkService: null
   property var batteryService: _batteryService
   property var weatherService: _weatherService
 
@@ -83,6 +84,7 @@ PanelWindow {
         brightnessService: root.brightnessService
         batteryService: root.batteryService
         weatherService: root.weatherService
+        networkService: root.networkService
 
         Component.onCompleted: {
           root.hpW = Qt.binding(() => healthPanel.contentWidth + 24)
