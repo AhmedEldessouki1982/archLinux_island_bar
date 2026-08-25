@@ -343,8 +343,6 @@ Item {
             }
           }
 
-          KbLayoutIcon {}
-
           Item {
             width: 22
             height: 22
@@ -385,6 +383,8 @@ Item {
               onClicked: root.toggleNotificationCenter()
             }
           }
+
+          KbLayoutIcon {}
         }
       }
 
