@@ -30,6 +30,7 @@ PanelWindow {
   readonly property int hiddenBannerCount: Math.max(0, root.bannerNotifs.length - root.maxVisibleBanners)
   property int notificationCount: root.notifs.length
   property bool registrationFailed: false
+  property bool debug: false
   property var server: null
   property var notifs: []
   property var liveNotifs: ({})
@@ -207,7 +208,7 @@ PanelWindow {
       restored.sort((a, b) => b.timestamp - a.timestamp)
       root.notifs = restored
     } catch (err) {
-      console.log("[notif] history restore failed:", err)
+      if (root.debug) console.log("[notif] history restore failed:", err)
     }
   }
 
@@ -316,7 +317,7 @@ PanelWindow {
         var owner = parseInt(v, 10)
         var ok = !isNaN(owner) && owner === Quickshell.processId
         root.registrationFailed = !ok
-        console.log("[notif] org.freedesktop.Notifications owner pid=" + v + " self=" + Quickshell.processId + " => " + (ok ? "REGISTERED OK" : "NOT REGISTERED (conflict or absent)"))
+        if (root.debug) console.log("[notif] org.freedesktop.Notifications owner pid=" + v + " self=" + Quickshell.processId + " => " + (ok ? "REGISTERED OK" : "NOT REGISTERED (conflict or absent)"))
         if (!ok && isNaN(owner))
           respawnCooldown.restart()
       }
