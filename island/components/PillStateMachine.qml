@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "../config"
 
 Item {
@@ -30,7 +31,7 @@ Item {
 
   onHealthWindowChanged: {
     if (root.healthWindow)
-      root.healthWindow.closed.connect(() => root.isHealthPanelOpen = false)
+      root.healthWindow.panelClosed.connect(() => root.isHealthPanelOpen = false)
   }
 
   // --- timers ---
