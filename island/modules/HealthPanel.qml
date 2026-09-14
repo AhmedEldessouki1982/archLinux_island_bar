@@ -38,6 +38,8 @@ Item {
   property int _lastRx: 0
   property int _lastTx: 0
   property string _iface: ""
+  property string _hwmonTempPath: ""
+  property string _hwmonFanPath: ""
 
   // --- forwarded services (instantiated in FloatingHealth) ---
   property var audioService: null
@@ -206,6 +208,7 @@ Item {
   function start() {
     root.active = true
     detectIface()
+    hwmonResolveProc.running = true
     cpuCountProc.running = true
     gfxModeProc.running = true
     pwrProfileProc.running = true
@@ -361,8 +364,30 @@ Item {
   }
 
   Process {
+    id: hwmonResolveProc
+    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo "$(basename $d) $(cat $d/name 2>/dev/null)"; done"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var lines = data.trim().split("\n")
+        for (var i = 0; i < lines.length; i++) {
+          var parts = lines[i].split(" ")
+          if (parts.length >= 2) {
+            var hwmon = parts[0]
+            var name = parts.slice(1).join(" ")
+            if (name === "k10temp" && root._hwmonTempPath.length === 0)
+              root._hwmonTempPath = "/sys/class/hwmon/" + hwmon + "/temp1_input"
+            if (name === "asus" && root._hwmonFanPath.length === 0)
+              root._hwmonFanPath = "/sys/class/hwmon/" + hwmon
+          }
+        }
+      }
+    }
+  }
+
+  Process {
     id: cpuTempProc
-    command: ["sh", "-c", "cat /sys/class/hwmon/hwmon6/temp1_input"]
+    command: ["sh", "-c", root._hwmonTempPath.length > 0 ? "cat " + root._hwmonTempPath : "echo 0"]
     running: false
     stdout: SplitParser {
       onRead: data => {
@@ -375,7 +400,7 @@ Item {
 
   Process {
     id: fanProc
-    command: ["sh", "-c", "paste -d ' ' /sys/class/hwmon/hwmon10/fan1_input /sys/class/hwmon/hwmon10/fan2_input"]
+    command: ["sh", "-c", root._hwmonFanPath.length > 0 ? "paste -d ' ' " + root._hwmonFanPath + "/fan1_input " + root._hwmonFanPath + "/fan2_input" : "echo '0 0'"]
     running: false
     stdout: SplitParser {
       onRead: data => {
