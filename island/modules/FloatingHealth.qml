@@ -34,12 +34,18 @@ PanelWindow {
   AudioService { id: _audioService }
   BatteryService { id: _batteryService }
   WeatherService { id: _weatherService }
+  SystemStatsService { id: _systemStatsService }
+  ThermalService { id: _thermalService }
+  GpuModeService { id: _gpuModeService }
 
   property var audioService: _audioService
   property var brightnessService: null
   property var networkService: null
   property var batteryService: _batteryService
   property var weatherService: _weatherService
+  property var systemStatsService: _systemStatsService
+  property var thermalService: _thermalService
+  property var gpuModeService: _gpuModeService
 
   onVisibleChanged: {
     if (root.visible) autoCloseTimer.restart()
@@ -85,6 +91,9 @@ PanelWindow {
         batteryService: root.batteryService
         weatherService: root.weatherService
         networkService: root.networkService
+        systemStatsService: root.systemStatsService
+        thermalService: root.thermalService
+        gpuModeService: root.gpuModeService
 
         Component.onCompleted: {
           root.hpW = Qt.binding(() => healthPanel.contentWidth + 24)

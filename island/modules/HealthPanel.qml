@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import "../config"
 import "../components"
+import "../services"
 
 Item {
   id: root
@@ -35,12 +36,6 @@ Item {
 
   property int panelPadding: 14
 
-  property int _lastRx: 0
-  property int _lastTx: 0
-  property string _iface: ""
-  property string _hwmonTempPath: ""
-  property string _hwmonFanPath: ""
-
   // --- forwarded services (instantiated in FloatingHealth) ---
   property var audioService: null
   property var brightnessService: null
@@ -48,11 +43,55 @@ Item {
   property var weatherService: null
   property var networkService: null
 
+  // --- tier-3 services (instantiated in FloatingHealth) ---
+  property var systemStatsService: null
+  property var thermalService: null
+  property var gpuModeService: null
+
   onBatteryServiceChanged: {
     if (root.batteryService) {
       root.batteryCapacity = Qt.binding(() => root.batteryService.capacity)
       root.batteryCharging = Qt.binding(() => root.batteryService.charging)
       root.batteryPower = Qt.binding(() => root.batteryService.power)
+    }
+  }
+
+  onSystemStatsServiceChanged: {
+    if (root.systemStatsService) {
+      root.cpuCount = Qt.binding(() => root.systemStatsService.cpuCount)
+      root.cpuLoad = Qt.binding(() => root.systemStatsService.cpuLoad)
+      root.ramUsed = Qt.binding(() => root.systemStatsService.ramUsed)
+      root.ramTotal = Qt.binding(() => root.systemStatsService.ramTotal)
+      root.ramPercent = Qt.binding(() => root.systemStatsService.ramPercent)
+      root.kernelVersion = Qt.binding(() => root.systemStatsService.kernelVersion)
+      root.userName = Qt.binding(() => root.systemStatsService.userName)
+      root.hostName = Qt.binding(() => root.systemStatsService.hostName)
+    }
+  }
+
+  onThermalServiceChanged: {
+    if (root.thermalService) {
+      root.cpuTemp = Qt.binding(() => root.thermalService.cpuTemp)
+      root.cpuFanSpeed = Qt.binding(() => root.thermalService.cpuFanSpeed)
+      root.gpuFanSpeed = Qt.binding(() => root.thermalService.gpuFanSpeed)
+      root.gpuTemp = Qt.binding(() => root.thermalService.gpuTemp)
+      root.gpuLoad = Qt.binding(() => root.thermalService.gpuLoad)
+    }
+  }
+
+  onGpuModeServiceChanged: {
+    if (root.gpuModeService) {
+      root.gpuMode = Qt.binding(() => root.gpuModeService.gpuMode)
+      root.gpuPowerStatus = Qt.binding(() => root.gpuModeService.gpuPowerStatus)
+      root.powerProfile = Qt.binding(() => root.gpuModeService.powerProfile)
+    }
+  }
+
+  onNetworkServiceChanged: {
+    if (root.networkService) {
+      root.netRxRate = Qt.binding(() => root.networkService.rxRate)
+      root.netTxRate = Qt.binding(() => root.networkService.txRate)
+      root.wifiSsid = Qt.binding(() => root.networkService.ssid)
     }
   }
 
@@ -160,9 +199,10 @@ Item {
   }
 
   function networkSubText() {
-    if (root._iface.length === 0)
+    var iface = root.networkService ? root.networkService.iface : ""
+    if (iface.length === 0)
       return "OFFLINE"
-    var ssid = root.wifiSsid.length > 0 ? root.wifiSsid : (root._iface.indexOf("wl") === 0 ? "WIFI" : "ETHERNET")
+    var ssid = root.wifiSsid.length > 0 ? root.wifiSsid : (iface.indexOf("wl") === 0 ? "WIFI" : "ETHERNET")
     if (root.networkService && root.networkService.latencyMs >= 0)
       return ssid + " \u00b7 " + Math.round(root.networkService.latencyMs) + "ms (" + root.networkService.qualityStatus + ")"
     return ssid
@@ -207,51 +247,18 @@ Item {
 
   function start() {
     root.active = true
-    detectIface()
-    hwmonResolveProc.running = true
-    cpuCountProc.running = true
-    gfxModeProc.running = true
-    pwrProfileProc.running = true
-    sysInfoProc.running = true
-    ssidProc.running = true
-    collectData.running = true
-    collectGpu.running = true
-    if (collectGpu) collectGpu.triggered()
+    if (root.systemStatsService) root.systemStatsService.start()
+    if (root.thermalService) root.thermalService.start()
+    if (root.gpuModeService) root.gpuModeService.start()
+    if (root.networkService) root.networkService.startStats()
   }
 
   function stop() {
     root.active = false
-    collectData.running = false
-    collectGpu.running = false
-  }
-
-  function detectIface() {
-    ifProc.running = true
-  }
-
-  Timer {
-    id: collectData
-    interval: 2000
-    running: false
-    repeat: true
-    onTriggered: {
-      loadProc.running = true
-      memProc.running = true
-      cpuTempProc.running = true
-      fanProc.running = true
-      netDataProc.running = true
-      ssidProc.running = true
-    }
-  }
-
-  Timer {
-    id: collectGpu
-    interval: 5000
-    running: false
-    repeat: true
-    onTriggered: {
-      gpuDataProc.running = true
-    }
+    if (root.systemStatsService) root.systemStatsService.stop()
+    if (root.thermalService) root.thermalService.stop()
+    if (root.gpuModeService) root.gpuModeService.stop()
+    if (root.networkService) root.networkService.stopStats()
   }
 
   Timer {
@@ -259,206 +266,6 @@ Item {
     running: true
     repeat: true
     onTriggered: root.rebuild()
-  }
-
-  Process {
-    id: ifProc
-    command: ["sh", "-c", "ip -4 route show default | awk '{print $5}' | head -1"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var v = data.trim()
-        if (v.length > 0) {
-          root._iface = v
-          if (root.active && root.collectData) root.collectData.triggered()
-        }
-      }
-    }
-  }
-
-  Process {
-    id: cpuCountProc
-    command: ["nproc"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var n = parseInt(data.trim())
-        if (!isNaN(n) && n > 0) root.cpuCount = n
-      }
-    }
-  }
-
-  Process {
-    id: gfxModeProc
-    command: ["sh", "-c", "echo M:$(supergfxctl -g) && echo S:$(supergfxctl -S)"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var line = data.trim()
-        if (line.indexOf("M:") === 0) root.gpuMode = line.substring(2)
-        else if (line.indexOf("S:") === 0) root.gpuPowerStatus = line.substring(2)
-      }
-    }
-  }
-
-  Process {
-    id: pwrProfileProc
-    command: ["sh", "-c", "asusctl profile get 2>/dev/null | head -1 | cut -d: -f2 | xargs"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var v = data.trim()
-        if (v.length > 0) root.powerProfile = v
-      }
-    }
-  }
-
-  Process {
-    id: sysInfoProc
-    command: ["sh", "-c", "echo K:$(uname -r) && echo U:$(whoami) && echo H:$(uname -n)"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var line = data.trim()
-        if (line.indexOf("K:") === 0) root.kernelVersion = line.substring(2)
-        else if (line.indexOf("U:") === 0) root.userName = line.substring(2)
-        else if (line.indexOf("H:") === 0) root.hostName = line.substring(2)
-      }
-    }
-  }
-
-  Process {
-    id: loadProc
-    command: ["sh", "-c", "cat /proc/loadavg"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var parts = data.trim().split(/\s+/)
-        if (parts.length >= 3) {
-          var raw = parseFloat(parts[0])
-          if (!isNaN(raw) && root.cpuCount > 0)
-            root.cpuLoad = Math.min(100, raw * 100 / root.cpuCount)
-        }
-      }
-    }
-  }
-
-  Process {
-    id: memProc
-    command: ["sh", "-c", "awk '/MemTotal/ {mt=$2} /MemAvailable/ {ma=$2} END {print mt, ma}' /proc/meminfo"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var vals = data.trim().split(/\s+/)
-        if (vals.length >= 2) {
-          var memTotalKb = parseInt(vals[0])
-          var memAvailKb = parseInt(vals[1])
-          if (memTotalKb > 0) {
-            root.ramTotal = memTotalKb * 1024
-            root.ramUsed = (memTotalKb - memAvailKb) * 1024
-            root.ramPercent = root.ramUsed / root.ramTotal * 100
-          }
-        }
-      }
-    }
-  }
-
-  Process {
-    id: hwmonResolveProc
-    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo "$(basename $d) $(cat $d/name 2>/dev/null)"; done"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var lines = data.trim().split("\n")
-        for (var i = 0; i < lines.length; i++) {
-          var parts = lines[i].split(" ")
-          if (parts.length >= 2) {
-            var hwmon = parts[0]
-            var name = parts.slice(1).join(" ")
-            if (name === "k10temp" && root._hwmonTempPath.length === 0)
-              root._hwmonTempPath = "/sys/class/hwmon/" + hwmon + "/temp1_input"
-            if (name === "asus" && root._hwmonFanPath.length === 0)
-              root._hwmonFanPath = "/sys/class/hwmon/" + hwmon
-          }
-        }
-      }
-    }
-  }
-
-  Process {
-    id: cpuTempProc
-    command: ["sh", "-c", root._hwmonTempPath.length > 0 ? "cat " + root._hwmonTempPath : "echo 0"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var temp = parseInt(data.trim())
-        if (!isNaN(temp) && temp > 0)
-          root.cpuTemp = temp / 1000
-      }
-    }
-  }
-
-  Process {
-    id: fanProc
-    command: ["sh", "-c", root._hwmonFanPath.length > 0 ? "paste -d ' ' " + root._hwmonFanPath + "/fan1_input " + root._hwmonFanPath + "/fan2_input" : "echo '0 0'"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var vals = data.trim().split(/\s+/)
-        if (vals.length >= 2) {
-          var fan1 = parseInt(vals[0])
-          var fan2 = parseInt(vals[1])
-          if (!isNaN(fan1) && fan1 >= 0) root.cpuFanSpeed = fan1
-          if (!isNaN(fan2) && fan2 >= 0) root.gpuFanSpeed = fan2
-        }
-      }
-    }
-  }
-
-  Process {
-    id: gpuDataProc
-    command: ["sh", "-c", "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,fan.speed --format=csv,noheader,nounits 2>/dev/null || echo '--,--,--'"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var parts = data.trim().split(/,\s*/)
-        if (parts.length >= 2) {
-          root.gpuTemp = parseFloat(parts[0]) || 0
-          root.gpuLoad = parseFloat(parts[1]) || 0
-        }
-      }
-    }
-  }
-
-  Process {
-    id: netDataProc
-    command: ["sh", "-c", "paste -d ' ' /sys/class/net/" + root._iface + "/statistics/rx_bytes /sys/class/net/" + root._iface + "/statistics/tx_bytes 2>/dev/null || echo '0 0'"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        if (root._iface.length === 0) return
-        var vals = data.trim().split(/\s+/)
-        if (vals.length >= 2) {
-          var rx = parseInt(vals[0]) || 0
-          var tx = parseInt(vals[1]) || 0
-          if (root._lastRx > 0) {
-            root.netRxRate = Math.max(0, (rx - root._lastRx) / 2)
-            root.netTxRate = Math.max(0, (tx - root._lastTx) / 2)
-          }
-          root._lastRx = rx
-          root._lastTx = tx
-        }
-      }
-    }
-  }
-
-  Process {
-    id: ssidProc
-    command: ["sh", "-c", "nmcli -t -f ACTIVE,SSID device wifi 2>/dev/null | grep '^yes:' | cut -d: -f2- | head -1"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => root.wifiSsid = data.trim()
-    }
   }
 
   opacity: root.active ? 1 : 0
