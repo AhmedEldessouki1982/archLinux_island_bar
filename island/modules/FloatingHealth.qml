@@ -14,7 +14,7 @@ PanelWindow {
   property int hpW: 0
   property int hpH: 0
 
-  signal closed()
+  signal panelClosed()
 
   WlrLayershell.layer: WlrLayer.Overlay
 
@@ -162,6 +162,6 @@ PanelWindow {
     healthPanel.stop()
     root.panelActive = false
     root.visible = false
-    root.closed()
+    root.panelClosed()
   }
 }
