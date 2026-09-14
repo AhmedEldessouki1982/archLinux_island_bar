@@ -12,36 +12,28 @@ import "../config"
 Item {
   id: root
 
-  property bool isExpanded: false
-  property bool isHealthPanelOpen: false
+  // --- state delegated to PillStateMachine ---
   property int pillHeight: 35
-  property var healthWindow: null
-  property var batteryLimitWindow: null
   property alias batteryService: _batteryService
   property alias networkService: _networkService
   property var sharedBrightnessService: null
-
-  onHealthWindowChanged: {
-    if (root.healthWindow)
-      root.healthWindow.closed.connect(() => root.isHealthPanelOpen = false)
-  }
-  property string meterMode: ""
-  property int meterPillWidth: 240
-  property int meterMaxBarWidth: root.meterPillWidth - 104
-  property bool meterReady: false
+  property var healthWindow: null
+  property var batteryLimitWindow: null
   property var notificationLayer: null
   property var notificationCenter: null
-  property bool readyForDisplay: false
 
   width: parent.width
   height: root.pillHeight
 
-  Timer {
-    id: bootDelayTimer
-    interval: 5000
-    running: true
-    repeat: false
-    onTriggered: root.readyForDisplay = true
+  PillStateMachine {
+    id: _psm
+    healthWindow: root.healthWindow
+    batteryLimitWindow: root.batteryLimitWindow
+    notificationLayer: root.notificationLayer
+    notificationCenter: root.notificationCenter
+    audioService: audioService
+    brightnessService: brightnessService
+    lockService: lockService
   }
 
   DropShadow {
@@ -60,8 +52,8 @@ Item {
     id: pill
     anchors.horizontalCenter: parent.horizontalCenter
     y: 0
-    width: root.meterMode !== "" ? root.meterPillWidth
-      : root.isExpanded ? expandedLayout.implicitWidth + 24
+    width: _psm.meterMode !== "" ? _psm.meterPillWidth
+      : _psm.isExpanded ? expandedLayout.implicitWidth + 24
       : idleLayout.implicitWidth + 24
     height: parent.height
     radius: root.pillHeight / 2
@@ -88,23 +80,11 @@ Item {
       id: mouseArea
       anchors.fill: parent
       hoverEnabled: true
-      onEntered: {
-        if (root.meterMode === "") root.isExpanded = true
-        if (root.isHealthPanelOpen) root.resetAutoClose()
-      }
-      onExited: {
-        if (!root.isHealthPanelOpen) root.isExpanded = false
-        if (root.isHealthPanelOpen) root.resetAutoClose()
-      }
+      onEntered: _psm.onHoverEntered()
+      onExited: _psm.onHoverExited()
       onWheel: (event) => {
         var dir = event.angleDelta.y > 0 ? 1 : -1
-        if (root.meterMode === "brightness") {
-          root.onMeterActivity("brightness")
-          brightnessService.stepPercent(dir * 5)
-        } else {
-          root.onMeterActivity("volume")
-          audioService.stepVolume(dir * 0.05)
-        }
+        _psm.onWheel(dir)
         event.accepted = true
       }
     }
@@ -117,7 +97,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded || root.meterMode !== "" ? 0 : 1
+      opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
 
       Behavior on opacity {
@@ -221,7 +201,7 @@ Item {
       Text {
         text: Math.round(_batteryService.capacity) + "%"
         color: _batteryService.charging ? Theme.green
-          : !root.readyForDisplay ? Theme.foreground
+          : !_psm.readyForDisplay ? Theme.foreground
           : _batteryService.capacity <= 10 ? Theme.red
           : _batteryService.capacity <= 20 ? Theme.orange
           : Theme.foreground
@@ -240,7 +220,7 @@ Item {
       anchors.right: parent.right
       anchors.rightMargin: 12
       spacing: 10
-      opacity: root.isExpanded ? 1 : 0
+      opacity: _psm.isExpanded ? 1 : 0
       clip: true
 
       Behavior on opacity {
@@ -339,7 +319,7 @@ Item {
 
             MouseArea {
               anchors.fill: parent
-              onClicked: root.toggleHealthPanel()
+              onClicked: _psm.toggleHealthPanel()
             }
           }
 
@@ -380,7 +360,7 @@ Item {
             MouseArea {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.toggleNotificationCenter()
+              onClicked: _psm.toggleNotificationCenter()
             }
           }
 
@@ -416,8 +396,8 @@ Item {
       anchors.leftMargin: 12
       anchors.right: parent.right
       anchors.rightMargin: 12
-      opacity: root.meterMode !== "" ? 1 : 0
-      visible: root.meterMode !== ""
+      opacity: _psm.meterMode !== "" ? 1 : 0
+      visible: _psm.meterMode !== ""
       clip: true
 
       Behavior on opacity {
@@ -447,7 +427,7 @@ Item {
           verticalAlignment: Text.AlignVCenter
 
           text: {
-            if (root.meterMode === "volume") {
+            if (_psm.meterMode === "volume") {
               if (audioService.headphoneConnected && audioService.micConnected) return "󰋎"
               if (audioService.headphoneConnected) return "󰋋"
               if (audioService.micConnected) return "󰍬"
@@ -457,40 +437,40 @@ Item {
               if (v >= 0.34) return "\uF027"
               if (v > 0) return "\uF026"
               return "\uF026"
-            } else if (root.meterMode === "caps" || root.meterMode === "num") {
-              return root.meterMode === "caps" ? "A" : "1"
+            } else if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
+              return _psm.meterMode === "caps" ? "A" : "1"
             } else {
               return "󰖨"
             }
           }
 
           color: {
-            if (root.meterMode === "volume") {
+            if (_psm.meterMode === "volume") {
               return audioService.muted ? Theme.red : Theme.accent
-            } else if (root.meterMode === "caps" || root.meterMode === "num") {
-              return (root.meterMode === "caps" ? lockService.capsOn : lockService.numOn) ? Theme.green : Theme.foreground
+            } else if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
+              return (_psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn) ? Theme.green : Theme.foreground
             } else {
               return Theme.yellow
             }
           }
 
           opacity: {
-            if (root.meterMode === "brightness") {
+            if (_psm.meterMode === "brightness") {
               var ratio = Math.max(0, Math.min(1, brightnessService.displayPercent / 100))
               return 0.35 + 0.65 * ratio
             }
             return 1
           }
 
-          font.bold: root.meterMode === "caps" || root.meterMode === "num"
-          font.pixelSize: root.meterMode === "caps" || root.meterMode === "num" ? 20 : 24
+          font.bold: _psm.meterMode === "caps" || _psm.meterMode === "num"
+          font.pixelSize: _psm.meterMode === "caps" || _psm.meterMode === "num" ? 20 : 24
         }
 
         Rectangle {
           id: meterBarBg
           Layout.alignment: Qt.AlignVCenter
-          Layout.preferredWidth: root.meterMaxBarWidth
-          Layout.minimumWidth: root.meterMaxBarWidth
+          Layout.preferredWidth: _psm.meterMaxBarWidth
+          Layout.minimumWidth: _psm.meterMaxBarWidth
           height: 14
           radius: 7
           color: Theme.selection
@@ -503,21 +483,21 @@ Item {
             anchors.leftMargin: 1.5
             radius: parent.radius - 1.5
             width: {
-              var maxW = root.meterMaxBarWidth - 3
-              var pct = root.meterMode === "volume"
+              var maxW = _psm.meterMaxBarWidth - 3
+              var pct = _psm.meterMode === "volume"
                 ? (audioService.muted ? 0 : audioService.volume)
-                : root.meterMode === "caps"
+                : _psm.meterMode === "caps"
                   ? (lockService.capsOn ? 1 : 0)
-                  : root.meterMode === "num"
+                  : _psm.meterMode === "num"
                     ? (lockService.numOn ? 1 : 0)
                     : (brightnessService.displayPercent / 100)
               return Math.max(0, Math.min(maxW, maxW * pct))
             }
             color: {
-              if (root.meterMode === "volume")
+              if (_psm.meterMode === "volume")
                 return audioService.muted ? Theme.red : Theme.accent
-              if (root.meterMode === "caps" || root.meterMode === "num") {
-                var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
+              if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
+                var lit = _psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn
                 return lit ? Theme.green : Theme.red
               }
               return brightnessService.displayPercent > 20 ? Theme.yellow : Theme.red
@@ -531,16 +511,16 @@ Item {
 
         Text {
           text: {
-            if (root.meterMode === "volume")
+            if (_psm.meterMode === "volume")
               return Math.round(audioService.volume * 100) + "%"
-            if (root.meterMode === "caps") return "CAPS"
-            if (root.meterMode === "num") return "NUM"
+            if (_psm.meterMode === "caps") return "CAPS"
+            if (_psm.meterMode === "num") return "NUM"
             return Math.round(brightnessService.displayPercent) + "%"
           }
           color: {
-            if (root.meterMode === "volume") return Theme.accent
-            if (root.meterMode === "caps" || root.meterMode === "num") {
-              var lit = root.meterMode === "caps" ? lockService.capsOn : lockService.numOn
+            if (_psm.meterMode === "volume") return Theme.accent
+            if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
+              var lit = _psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn
               return lit ? Theme.green : Theme.red
             }
             return Theme.yellow
@@ -612,119 +592,15 @@ component RegWarningIcon: Text {
     visible: root.notificationLayer ? root.notificationLayer.registrationFailed : false
   }
 
-  Timer {
-    id: autoCloseTimer
-    interval: 10000
-    running: root.isHealthPanelOpen
-    onTriggered: root.closeHealthPanel()
-  }
-
-  Timer {
-    id: meterTimer
-    interval: 1500
-    onTriggered: root.dismissMeter()
-  }
-
-  Timer {
-    id: hoverRecheckTimer
-    interval: 300
-    onTriggered: {
-      if (root.meterMode === "" && mouseArea.containsMouse)
-        root.isExpanded = true
-    }
-  }
-
-  Timer {
-    interval: 500
-    running: true
-    onTriggered: root.meterReady = true
-  }
-
-  function toggleHealthPanel() {
-    if (root.isHealthPanelOpen) {
-      root.healthWindow.close()
-      root.isHealthPanelOpen = false
-    } else {
-      if (root.notificationCenter) root.notificationCenter.close()
-      root.healthWindow.open()
-      root.isHealthPanelOpen = true
-      resetAutoClose()
-    }
-  }
-
-  function toggleNotificationCenter() {
-    if (root.notificationCenter && root.notificationCenter.visible) {
-      root.notificationCenter.close()
-    } else {
-      if (root.healthWindow && root.isHealthPanelOpen) root.closeHealthPanel()
-      if (root.notificationCenter) root.notificationCenter.toggle()
-    }
-  }
-
-  function closeHealthPanel() {
-    root.healthWindow.close()
-    root.isHealthPanelOpen = false
-  }
-
-  function resetAutoClose() {
-    autoCloseTimer.stop()
-    autoCloseTimer.start()
-  }
-
-  function showMeter(mode) {
-    root.meterMode = mode
-    meterTimer.restart()
-  }
-
-  function onMeterActivity(mode) {
-    if (!root.meterReady) return
-    if (mode === "volume") audioService.requestFastPoll()
-    else if (mode === "brightness") brightnessService.requestFastPoll()
-    root.showMeter(mode)
-  }
-
-  function dismissMeter() {
-    root.meterMode = ""
-    root.isExpanded = false
-    hoverRecheckTimer.start()
-  }
-
   AudioService { id: audioService }
   NetworkService { id: _networkService }
   BatteryService { id: _batteryService }
   BrightnessService { id: brightnessService }
   LockService { id: lockService }
 
-  Component.onCompleted: root.sharedBrightnessService = brightnessService
-
-  IpcHandler {
-    target: "island"
-    function triggerMeter(mode: string): void {
-      root.onMeterActivity(mode)
-    }
-    function toggleHealth(): void {
-      root.toggleHealthPanel()
-    }
-    function adjustBrightness(delta: int): void {
-      root.onMeterActivity("brightness")
-      brightnessService.stepPercent(delta)
-    }
-  }
-
-  Connections {
-    target: audioService
-    function onExternalChangeDetected() { if (!root.isHealthPanelOpen) root.onMeterActivity("volume") }
-  }
-
-  Connections {
-    target: brightnessService
-    function onExternalChangeDetected() { if (!root.isHealthPanelOpen) root.onMeterActivity("brightness") }
-  }
-
-  Connections {
-    target: lockService
-    function onCapsChanged() { root.onMeterActivity("caps") }
-    function onNumChanged() { root.onMeterActivity("num") }
+  Component.onCompleted: {
+    root.sharedBrightnessService = brightnessService
+    _psm.mouseArea = mouseArea
   }
 }
 
