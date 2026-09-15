@@ -25,7 +25,7 @@ PanelWindow {
 
   Timer {
     id: autoCloseTimer
-    interval: 8000
+    interval: 15000
     onTriggered: root.close()
   }
 
