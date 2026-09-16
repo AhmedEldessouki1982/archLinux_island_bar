@@ -8,6 +8,7 @@ PanelWindow {
   anchors.top: true
   anchors.left: true
   anchors.right: true
+  visible: true
   color: "transparent"
   exclusionMode: ExclusionMode.Normal
   aboveWindows: true

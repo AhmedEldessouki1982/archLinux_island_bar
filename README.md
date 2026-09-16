@@ -100,6 +100,14 @@ quickshell -c island
 
 If Quickshell is set to autoload a config layout, place or symlink it so it stays under `~/.config/quickshell`.
 
+### Autostart
+
+Add this to your `hyprland.conf` so Island launches automatically on login:
+
+```bash
+exec-once = quickshell -c island
+```
+
 ### Hardware-key IPC
 
 Bind your volume/brightness keys to the island IPC:

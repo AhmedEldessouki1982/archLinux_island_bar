@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtQuick
 import "../config"
 
 Item {
@@ -30,7 +31,7 @@ Item {
   // --- one-shot: resolve hwmon paths (no sysfs glob equivalent) ---
   Process {
     id: hwmonResolveProc
-    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo "$(basename $d) $(cat $d/name 2>/dev/null)"; done"]
+    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo \"$(basename $d) $(cat $d/name 2>/dev/null)\"; done"]
     running: false
     stdout: SplitParser {
       onRead: data => {
@@ -63,7 +64,7 @@ Item {
     path: root._hwmonTempPath
     watchChanges: false
     onLoaded: {
-      var temp = parseInt(text.trim())
+      var temp = parseInt(text().trim())
       if (!isNaN(temp) && temp > 0)
         root.cpuTemp = temp / 1000
     }
@@ -75,7 +76,7 @@ Item {
     path: root._hwmonFanPath.length > 0 ? root._hwmonFanPath + "/fan1_input" : ""
     watchChanges: false
     onLoaded: {
-      var fan1 = parseInt(text.trim())
+      var fan1 = parseInt(text().trim())
       if (!isNaN(fan1) && fan1 >= 0) root.cpuFanSpeed = fan1
     }
   }
@@ -86,7 +87,7 @@ Item {
     path: root._hwmonFanPath.length > 0 ? root._hwmonFanPath + "/fan2_input" : ""
     watchChanges: false
     onLoaded: {
-      var fan2 = parseInt(text.trim())
+      var fan2 = parseInt(text().trim())
       if (!isNaN(fan2) && fan2 >= 0) root.gpuFanSpeed = fan2
     }
   }

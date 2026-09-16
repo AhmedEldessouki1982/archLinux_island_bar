@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Io
+import QtQuick
 import "../config"
 
 Item {
@@ -66,7 +67,7 @@ Item {
     path: "/proc/loadavg"
     watchChanges: false
     onLoaded: {
-      var parts = text.trim().split(/\s+/)
+      var parts = text().trim().split(/\s+/)
       if (parts.length >= 3) {
         var raw = parseFloat(parts[0])
         if (!isNaN(raw) && root.cpuCount > 0)
@@ -81,7 +82,7 @@ Item {
     path: "/proc/meminfo"
     watchChanges: false
     onLoaded: {
-      var lines = text.trim().split("\n")
+      var lines = text().trim().split("\n")
       var memTotalKb = 0
       var memAvailKb = 0
       for (var i = 0; i < lines.length; i++) {
@@ -113,5 +114,16 @@ Item {
   Component.onCompleted: {
     cpuCountProc.running = true
     sysInfoProc.running = true
+    loadView.reload()
+    memView.reload()
+    initTimer.start()
+  }
+
+  Timer {
+    id: initTimer
+    interval: 100
+    running: false
+    repeat: false
+    onTriggered: root._active = true
   }
 }
