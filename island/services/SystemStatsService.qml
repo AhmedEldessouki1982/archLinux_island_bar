@@ -1,4 +1,3 @@
-import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../config"
@@ -16,27 +15,25 @@ Item {
   property string userName: ""
   property string hostName: ""
 
+  property bool _active: false
+
   function start() {
-    cpuCountProc.running = true
+    root._active = true
+    loadView.watchChanges = true
+    memView.watchChanges = true
+    loadView.reload()
+    memView.reload()
     sysInfoProc.running = true
-    pollTimer.running = true
+    cpuCountProc.running = true
   }
 
   function stop() {
-    pollTimer.running = false
+    root._active = false
+    loadView.watchChanges = false
+    memView.watchChanges = false
   }
 
-  Timer {
-    id: pollTimer
-    interval: 2000
-    running: false
-    repeat: true
-    onTriggered: {
-      loadProc.running = true
-      memProc.running = true
-    }
-  }
-
+  // --- one-shot shell for uname/whoami (no sysfs equivalent) ---
   Process {
     id: cpuCountProc
     command: ["nproc"]
@@ -63,39 +60,58 @@ Item {
     }
   }
 
-  Process {
-    id: loadProc
-    command: ["sh", "-c", "cat /proc/loadavg"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var parts = data.trim().split(/\s+/)
-        if (parts.length >= 3) {
-          var raw = parseFloat(parts[0])
-          if (!isNaN(raw) && root.cpuCount > 0)
-            root.cpuLoad = Math.min(100, raw * 100 / root.cpuCount)
-        }
+  // --- FileView: zero-fork /proc/loadavg watcher ---
+  FileView {
+    id: loadView
+    path: "/proc/loadavg"
+    watchChanges: false
+    onLoaded: {
+      var parts = text.trim().split(/\s+/)
+      if (parts.length >= 3) {
+        var raw = parseFloat(parts[0])
+        if (!isNaN(raw) && root.cpuCount > 0)
+          root.cpuLoad = Math.min(100, raw * 100 / root.cpuCount)
       }
     }
   }
 
-  Process {
-    id: memProc
-    command: ["sh", "-c", "awk '/MemTotal/ {mt=$2} /MemAvailable/ {ma=$2} END {print mt, ma}' /proc/meminfo"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var vals = data.trim().split(/\s+/)
-        if (vals.length >= 2) {
-          var memTotalKb = parseInt(vals[0])
-          var memAvailKb = parseInt(vals[1])
-          if (memTotalKb > 0) {
-            root.ramTotal = memTotalKb * 1024
-            root.ramUsed = (memTotalKb - memAvailKb) * 1024
-            root.ramPercent = root.ramUsed / root.ramTotal * 100
-          }
-        }
+  // --- FileView: zero-fork /proc/meminfo watcher ---
+  FileView {
+    id: memView
+    path: "/proc/meminfo"
+    watchChanges: false
+    onLoaded: {
+      var lines = text.trim().split("\n")
+      var memTotalKb = 0
+      var memAvailKb = 0
+      for (var i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf("MemTotal:") === 0)
+          memTotalKb = parseInt(lines[i].split(/\s+/)[1]) || 0
+        else if (lines[i].indexOf("MemAvailable:") === 0)
+          memAvailKb = parseInt(lines[i].split(/\s+/)[1]) || 0
+        if (memTotalKb > 0 && memAvailKb > 0) break
+      }
+      if (memTotalKb > 0) {
+        root.ramTotal = memTotalKb * 1024
+        root.ramUsed = (memTotalKb - memAvailKb) * 1024
+        root.ramPercent = root.ramUsed / root.ramTotal * 100
       }
     }
+  }
+
+  // --- read timer replaces the old fork-per-tick ---
+  Timer {
+    interval: 2000
+    running: root._active
+    repeat: true
+    onTriggered: {
+      loadView.reload()
+      memView.reload()
+    }
+  }
+
+  Component.onCompleted: {
+    cpuCountProc.running = true
+    sysInfoProc.running = true
   }
 }

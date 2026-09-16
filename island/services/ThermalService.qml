@@ -1,4 +1,3 @@
-import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../config"
@@ -15,46 +14,28 @@ Item {
 
   property string _hwmonTempPath: ""
   property string _hwmonFanPath: ""
+  property bool _active: false
 
   function start() {
+    root._active = true
     hwmonResolveProc.running = true
-    collectData.running = true
-    collectGpu.running = true
+    gpuDataProc.running = true
   }
 
   function stop() {
-    collectData.running = false
+    root._active = false
     collectGpu.running = false
   }
 
-  Timer {
-    id: collectData
-    interval: 2000
-    running: false
-    repeat: true
-    onTriggered: {
-      cpuTempProc.running = true
-      fanProc.running = true
-    }
-  }
-
-  Timer {
-    id: collectGpu
-    interval: 5000
-    running: false
-    repeat: true
-    onTriggered: {
-      gpuDataProc.running = true
-    }
-  }
-
+  // --- one-shot: resolve hwmon paths (no sysfs glob equivalent) ---
   Process {
     id: hwmonResolveProc
-    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo \"$(basename $d) $(cat $d/name 2>/dev/null)\"; done"]
+    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo "$(basename $d) $(cat $d/name 2>/dev/null)"; done"]
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var lines = data.trim().split("\n")
+        var lines = data.trim().split("
+")
         for (var i = 0; i < lines.length; i++) {
           var parts = lines[i].split(" ")
           if (parts.length >= 2) {
@@ -66,38 +47,72 @@ Item {
               root._hwmonFanPath = "/sys/class/hwmon/" + hwmon
           }
         }
-      }
-    }
-  }
-
-  Process {
-    id: cpuTempProc
-    command: ["sh", "-c", root._hwmonTempPath.length > 0 ? "cat " + root._hwmonTempPath : "echo 0"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var temp = parseInt(data.trim())
-        if (!isNaN(temp) && temp > 0)
-          root.cpuTemp = temp / 1000
-      }
-    }
-  }
-
-  Process {
-    id: fanProc
-    command: ["sh", "-c", root._hwmonFanPath.length > 0 ? "paste -d ' ' " + root._hwmonFanPath + "/fan1_input " + root._hwmonFanPath + "/fan2_input" : "echo '0 0'"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var vals = data.trim().split(/\s+/)
-        if (vals.length >= 2) {
-          var fan1 = parseInt(vals[0])
-          var fan2 = parseInt(vals[1])
-          if (!isNaN(fan1) && fan1 >= 0) root.cpuFanSpeed = fan1
-          if (!isNaN(fan2) && fan2 >= 0) root.gpuFanSpeed = fan2
+        // start reading once paths resolved
+        if (root._hwmonTempPath.length > 0) cpuTempView.reload()
+        if (root._hwmonFanPath.length > 0) {
+          fan1View.reload()
+          fan2View.reload()
         }
       }
     }
+  }
+
+  // --- FileView: zero-fork cpu temp ---
+  FileView {
+    id: cpuTempView
+    path: root._hwmonTempPath
+    watchChanges: false
+    onLoaded: {
+      var temp = parseInt(text.trim())
+      if (!isNaN(temp) && temp > 0)
+        root.cpuTemp = temp / 1000
+    }
+  }
+
+  // --- FileView: zero-fork fan1 ---
+  FileView {
+    id: fan1View
+    path: root._hwmonFanPath.length > 0 ? root._hwmonFanPath + "/fan1_input" : ""
+    watchChanges: false
+    onLoaded: {
+      var fan1 = parseInt(text.trim())
+      if (!isNaN(fan1) && fan1 >= 0) root.cpuFanSpeed = fan1
+    }
+  }
+
+  // --- FileView: zero-fork fan2 ---
+  FileView {
+    id: fan2View
+    path: root._hwmonFanPath.length > 0 ? root._hwmonFanPath + "/fan2_input" : ""
+    watchChanges: false
+    onLoaded: {
+      var fan2 = parseInt(text.trim())
+      if (!isNaN(fan2) && fan2 >= 0) root.gpuFanSpeed = fan2
+    }
+  }
+
+  // --- poll timer: reloads FileViews instead of forking shells ---
+  Timer {
+    id: collectData
+    interval: 2000
+    running: root._active
+    repeat: true
+    onTriggered: {
+      if (root._hwmonTempPath.length > 0) cpuTempView.reload()
+      if (root._hwmonFanPath.length > 0) {
+        fan1View.reload()
+        fan2View.reload()
+      }
+    }
+  }
+
+  // --- nvidia-smi: no sysfs equivalent, keep as shell (5s interval) ---
+  Timer {
+    id: collectGpu
+    interval: 5000
+    running: false
+    repeat: true
+    onTriggered: gpuDataProc.running = true
   }
 
   Process {
@@ -106,7 +121,7 @@ Item {
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var parts = data.trim().split(/,\s*/)
+        var parts = data.trim().split(/,s*/)
         if (parts.length >= 2) {
           root.gpuTemp = parseFloat(parts[0]) || 0
           root.gpuLoad = parseFloat(parts[1]) || 0
