@@ -8,18 +8,18 @@ A single morphing pill that expands on hover into a full status cluster, built w
 
 - **Morphing pill** — three states in one bar: a narrow idle pill, a hover-expanded layout, and a compact centered meter for transient feedback (volume / brightness / keyboard-lock OSD).
 - **Volume + brightness control** — scroll to adjust, click to mute / toggle; each shows a compact centered meter that pops up on bind, triggered over Hyprland IPC from your hardware keys.
-- **Brightness remap & cap** — the on-screen `0–100%` scale is remapped onto the real backlight range, which is capped at **95%** (`realMaxPercent`) to protect the panel; the hardware keys route through this capped IPC so they can never blow past the limit.
+- **Brightness remap & cap** — the on-screen `1–100%` scale is remapped onto the real backlight range, which is capped at **95%** (`realMaxPercent`) to protect the panel; the hardware keys route through this capped IPC so they can never blow past the limit.
 - **Battery charge-limit popup** — click the battery icon for radio presets (**Max Protection 58%**, **Balanced 79%**, **Fully Charged 100%**) that set the ASUS charge threshold live via `asusctl battery limit`; the active preset is highlighted in yellow and stays in sync with `rog-control-center`.
 - **Caps / Num lock OSD** — a short-lived, centered popup that appears when either lock key changes.
 - **Headphone jack detection** — the volume icon reflects the active `wpctl` sink port.
 - **EQ visualizer** — hand-drawn animated bars that appear while audio plays.
 - **Notifications** — banner + center, with deadline-based expiry for transient notifications and true pinning for persistent ones.
-- **Calendar popup** — click a date to open it.
-- **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 8 s idle.
+- **Calendar** — month navigation and the current date are integrated into the health panel.
+- **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 15 s idle and resets its timer while you interact with it.
 - **Live weather card** — the health panel shows current location (geo via `ipwho.is`) and temperature + conditions (via `open-meteo`), refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading.
 - **Native Quickshell integration** — battery/charging read straight from the built-in **UPower** service (event-driven, zero polling); active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
 - **Dracula throughout** — one singleton theme, a single palette, no hard-coded colors.
-- **Hand-drawn icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items; no icon-font glyph set.
+- **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
 
 ---
 
@@ -120,7 +120,7 @@ quickshell -c island ipc call island adjustBrightness 5      # +5% on the capped
 quickshell -c island ipc call island adjustBrightness -5     # -5% on the capped scale
 ```
 
-`adjustBrightness` clamps at 0% and the 95% real-backlight cap, so the hardware keys can never push the panel past its limit.
+`adjustBrightness` clamps at 1% and the 95% real-backlight cap, so the hardware keys can never push the panel past its limit.
 
 ---
 
@@ -160,12 +160,11 @@ island/
 
 - **ASUS**-only extras (`asusctl`, `supergfxctl`, and the fan readback) are gated: without that hardware they simply stay empty — nothing breaks.
 - **Weather** needs network access; `ipwho.is` and `open-meteo.com` are called at 30-min intervals. On failure the last-known-good reading is kept, and a failed geo lookup short-circuits so the card doesn't spin on stale coordinates.
-- **Quickshell 0.3.0 quirks** are worked around, not hidden:
+- **Quickshell 0.3.x quirks** are worked around, not hidden:
   - Pipewire audio read/write is bypassed via `wpctl` (see the opening comment in `BatteryService`/`AudioService`);
-  - the "bell"/"calendar" glyphs are rendered with the system emoji font, not the hand-drawn canvas set;
+  - standard action glyphs use the configured icon font alongside the custom canvas icons;
   - the volume/brightness meter temporarily blooms the poll rate (150 ms) only while its OSD is on screen, then returns to the normal slow poll;
-  - redeclaring `closed()` on the floating layers shadows the base `Window` signal — functional, but logs an `invalidOverride` warning.
-- **Tested on**: Hyprland 0.56, Quickshell 0.3.0 (Qt6), Arch `extra`; screen selector defaults to `eDP-1` then `eDP-2`, then the first output.
+- **Tested on**: Hyprland 0.56, Quickshell 0.3.1 (Qt6), Arch `extra`; screen selector defaults to `eDP-1` then `eDP-2`, then the first output.
 
 ## License
 

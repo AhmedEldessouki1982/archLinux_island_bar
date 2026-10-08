@@ -25,7 +25,6 @@ Item {
 
   function stop() {
     root._active = false
-    collectGpu.running = false
   }
 
   // --- one-shot: resolve hwmon paths (no sysfs glob equivalent) ---
@@ -35,8 +34,7 @@ Item {
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var lines = data.trim().split("
-")
+        var lines = data.trim().split("\n")
         for (var i = 0; i < lines.length; i++) {
           var parts = lines[i].split(" ")
           if (parts.length >= 2) {
@@ -111,18 +109,18 @@ Item {
   Timer {
     id: collectGpu
     interval: 5000
-    running: false
+    running: root._active
     repeat: true
     onTriggered: gpuDataProc.running = true
   }
 
   Process {
     id: gpuDataProc
-    command: ["sh", "-c", "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,fan.speed --format=csv,noheader,nounits 2>/dev/null || echo '--,--,--'"]
+    command: ["sh", "-c", "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null || echo '--,--'"]
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var parts = data.trim().split(/,s*/)
+        var parts = data.trim().split(/,\s*/)
         if (parts.length >= 2) {
           root.gpuTemp = parseFloat(parts[0]) || 0
           root.gpuLoad = parseFloat(parts[1]) || 0

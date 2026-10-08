@@ -15,6 +15,13 @@ PanelWindow {
   implicitHeight: 60
   exclusiveZone: 38
 
+  // Only the visible pill should receive pointer input. Without this mask the
+  // transparent remainder of this full-width layer blocks application menus.
+  mask: Region {
+    item: islandPill.inputRegionItem
+    radius: islandPill.pillHeight / 2
+  }
+
   screen: {
     var screens = Quickshell.screens
     for (var i = 0; i < screens.length; i++) {
@@ -62,6 +69,18 @@ PanelWindow {
 
   Binding {
     target: floatingHealth
+    property: "audioService"
+    value: islandPill.audioService
+  }
+
+  Binding {
+    target: floatingHealth
+    property: "batteryService"
+    value: islandPill.batteryService
+  }
+
+  Binding {
+    target: floatingHealth
     property: "brightnessService"
     value: islandPill.sharedBrightnessService
   }
@@ -86,4 +105,3 @@ PanelWindow {
     }
   }
 }
-

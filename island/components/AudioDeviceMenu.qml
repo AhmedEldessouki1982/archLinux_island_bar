@@ -7,10 +7,12 @@ Popup {
   id: root
 
   property var audioService: null
+  signal userActivity()
 
   width: 280
   padding: 10
   closePolicy: Popup.CloseOnPressOutside
+  onOpened: root.userActivity()
 
   background: Rectangle {
     radius: 10
@@ -82,6 +84,7 @@ Popup {
         label: modelData.desc
         activeDevice: root.audioService ? root.audioService.defaultSink === modelData.name : false
         onPicked: name => {
+          root.userActivity()
           if (root.audioService)
             root.audioService.setDefaultSink(name)
           root.close()
@@ -112,6 +115,7 @@ Popup {
         label: modelData.desc
         activeDevice: root.audioService ? root.audioService.defaultSource === modelData.name : false
         onPicked: name => {
+          root.userActivity()
           if (root.audioService)
             root.audioService.setDefaultSource(name)
           root.close()

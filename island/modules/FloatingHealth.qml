@@ -31,23 +31,26 @@ PanelWindow {
 
   property bool panelActive: false
 
-  AudioService { id: _audioService }
-  BatteryService { id: _batteryService }
   WeatherService { id: _weatherService }
   SystemStatsService { id: _systemStatsService }
   ThermalService { id: _thermalService }
   GpuModeService { id: _gpuModeService }
 
-  property var audioService: _audioService
+  property var audioService: null
   property var brightnessService: null
   property var networkService: null
-  property var batteryService: _batteryService
+  property var batteryService: null
   property var weatherService: _weatherService
   property var systemStatsService: _systemStatsService
   property var thermalService: _thermalService
   property var gpuModeService: _gpuModeService
 
   onVisibleChanged: {
+    if (root.visible) autoCloseTimer.restart()
+    else autoCloseTimer.stop()
+  }
+
+  function resetIdleTimer() {
     if (root.visible) autoCloseTimer.restart()
   }
 
@@ -67,7 +70,23 @@ PanelWindow {
 
     MouseArea {
       anchors.fill: parent
-      onClicked: {}
+      hoverEnabled: true
+      onEntered: root.resetIdleTimer()
+      onPositionChanged: root.resetIdleTimer()
+      onPressed: mouse => {
+        root.resetIdleTimer()
+      }
+    }
+
+    HoverHandler {
+      target: container
+      blocking: false
+      onHoveredChanged: {
+        if (hovered) root.resetIdleTimer()
+      }
+      onPointChanged: {
+        if (hovered) root.resetIdleTimer()
+      }
     }
 
     Behavior on opacity {
@@ -94,6 +113,7 @@ PanelWindow {
         systemStatsService: root.systemStatsService
         thermalService: root.thermalService
         gpuModeService: root.gpuModeService
+        onUserActivity: root.resetIdleTimer()
 
         Component.onCompleted: {
           root.hpW = Qt.binding(() => healthPanel.contentWidth + 24)
@@ -158,6 +178,7 @@ PanelWindow {
   }
 
   function close() {
+    autoCloseTimer.stop()
     container.opacity = 0
     healthPanel.stop()
     root.panelActive = false

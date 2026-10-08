@@ -34,6 +34,7 @@ PanelWindow {
   property var server: null
   property var notifs: []
   property var liveNotifs: ({})
+  property int historySerial: 0
   property bool tearingDown: false
   property bool storeReady: false
 
@@ -45,17 +46,22 @@ PanelWindow {
     return !root.dnd || urgency >= 2
   }
 
-  function findEntryIndex(id) {
+  function newHistoryKey() {
+    root.historySerial += 1
+    return "notification-" + Date.now() + "-" + root.historySerial
+  }
+
+  function findEntryIndex(historyKey) {
     for (var i = 0; i < root.notifs.length; i++)
-      if (root.notifs[i].id === id)
+      if (root.notifs[i].historyKey === historyKey)
         return i
     return -1
   }
 
-  function removeEntry(id) {
+  function removeEntry(historyKey) {
     if (root.tearingDown)
       return
-    var idx = root.findEntryIndex(id)
+    var idx = root.findEntryIndex(historyKey)
     if (idx < 0)
       return
     var copy = root.notifs.slice()
@@ -64,18 +70,37 @@ PanelWindow {
     saveTimer.restart()
   }
 
+  function liveRecord(entry) {
+    if (!entry || typeof entry.liveId !== "number")
+      return null
+    var record = root.liveNotifs[entry.liveId]
+    return record && record.historyKey === entry.historyKey ? record : null
+  }
+
+  function detachLive(record, operation) {
+    if (!record)
+      return
+    if (root.liveNotifs[record.liveId] === record)
+      delete root.liveNotifs[record.liveId]
+    if (record.connection) {
+      record.connection.enabled = false
+      record.connection.destroy()
+    }
+    if (operation === "dismiss") record.notification.dismiss()
+    else if (operation === "expire") record.notification.expire()
+  }
+
   function dismissEntry(entry) {
-    var live = root.liveNotifs[entry.id]
-    if (live)
-      live.dismiss()
-    else
-      root.removeEntry(entry.id)
+    var record = root.liveRecord(entry)
+    root.removeEntry(entry.historyKey)
+    root.detachLive(record, "dismiss")
   }
 
   function invokeAction(entry, identifier) {
-    var live = root.liveNotifs[entry.id]
-    if (!live)
+    var record = root.liveRecord(entry)
+    if (!record)
       return
+    var live = record.notification
     for (var i = 0; i < live.actions.length; i++) {
       if (live.actions[i].identifier === identifier) {
         live.actions[i].invoke()
@@ -89,20 +114,17 @@ PanelWindow {
   }
 
   function sendReply(entry, text) {
-    var live = root.liveNotifs[entry.id]
+    var record = root.liveRecord(entry)
+    var live = record ? record.notification : null
     if (live && live.hasInlineReply)
       live.sendInlineReply(text)
   }
 
   function clearAll() {
-    var old = root.notifs
     root.notifs = []
-    for (var i = 0; i < old.length; i++) {
-      var live = root.liveNotifs[old[i].id]
-      if (live)
-        live.dismiss()
-    }
-    root.liveNotifs = {}
+    var records = []
+    for (var id in root.liveNotifs) records.push(root.liveNotifs[id])
+    for (var i = 0; i < records.length; i++) root.detachLive(records[i], "dismiss")
     saveTimer.restart()
   }
 
@@ -123,9 +145,18 @@ PanelWindow {
         })
     }
 
-    var existingIdx = root.findEntryIndex(n.id)
+    var previousRecord = root.liveNotifs[n.id]
+    var existingIdx = previousRecord ? root.findEntryIndex(previousRecord.historyKey) : -1
+    var historyKey = existingIdx >= 0 ? root.notifs[existingIdx].historyKey : root.newHistoryKey()
+    var requestedTimeout = typeof n.expireTimeout === "number" ? n.expireTimeout : -1
+    var deadline = 0
+    if (requestedTimeout > 0)
+      deadline = Date.now() + requestedTimeout
+    else if (requestedTimeout < 0 && n.urgency < 2)
+      deadline = Date.now() + (n.urgency <= 0 ? root.lowTimeoutMs : root.normalTimeoutMs)
     var entry = {
-      id: n.id,
+      historyKey: historyKey,
+      liveId: n.id,
       appName: n.appName || "",
       appIcon: n.appIcon || "",
       image: n.image || "",
@@ -137,33 +168,47 @@ PanelWindow {
       hasInlineReply: n.hasInlineReply,
       replyPlaceholder: n.inlineReplyPlaceholder || "",
       resident: n.resident,
+      transient: n.transient,
       showBanner: root.shouldShowBanner(n.urgency),
-      deadline: n.urgency >= 2 ? 0 : Date.now() + (n.urgency <= 0 ? root.lowTimeoutMs : root.normalTimeoutMs),
+      deadline: deadline,
       _expiring: false
     }
 
-    root.liveNotifs[n.id] = n
-    closedConn.createObject(root, {
+    if (previousRecord) root.detachLive(previousRecord, "")
+    var connection = closedConn.createObject(root, {
       notif: n,
-      notifId: n.id
+      liveId: n.id,
+      historyKey: historyKey
     })
+    root.liveNotifs[n.id] = {
+      liveId: n.id,
+      historyKey: historyKey,
+      notification: n,
+      connection: connection
+    }
 
     var copy = root.notifs.slice()
     if (existingIdx >= 0)
       copy[existingIdx] = entry
     else
       copy.unshift(entry)
+    var evicted = copy.slice(50)
     root.notifs = copy.slice(0, 50)
+    for (var j = 0; j < evicted.length; j++)
+      root.detachLive(root.liveRecord(evicted[j]), "expire")
     saveTimer.restart()
   }
 
-  function handleClosed(id) {
+  function handleClosed(liveId, historyKey, notification) {
     if (root.tearingDown)
       return
-    var entryIdx = root.findEntryIndex(id)
-    delete root.liveNotifs[id]
+    var record = root.liveNotifs[liveId]
+    if (!record || record.historyKey !== historyKey || record.notification !== notification)
+      return
+    var entryIdx = root.findEntryIndex(historyKey)
+    root.detachLive(record, "")
     if (entryIdx >= 0 && !root.notifs[entryIdx]._expiring)
-      root.removeEntry(id)
+      root.removeEntry(historyKey)
     else
       saveTimer.restart()
   }
@@ -171,8 +216,8 @@ PanelWindow {
   function persistNotifs() {
     if (root.tearingDown || !root.storeReady)
       return
-    var out = root.notifs.map(e => ({
-      id: e.id,
+    var out = root.notifs.filter(e => !e.transient).map(e => ({
+      historyKey: e.historyKey,
       appName: e.appName,
       appIcon: e.appIcon,
       summary: e.summary,
@@ -188,8 +233,8 @@ PanelWindow {
       var data = JSON.parse(text)
       if (!Array.isArray(data))
         return
-      var restored = data.slice(0, 50).map(e => ({
-        id: e.id || 0,
+      var restored = data.slice(0, 50).map((e, index) => ({
+        historyKey: e.historyKey || ("legacy-" + (e.timestamp || 0) + "-" + index + "-" + (e.id || 0)),
         appName: e.appName || "",
         appIcon: e.appIcon || "",
         image: "",
@@ -201,6 +246,7 @@ PanelWindow {
         hasInlineReply: false,
         replyPlaceholder: "",
         resident: false,
+        transient: false,
         showBanner: false,
         deadline: 0,
         _expiring: false
@@ -239,10 +285,10 @@ PanelWindow {
         if (e.showBanner && e.deadline > 0 && now >= e.deadline) {
           e.showBanner = false
           changed = true
-          var live = root.liveNotifs[e.id]
-          if (live) {
+          var record = root.liveRecord(e)
+          if (record) {
             e._expiring = true
-            live.expire()
+            root.detachLive(record, "expire")
           }
         }
       }
@@ -256,12 +302,13 @@ PanelWindow {
 
     Connections {
       required property var notif
-      required property int notifId
+      required property int liveId
+      required property string historyKey
 
       target: notif
 
       function onClosed(reason) {
-        root.handleClosed(notifId)
+        root.handleClosed(liveId, historyKey, notif)
       }
     }
   }
@@ -466,6 +513,4 @@ PanelWindow {
     regCheckProc.running = true
   }
 }
-
-
 

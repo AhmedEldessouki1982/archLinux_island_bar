@@ -9,7 +9,8 @@ Item {
   property real percent: 95
   property int realMaxPercent: 95
   property bool fastPoll: false
-  readonly property real displayPercent: Math.max(0, Math.min(100, Math.round(root.percent / root.realMaxPercent * 100)))
+  property int _pendingPercent: -1
+  readonly property real displayPercent: Math.max(1, Math.min(100, Math.round(root.percent / root.realMaxPercent * 100)))
 
   signal externalChangeDetected()
 
@@ -21,6 +22,15 @@ Item {
     var realTarget = Math.round(v / 100 * root.realMaxPercent)
     var p = Math.max(1, Math.min(root.realMaxPercent, realTarget))
     root.percent = p
+    if (setProc.running) {
+      root._pendingPercent = p
+      return
+    }
+    root._runSetCommand(p)
+  }
+
+  function _runSetCommand(p) {
+    setProc.command = ["sh", "-c", "brightnessctl set " + p + "% 2>/dev/null"]
     setProc.running = true
   }
 
@@ -53,8 +63,15 @@ Item {
 
   Process {
     id: setProc
-    command: ["sh", "-c", "brightnessctl set " + root.percent + "% 2>/dev/null"]
+    command: ["true"]
     running: false
+    onExited: {
+      if (root._pendingPercent >= 0) {
+        var pending = root._pendingPercent
+        root._pendingPercent = -1
+        root._runSetCommand(pending)
+      }
+    }
   }
 
   Timer {

@@ -10,6 +10,7 @@ Item {
   id: root
 
   property bool active: false
+  signal userActivity()
 
   property real cpuLoad: 0
   property real cpuTemp: 0
@@ -26,6 +27,7 @@ Item {
   property string wifiSsid: ""
   property real batteryPower: 0
   property bool batteryCharging: false
+  property bool batteryOnAc: false
   property int batteryCapacity: 0
   property string gpuMode: ""
   property string gpuPowerStatus: ""
@@ -52,6 +54,7 @@ Item {
     if (root.batteryService) {
       root.batteryCapacity = Qt.binding(() => root.batteryService.capacity)
       root.batteryCharging = Qt.binding(() => root.batteryService.charging)
+      root.batteryOnAc = Qt.binding(() => root.batteryService.onAcPower)
       root.batteryPower = Qt.binding(() => root.batteryService.power)
     }
   }
@@ -228,6 +231,7 @@ Item {
   }
 
   function prevMonth() {
+    root.userActivity()
     root.month -= 1
     if (root.month < 0) {
       root.month = 11
@@ -237,6 +241,7 @@ Item {
   }
 
   function nextMonth() {
+    root.userActivity()
     root.month += 1
     if (root.month > 11) {
       root.month = 0
@@ -487,7 +492,10 @@ Item {
             MouseArea {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
-              onClicked: audioService.toggleMute()
+              onClicked: {
+                root.userActivity()
+                audioService.toggleMute()
+              }
             }
           }
 
@@ -499,6 +507,7 @@ Item {
             step: 0.05
             value: audioService.volume
             fillColor: audioService.muted ? Theme.red : Theme.accent
+            onInteraction: root.userActivity()
             onChanged: v => {
               audioService.requestFastPoll()
               audioService.setVolume(v)
@@ -536,6 +545,7 @@ Item {
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
               onClicked: {
+                root.userActivity()
                 if (audioService)
                   audioService.refreshDevices()
                 audioDeviceMenu.open()
@@ -547,6 +557,7 @@ Item {
               x: -(width - parent.width)
               y: parent.height + 6
               audioService: root.audioService
+              onUserActivity: root.userActivity()
             }
           }
         }
@@ -569,11 +580,12 @@ Item {
           SliderBar {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter
-            minValue: 0
+            minValue: 1
             maxValue: 100
             step: 5
             value: brightnessService.displayPercent
             fillColor: brightnessService.displayPercent > 20 ? Theme.yellow : Theme.red
+            onInteraction: root.userActivity()
             onChanged: v => {
               brightnessService.requestFastPoll()
               brightnessService.setPercent(v)
@@ -718,7 +730,7 @@ Item {
               BatIcon { Layout.alignment: Qt.AlignVCenter }
 
               Text {
-                text: root.batteryCharging ? "CHARGING" : "BATTERY"
+                text: root.batteryCharging ? "CHARGING" : root.batteryOnAc ? "AC POWER" : "BATTERY"
                 color: Theme.comment
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSizeLabel
@@ -1115,6 +1127,7 @@ Item {
     property real step: 0
     property color fillColor: Theme.accent
     signal changed(real v)
+    signal interaction()
 
     implicitHeight: 5
     radius: 2.5
@@ -1136,9 +1149,18 @@ Item {
 
     MouseArea {
       anchors.fill: parent
-      onPressed: mouse => sbar._set(mouse.x)
-      onPositionChanged: mouse => { if (pressed) sbar._set(mouse.x) }
+      onPressed: mouse => {
+        sbar.interaction()
+        sbar._set(mouse.x)
+      }
+      onPositionChanged: mouse => {
+        if (pressed) {
+          sbar.interaction()
+          sbar._set(mouse.x)
+        }
+      }
       onWheel: event => {
+        sbar.interaction()
         var dir = event.angleDelta.y > 0 ? 1 : -1
         var effStep = sbar.step > 0 ? sbar.step : (sbar.maxValue - sbar.minValue) / 20
         sbar._setValue(sbar.value + dir * effStep)

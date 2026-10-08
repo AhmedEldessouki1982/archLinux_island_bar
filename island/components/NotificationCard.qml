@@ -81,6 +81,10 @@ Rectangle {
         Layout.alignment: Qt.AlignVCenter
 
         property bool imageFailed: false
+        Connections {
+          target: card
+          function onImageChanged() { iconBox.imageFailed = false }
+        }
         readonly property bool hasImage: card.image !== "" && !imageFailed
         readonly property bool hasIcon: !hasImage && card.appIcon !== ""
 

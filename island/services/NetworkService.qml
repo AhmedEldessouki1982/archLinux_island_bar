@@ -18,15 +18,34 @@ Item {
   property string ssid: ""
   property real rxRate: 0
   property real txRate: 0
-  property int _lastRx: 0
-  property int _lastTx: 0
+  property real _lastRx: 0
+  property real _lastTx: 0
+  property real _lastSampleMs: 0
 
   function startStats() {
+    root._resetStatsBaseline()
     statsTimer.running = true
+    root._sampleStats()
   }
 
   function stopStats() {
     statsTimer.running = false
+    root._resetStatsBaseline()
+  }
+
+  function _resetStatsBaseline() {
+    root._lastRx = 0
+    root._lastTx = 0
+    root._lastSampleMs = 0
+    root.rxRate = 0
+    root.txRate = 0
+  }
+
+  function _sampleStats() {
+    if (root.iface.length === 0)
+      return
+    if (!netDataProc.running) netDataProc.running = true
+    if (!ssidProc.running) ssidProc.running = true
   }
 
   readonly property string qualityStatus: root.latencyMs < 0 ? "Unknown"
@@ -37,39 +56,30 @@ Item {
     : root.latencyMs <= 80 ? Theme.yellow : Theme.orange
 
   function refreshIp() {
-    ipProcess.running = true
-    gwProcess.running = true
-    ifaceProcess.running = true
+    if (!routeProcess.running) routeProcess.running = true
   }
 
   Process {
-    id: gwProcess
-    command: ["sh", "-c", "ip -4 route show default | grep -q . && echo up || echo down"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => root.connected = data.trim() === "up"
-    }
-  }
-
-  Process {
-    id: ifaceProcess
-    command: ["sh", "-c", "ip -4 route show default | awk '{print $5}' | head -1"]
+    id: routeProcess
+    command: ["sh", "-c", "iface=$(ip -4 route show default | awk 'NR==1 {print $5}'); addr=$(ip -4 -o addr show dev \"$iface\" scope global 2>/dev/null | awk 'NR==1 {print $4}' | cut -d/ -f1); printf '%s|%s\\n' \"$iface\" \"${addr:-...}\""]
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var v = data.trim()
-        root.iface = v
-        root.type = (v.indexOf("eth") === 0 || v.indexOf("enp") === 0 || v.indexOf("enx") === 0) ? "ethernet" : "wifi"
+        var fields = data.trim().split("|")
+        var nextIface = fields.length > 0 ? fields[0] : ""
+        if (nextIface !== root.iface) {
+          root.iface = nextIface
+          root._resetStatsBaseline()
+          if (statsTimer.running) root._sampleStats()
+        }
+        root.ipAddress = fields.length > 1 && fields[1].length > 0 ? fields[1] : "..."
+        root.connected = nextIface.length > 0
+        root.type = /^wl/.test(nextIface) ? "wifi" : "ethernet"
+        if (!root.connected) {
+          root.latencyMs = -1
+          root.ssid = ""
+        }
       }
-    }
-  }
-
-  Process {
-    id: ipProcess
-    command: ["sh", "-c", "ip -4 addr show | grep -oP 'inet \\K[\\d.]+' | grep -v '127.0.0.1' | head -1 || echo '...'"]
-    running: false
-    stdout: SplitParser {
-      onRead: data => root.ipAddress = data.trim()
     }
   }
 
@@ -114,10 +124,7 @@ Item {
     interval: 2000
     running: false
     repeat: true
-    onTriggered: {
-      netDataProc.running = true
-      ssidProc.running = true
-    }
+    onTriggered: root._sampleStats()
   }
 
   Process {
@@ -129,14 +136,17 @@ Item {
         if (root.iface.length === 0) return
         var vals = data.trim().split(/\s+/)
         if (vals.length >= 2) {
-          var rx = parseInt(vals[0]) || 0
-          var tx = parseInt(vals[1]) || 0
-          if (root._lastRx > 0) {
-            root.rxRate = Math.max(0, (rx - root._lastRx) / 2)
-            root.txRate = Math.max(0, (tx - root._lastTx) / 2)
+          var rx = Number(vals[0]) || 0
+          var tx = Number(vals[1]) || 0
+          var now = Date.now()
+          if (root._lastSampleMs > 0 && now > root._lastSampleMs) {
+            var elapsed = (now - root._lastSampleMs) / 1000
+            root.rxRate = Math.max(0, (rx - root._lastRx) / elapsed)
+            root.txRate = Math.max(0, (tx - root._lastTx) / elapsed)
           }
           root._lastRx = rx
           root._lastTx = tx
+          root._lastSampleMs = now
         }
       }
     }

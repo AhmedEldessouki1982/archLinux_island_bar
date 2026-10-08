@@ -116,14 +116,5 @@ Item {
     sysInfoProc.running = true
     loadView.reload()
     memView.reload()
-    initTimer.start()
-  }
-
-  Timer {
-    id: initTimer
-    interval: 100
-    running: false
-    repeat: false
-    onTriggered: root._active = true
   }
 }

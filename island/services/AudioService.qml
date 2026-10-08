@@ -19,6 +19,7 @@ Item {
   property var sources: []
   property string defaultSink: ""
   property string defaultSource: ""
+  property int _pendingVolumePercent: -1
 
   signal externalChangeDetected()
 
@@ -49,9 +50,17 @@ Item {
 
   function setVolume(v) {
     var pct = Math.round(Math.max(0, Math.min(1, v)) * 100)
+    root.volume = pct / 100
+    if (setProc.running) {
+      root._pendingVolumePercent = pct
+      return
+    }
+    root._runVolumeCommand(pct)
+  }
+
+  function _runVolumeCommand(pct) {
     setProc.command = ["sh", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ " + pct + "% 2>/dev/null"]
     setProc.running = true
-    root.volume = pct / 100
   }
 
   function toggleMute() {
@@ -110,20 +119,31 @@ Item {
     id: setProc
     command: ["true"]
     running: false
+    onExited: {
+      if (root._pendingVolumePercent >= 0) {
+        var pending = root._pendingVolumePercent
+        root._pendingVolumePercent = -1
+        root._runVolumeCommand(pending)
+      }
+    }
   }
 
   Process {
     id: sinkListProc
-    command: ["sh", "-c", "pactl list short sinks 2>/dev/null"]
+    command: ["pactl", "-f", "json", "list", "sinks"]
     running: false
     stdout: StdioCollector {
       onStreamFinished: {
         var out = []
-        var lines = this.text.trim().split("\n")
-        for (var i = 0; i < lines.length; i++) {
-          var f = lines[i].split("\t")
-          if (f.length >= 3)
-            out.push({name: f[1], desc: f[2]})
+        try {
+          var devices = JSON.parse(this.text)
+          for (var i = 0; i < devices.length; i++) {
+            var device = devices[i]
+            if (device.name)
+              out.push({name: device.name, desc: device.description || device.name})
+          }
+        } catch (error) {
+          console.warn("Unable to parse PulseAudio sink list:", error)
         }
         root.sinks = out
         defaultSinkProc.running = true
@@ -133,16 +153,20 @@ Item {
 
   Process {
     id: sourceListProc
-    command: ["sh", "-c", "pactl list short sources 2>/dev/null"]
+    command: ["pactl", "-f", "json", "list", "sources"]
     running: false
     stdout: StdioCollector {
       onStreamFinished: {
         var out = []
-        var lines = this.text.trim().split("\n")
-        for (var i = 0; i < lines.length; i++) {
-          var f = lines[i].split("\t")
-          if (f.length >= 3)
-            out.push({name: f[1], desc: f[2]})
+        try {
+          var devices = JSON.parse(this.text)
+          for (var i = 0; i < devices.length; i++) {
+            var device = devices[i]
+            if (device.name)
+              out.push({name: device.name, desc: device.description || device.name})
+          }
+        } catch (error) {
+          console.warn("Unable to parse PulseAudio source list:", error)
         }
         root.sources = out
         defaultSourceProc.running = true

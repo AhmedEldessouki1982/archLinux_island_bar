@@ -14,6 +14,8 @@ Item {
 
   // --- state delegated to PillStateMachine ---
   property int pillHeight: 35
+  property alias inputRegionItem: pill
+  property alias audioService: _audioService
   property alias batteryService: _batteryService
   property alias networkService: _networkService
   property var sharedBrightnessService: null
@@ -31,7 +33,7 @@ Item {
     batteryLimitWindow: root.batteryLimitWindow
     notificationLayer: root.notificationLayer
     notificationCenter: root.notificationCenter
-    audioService: audioService
+    audioService: _audioService
     brightnessService: brightnessService
     lockService: lockService
   }
@@ -105,7 +107,7 @@ Item {
       }
 
       EQBars {
-        active: audioService.active
+        active: _audioService.active
         Layout.alignment: Qt.AlignVCenter
       }
 
@@ -121,7 +123,7 @@ Item {
 
       Text {
         id: timeText
-        text: Qt.formatDateTime(new Date(), "HH:mm")
+        text: Qt.formatDateTime(root.currentDateTime, "HH:mm")
         color: Theme.accent
         font.family: Theme.fontFamily
         font.pixelSize: 12
@@ -133,12 +135,12 @@ Item {
           interval: 1000
           running: true
           repeat: true
-          onTriggered: parent.text = Qt.formatDateTime(new Date(), "HH:mm")
+          onTriggered: root.currentDateTime = new Date()
         }
       }
 
       Text {
-        text: Qt.formatDateTime(new Date(), "dd MMM yyyy")
+        text: Qt.formatDateTime(root.currentDateTime, "dd MMM yyyy")
         color: Theme.yellow
         font.family: Theme.fontFamily
         font.pixelSize: 13
@@ -164,11 +166,18 @@ Item {
         model: SystemTray.items
 
         Item {
+          id: trayItem
           width: 22
           height: 22
           Layout.alignment: Qt.AlignVCenter
 
           required property var modelData
+
+          QsMenuAnchor {
+            id: trayMenu
+            anchor.item: trayItem
+            menu: trayItem.modelData.menu
+          }
 
           Image {
             anchors.centerIn: parent
@@ -187,7 +196,7 @@ Item {
             onClicked: function(mouse) {
               if (mouse.button === Qt.RightButton) {
                 if (modelData.hasMenu)
-                  modelData.display(root.Window, mouse.x, mouse.y)
+                  trayMenu.open()
               } else {
                 modelData.activate()
               }
@@ -428,11 +437,11 @@ Item {
 
           text: {
             if (_psm.meterMode === "volume") {
-              if (audioService.headphoneConnected && audioService.micConnected) return "󰋎"
-              if (audioService.headphoneConnected) return "󰋋"
-              if (audioService.micConnected) return "󰍬"
-              if (audioService.muted) return "\uF026"
-              var v = audioService.volume
+              if (_audioService.headphoneConnected && _audioService.micConnected) return "󰋎"
+              if (_audioService.headphoneConnected) return "󰋋"
+              if (_audioService.micConnected) return "󰍬"
+              if (_audioService.muted) return "\uF026"
+              var v = _audioService.volume
               if (v >= 0.67) return "\uF028"
               if (v >= 0.34) return "\uF027"
               if (v > 0) return "\uF026"
@@ -446,7 +455,7 @@ Item {
 
           color: {
             if (_psm.meterMode === "volume") {
-              return audioService.muted ? Theme.red : Theme.accent
+              return _audioService.muted ? Theme.red : Theme.accent
             } else if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
               return (_psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn) ? Theme.green : Theme.foreground
             } else {
@@ -485,7 +494,7 @@ Item {
             width: {
               var maxW = _psm.meterMaxBarWidth - 3
               var pct = _psm.meterMode === "volume"
-                ? (audioService.muted ? 0 : audioService.volume)
+                ? (_audioService.muted ? 0 : _audioService.volume)
                 : _psm.meterMode === "caps"
                   ? (lockService.capsOn ? 1 : 0)
                   : _psm.meterMode === "num"
@@ -495,7 +504,7 @@ Item {
             }
             color: {
               if (_psm.meterMode === "volume")
-                return audioService.muted ? Theme.red : Theme.accent
+                return _audioService.muted ? Theme.red : Theme.accent
               if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
                 var lit = _psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn
                 return lit ? Theme.green : Theme.red
@@ -512,7 +521,7 @@ Item {
         Text {
           text: {
             if (_psm.meterMode === "volume")
-              return Math.round(audioService.volume * 100) + "%"
+              return Math.round(_audioService.volume * 100) + "%"
             if (_psm.meterMode === "caps") return "CAPS"
             if (_psm.meterMode === "num") return "NUM"
             return Math.round(brightnessService.displayPercent) + "%"
@@ -592,7 +601,9 @@ component RegWarningIcon: Text {
     visible: root.notificationLayer ? root.notificationLayer.registrationFailed : false
   }
 
-  AudioService { id: audioService }
+  property date currentDateTime: new Date()
+
+  AudioService { id: _audioService }
   NetworkService { id: _networkService }
   BatteryService { id: _batteryService }
   BrightnessService { id: brightnessService }
@@ -603,5 +614,4 @@ component RegWarningIcon: Text {
     _psm.mouseArea = mouseArea
   }
 }
-
 

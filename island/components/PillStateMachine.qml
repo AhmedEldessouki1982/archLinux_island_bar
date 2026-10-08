@@ -45,13 +45,6 @@ Item {
   }
 
   Timer {
-    id: autoCloseTimer
-    interval: 10000
-    running: root.isHealthPanelOpen
-    onTriggered: root.closeHealthPanel()
-  }
-
-  Timer {
     id: meterTimer
     interval: 1500
     onTriggered: root.dismissMeter()
@@ -77,12 +70,10 @@ Item {
 
   function onHoverEntered() {
     if (root.meterMode === "") root.isExpanded = true
-    if (root.isHealthPanelOpen) root.resetAutoClose()
   }
 
   function onHoverExited() {
     if (!root.isHealthPanelOpen) root.isExpanded = false
-    if (root.isHealthPanelOpen) root.resetAutoClose()
   }
 
   function onWheel(dir) {
@@ -105,7 +96,6 @@ Item {
       if (root.notificationCenter) root.notificationCenter.close()
       if (root.healthWindow) root.healthWindow.open()
       root.isHealthPanelOpen = true
-      resetAutoClose()
     }
   }
 
@@ -121,11 +111,6 @@ Item {
   function closeHealthPanel() {
     if (root.healthWindow) root.healthWindow.close()
     root.isHealthPanelOpen = false
-  }
-
-  function resetAutoClose() {
-    autoCloseTimer.stop()
-    autoCloseTimer.start()
   }
 
   // --- meter overlay ---

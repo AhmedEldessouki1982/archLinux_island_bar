@@ -19,7 +19,8 @@ Item {
 
   property var battery: null
   property int capacity: root.battery ? Math.round(root.battery.percentage * 100) : 0
-  property bool charging: !UPower.onBattery
+  property bool charging: root.battery ? root.battery.state === UPowerDeviceState.Charging : false
+  readonly property bool onAcPower: !UPower.onBattery
   property real power: root.battery ? root.battery.changeRate : 0
   property int chargeLimit: 0
 
