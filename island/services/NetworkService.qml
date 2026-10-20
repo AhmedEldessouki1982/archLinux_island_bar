@@ -21,6 +21,7 @@ Item {
   property real _lastRx: 0
   property real _lastTx: 0
   property real _lastSampleMs: 0
+  property string _ssidRequestIface: ""
 
   function startStats() {
     root._resetStatsBaseline()
@@ -45,7 +46,18 @@ Item {
     if (root.iface.length === 0)
       return
     if (!netDataProc.running) netDataProc.running = true
-    if (!ssidProc.running) ssidProc.running = true
+  }
+
+  function refreshSsid() {
+    if (!root.connected || root.type !== "wifi" || root.iface.length === 0) {
+      root.ssid = ""
+      return
+    }
+    if (ssidProc.running)
+      return
+    root._ssidRequestIface = root.iface
+    ssidProc.command = ["env", "LC_ALL=C", "iwctl", "station", root.iface, "show"]
+    ssidProc.running = true
   }
 
   readonly property string qualityStatus: root.latencyMs < 0 ? "Unknown"
@@ -78,6 +90,10 @@ Item {
         if (!root.connected) {
           root.latencyMs = -1
           root.ssid = ""
+        } else {
+          if (!pingProcess.running) pingProcess.running = true
+          if (root.type === "wifi") root.refreshSsid()
+          else root.ssid = ""
         }
       }
     }
@@ -85,13 +101,12 @@ Item {
 
   Process {
     id: pingProcess
-    command: ["sh", "-c", "ping -c1 -W2 " + root.pingHost + " 2>/dev/null | grep -oP 'time=\\K[\\d.]+'"]
+    command: ["ping", "-n", "-c", "1", "-W", "2", root.pingHost]
     running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var v = parseFloat(data.trim())
-        if (!isNaN(v))
-          root.latencyMs = v
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var match = this.text.match(/time[=<]([\d.]+)/)
+        if (match) root.latencyMs = Number(match[1])
       }
     }
     onExited: code => {
@@ -105,10 +120,11 @@ Item {
     running: true
     repeat: true
     onTriggered: {
-      if (root.connected)
-        pingProcess.running = true
-      else
+      if (root.connected) {
+        if (!pingProcess.running) pingProcess.running = true
+      } else {
         root.latencyMs = -1
+      }
     }
   }
 
@@ -154,10 +170,22 @@ Item {
 
   Process {
     id: ssidProc
-    command: ["sh", "-c", "nmcli -t -f ACTIVE,SSID device wifi 2>/dev/null | grep '^yes:' | cut -d: -f2- | head -1"]
+    command: ["true"]
     running: false
-    stdout: SplitParser {
-      onRead: data => root.ssid = data.trim()
+    stdout: StdioCollector {
+      onStreamFinished: {
+        if (root._ssidRequestIface !== root.iface)
+          return
+        var clean = this.text.replace(/\u001b\[[0-9;]*m/g, "")
+        var match = clean.match(/^[ \t]*Connected network[ \t]+(.+?)[ \t]*$/m)
+        root.ssid = match ? match[1] : ""
+      }
+    }
+    onExited: code => {
+      if (root._ssidRequestIface !== root.iface)
+        Qt.callLater(root.refreshSsid)
+      else if (code !== 0)
+        root.ssid = ""
     }
   }
 

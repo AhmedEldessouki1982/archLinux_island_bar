@@ -13,6 +13,7 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Caps / Num lock OSD** — a short-lived, centered popup that appears when either lock key changes.
 - **Headphone jack detection** — the volume icon reflects the active `wpctl` sink port.
 - **EQ visualizer** — hand-drawn animated bars that appear while audio plays.
+- **iwd network identity** — the health panel shows the connected SSID with latency and transfer rates, while the expanded pill keeps its compact IP address readout.
 - **Notifications** — banner + center, with deadline-based expiry for transient notifications and true pinning for persistent ones.
 - **Calendar** — month navigation and the current date are integrated into the health panel.
 - **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 15 s idle and resets its timer while you interact with it.
@@ -40,6 +41,7 @@ None of that is a substitute for benchmarking on your own hardware — it's simp
 | [Quickshell](https://github.com/Quickshell/Quickshell) ≥ 0.3.0 | QML shell runtime for Wayland |
 | Qt 6 (Quick, Wayland, QML) | UI framework |
 | [Hyprland](https://github.com/hyprwm/Hyprland) | Wayland compositor |
+| `iwd` (`iwctl`) | Connected WiFi SSID readout |
 | PipeWire + wireplumber | Audio (the `wpctl` control) |
 | `brightnessctl` | Backlight control |
 | `upower` | Battery/charging events (for the native UPower service) |
@@ -160,6 +162,7 @@ island/
 
 - **ASUS**-only extras (`asusctl`, `supergfxctl`, and the fan readback) are gated: without that hardware they simply stay empty — nothing breaks.
 - **Weather** needs network access; `ipwho.is` and `open-meteo.com` are called at 30-min intervals. On failure the last-known-good reading is kept, and a failed geo lookup short-circuits so the card doesn't spin on stale coordinates.
+- **WiFi identity** is read from the active iwd station with `iwctl`; Island never starts, enables, or reconfigures a network controller.
 - **Quickshell 0.3.x quirks** are worked around, not hidden:
   - Pipewire audio read/write is bypassed via `wpctl` (see the opening comment in `BatteryService`/`AudioService`);
   - standard action glyphs use the configured icon font alongside the custom canvas icons;

@@ -8,19 +8,20 @@ Item {
 
   property string city: ""
   property real tempC: 0
-  property int weatherCode: 0
+  property int weatherCode: -1
+  property string _pendingCity: ""
 
   function refresh() {
-    geoProc.running = true
+    if (!geoProc.running) geoProc.running = true
   }
 
   Process {
     id: geoProc
-    command: ["sh", "-c", "echo \"$(curl -s --max-time 8 https://ipwho.is/ | tr -d '\\n')\""]
+    command: ["curl", "-sS", "--max-time", "8", "https://ipwho.is/"]
     running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var body = String(data).trim()
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var body = this.text.trim()
         if (body.length === 0 || body.indexOf("{") !== 0) return
         try {
           var obj = JSON.parse(body)
@@ -28,11 +29,11 @@ Item {
           var lat = Number(obj.latitude)
           var lon = Number(obj.longitude)
           if (!isFinite(lat) || !isFinite(lon)) return
-          root.city = String(obj.city || "")
-          weatherProc.command = ["sh", "-c",
-            "echo \"$(curl -s --max-time 8 'https://api.open-meteo.com/v1/forecast?latitude="
-            + lat + "&longitude=" + lon + "&current=temperature_2m,weather_code' | tr -d '\\n')\""]
-          weatherProc.running = true
+          root._pendingCity = String(obj.city || "")
+          weatherProc.command = ["curl", "-sS", "--max-time", "8",
+            "https://api.open-meteo.com/v1/forecast?latitude=" + lat
+            + "&longitude=" + lon + "&current=temperature_2m,weather_code"]
+          if (!weatherProc.running) weatherProc.running = true
         } catch (e) {}
       }
     }
@@ -40,11 +41,11 @@ Item {
 
   Process {
     id: weatherProc
-    command: ["sh", "-c", ""]
+    command: ["true"]
     running: false
-    stdout: SplitParser {
-      onRead: data => {
-        var body = String(data).trim()
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var body = this.text.trim()
         if (body.length === 0 || body.indexOf("{") !== 0) return
         try {
           var obj = JSON.parse(body)
@@ -52,8 +53,10 @@ Item {
           if (!cur) return
           var t = Number(cur.temperature_2m)
           var w = Number(cur.weather_code)
-          if (isFinite(t)) root.tempC = t
-          if (isFinite(w)) root.weatherCode = w
+          if (!isFinite(t) || !isFinite(w)) return
+          root.city = root._pendingCity
+          root.tempC = t
+          root.weatherCode = w
         } catch (e) {}
       }
     }
