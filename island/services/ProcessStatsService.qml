@@ -41,8 +41,9 @@ Item {
             memory: Number(match[4]) || 0
           })
         }
-        root.cpuTop = rows.slice().sort((a, b) => b.cpu - a.cpu).slice(0, 3)
-        root.memoryTop = rows.slice().sort((a, b) => b.memory - a.memory).slice(0, 3)
+        // The panel shows up to five rows per column, so keep six here.
+        root.cpuTop = rows.slice().sort((a, b) => b.cpu - a.cpu).slice(0, 6)
+        root.memoryTop = rows.slice().sort((a, b) => b.memory - a.memory).slice(0, 6)
       }
     }
   }

@@ -19,6 +19,37 @@ Item {
   property double lastFetchMs: 0
   readonly property double cacheMaxAgeMs: 1800000
 
+  // Daylight. Both values come out of the same forecast request, so no extra
+  // network call is made: is_day is part of `current`, sunrise and sunset are
+  // part of `daily`.
+  property bool isDay: true
+  property string sunriseIso: ""
+  property string sunsetIso: ""
+
+  readonly property string sunriseText: formatClock(root.sunriseIso)
+  readonly property string sunsetText: formatClock(root.sunsetIso)
+
+  function formatClock(iso) {
+    if (!iso || iso.length < 16) return ""
+    var d = new Date(iso)
+    if (isNaN(d.getTime())) return ""
+    return Qt.formatTime(d, "HH:mm")
+  }
+
+  // Day/night from the local sunrise and sunset; the clock window 06:00-18:00
+  // is the fallback when the forecast has no daylight data.
+  function updateDaylight() {
+    var now = new Date()
+    var rise = root.sunriseIso.length > 0 ? new Date(root.sunriseIso) : null
+    var set = root.sunsetIso.length > 0 ? new Date(root.sunsetIso) : null
+    if (rise && set && !isNaN(rise.getTime()) && !isNaN(set.getTime())) {
+      root.isDay = now >= rise && now < set
+      return
+    }
+    var hour = now.getHours()
+    root.isDay = hour >= 6 && hour < 18
+  }
+
   function refresh() {
     if (geoProc.running || weatherProc.running) return
     if (isFinite(root.latitude) && isFinite(root.longitude)) root.fetchWeather()
@@ -29,8 +60,8 @@ Item {
     weatherProc.command = ["curl", "-sS", "--max-time", "8",
       "https://api.open-meteo.com/v1/forecast?latitude=" + root.latitude
       + "&longitude=" + root.longitude
-      + "&current=temperature_2m,apparent_temperature,weather_code"
-      + "&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto"]
+      + "&current=temperature_2m,apparent_temperature,weather_code,is_day"
+      + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&forecast_days=1&timezone=auto"]
     if (!weatherProc.running) weatherProc.running = true
   }
 
@@ -45,6 +76,10 @@ Item {
     root.lowC = Number(data.lowC) || 0
     root.weatherCode = Number(data.weatherCode)
     root.lastFetchMs = Number(data.lastFetchMs) || 0
+    root.sunriseIso = String(data.sunriseIso || "")
+    root.sunsetIso = String(data.sunsetIso || "")
+    if (data.isDay !== undefined) root.isDay = !!data.isDay
+    root.updateDaylight()
   }
 
   Process {
@@ -94,6 +129,10 @@ Item {
           root.lowC = daily.temperature_2m_min && daily.temperature_2m_min.length ? Number(daily.temperature_2m_min[0]) : t
           root.weatherCode = w
           root.lastFetchMs = Date.now()
+          root.sunriseIso = daily.sunrise && daily.sunrise.length ? String(daily.sunrise[0]) : ""
+          root.sunsetIso = daily.sunset && daily.sunset.length ? String(daily.sunset[0]) : ""
+          root.isDay = cur.is_day !== undefined ? Number(cur.is_day) === 1 : root.isDay
+          root.updateDaylight()
           cache.setText(JSON.stringify({
             city: root.city,
             latitude: root.latitude,
@@ -103,6 +142,9 @@ Item {
             highC: root.highC,
             lowC: root.lowC,
             weatherCode: root.weatherCode,
+            isDay: root.isDay,
+            sunriseIso: root.sunriseIso,
+            sunsetIso: root.sunsetIso,
             lastFetchMs: root.lastFetchMs
           }))
         } catch (e) {}
@@ -116,6 +158,16 @@ Item {
     running: root.active
     repeat: true
     onTriggered: root.refresh()
+  }
+
+  // Daylight drifts with the clock, so it is re-checked every few minutes
+  // while the panel is open. Nothing runs while it is closed.
+  Timer {
+    id: daylightTimer
+    interval: 300000
+    running: root.active
+    repeat: true
+    onTriggered: root.updateDaylight()
   }
 
   FileView {
