@@ -39,6 +39,7 @@ PanelWindow {
   SystemStatsService { id: _systemStatsService }
   ThermalService { id: _thermalService }
   GpuModeService { id: _gpuModeService }
+  ProcessStatsService { id: _processStatsService }
 
   property var audioService: null
   property var brightnessService: null
@@ -48,6 +49,7 @@ PanelWindow {
   property var systemStatsService: _systemStatsService
   property var thermalService: _thermalService
   property var gpuModeService: _gpuModeService
+  property var processStatsService: _processStatsService
 
   onVisibleChanged: {
     if (root.visible) autoCloseTimer.restart()
@@ -117,6 +119,7 @@ PanelWindow {
         systemStatsService: root.systemStatsService
         thermalService: root.thermalService
         gpuModeService: root.gpuModeService
+        processStatsService: root.processStatsService
         onUserActivity: root.resetIdleTimer()
 
         Component.onCompleted: {

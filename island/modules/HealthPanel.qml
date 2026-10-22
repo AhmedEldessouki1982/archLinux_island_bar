@@ -54,6 +54,7 @@ Item {
   property var systemStatsService: null
   property var thermalService: null
   property var gpuModeService: null
+  property var processStatsService: null
 
   onBatteryServiceChanged: {
     if (root.batteryService) {
@@ -120,7 +121,7 @@ Item {
 
   readonly property real contentWidth: root.panelPadding * 2 + root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
   readonly property real gridHeight: Math.ceil(gridModel.count / 7) * 28 - 2
-  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + Math.max(calCol.height, rightCol.implicitHeight))
+  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + Math.max(leftCol.implicitHeight, rightCol.implicitHeight))
 
   width: contentWidth
   height: contentHeight
@@ -284,6 +285,7 @@ Item {
     if (root.thermalService) root.thermalService.start()
     if (root.gpuModeService) root.gpuModeService.start()
     if (root.networkService) root.networkService.startStats()
+    if (root.processStatsService) root.processStatsService.start()
   }
 
   function stop() {
@@ -294,6 +296,7 @@ Item {
     if (root.thermalService) root.thermalService.stop()
     if (root.gpuModeService) root.gpuModeService.stop()
     if (root.networkService) root.networkService.stopStats()
+    if (root.processStatsService) root.processStatsService.stop()
   }
 
   Timer {
@@ -328,6 +331,7 @@ Item {
 
       // ---------- LEFT: calendar ----------
       ColumnLayout {
+        id: leftCol
         Layout.preferredWidth: root._colW1
         Layout.alignment: Qt.AlignTop
         spacing: 10
@@ -452,6 +456,95 @@ Item {
                   font.family: Theme.fontFamily
                   font.pixelSize: isToday ? 12 : 11
                   font.bold: isToday
+                }
+              }
+            }
+          }
+        }
+
+        Rectangle {
+          Layout.preferredWidth: root._colBlock
+          Layout.fillWidth: true
+          Layout.preferredHeight: 132
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+
+          ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 3
+
+            Text {
+              text: "TOP PROCESSES"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              font.bold: true
+              font.letterSpacing: 1.2
+            }
+
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: 8
+
+              Text {
+                text: "CPU"
+                color: Theme.cyan
+                font.family: Theme.fontFamily
+                font.pixelSize: 9
+                font.bold: true
+                Layout.fillWidth: true
+              }
+              Text {
+                text: "RAM"
+                color: Theme.pink
+                font.family: Theme.fontFamily
+                font.pixelSize: 9
+                font.bold: true
+                Layout.fillWidth: true
+              }
+            }
+
+            RowLayout {
+              Layout.fillWidth: true
+              Layout.fillHeight: true
+              spacing: 8
+
+              ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
+                spacing: 3
+                Repeater {
+                  model: root.processStatsService ? root.processStatsService.cpuTop : []
+                  Text {
+                    required property var modelData
+                    text: modelData.name + " " + modelData.cpu.toFixed(1) + "%"
+                    color: Theme.foreground
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 9
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                  }
+                }
+              }
+
+              ColumnLayout {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
+                spacing: 3
+                Repeater {
+                  model: root.processStatsService ? root.processStatsService.memoryTop : []
+                  Text {
+                    required property var modelData
+                    text: modelData.name + " " + modelData.memory.toFixed(1) + "%"
+                    color: Theme.foreground
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 9
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                  }
                 }
               }
             }
