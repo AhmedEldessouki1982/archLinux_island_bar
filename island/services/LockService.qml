@@ -8,6 +8,7 @@ Item {
 
   property bool capsOn: false
   property bool numOn: false
+  property bool monitoring: false
 
   signal capsChanged(bool on)
   signal numChanged(bool on)
@@ -47,10 +48,12 @@ Item {
   Timer {
     id: lockTimer
     interval: 2000
-    running: true
+    running: root.monitoring
     repeat: true
     onTriggered: lockProc.running = true
   }
 
   Component.onCompleted: lockProc.running = true
+
+  onMonitoringChanged: if (root.monitoring && !lockProc.running) lockProc.running = true
 }

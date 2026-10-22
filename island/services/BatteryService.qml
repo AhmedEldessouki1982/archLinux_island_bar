@@ -23,9 +23,10 @@ Item {
   readonly property bool onAcPower: !UPower.onBattery
   property real power: root.battery ? root.battery.changeRate : 0
   property int chargeLimit: 0
+  property bool chargeLimitMonitoring: false
 
   function refreshChargeLimit() {
-    getLimitProc.running = true
+    if (!getLimitProc.running) getLimitProc.running = true
   }
 
   function setLimit(pct) {
@@ -70,21 +71,13 @@ Item {
 
   Component.onCompleted: {
     root.pickBattery()
-    root.refreshChargeLimit()
   }
 
-  Timer {
-    interval: 2000
-    running: true
-    repeat: true
-    onTriggered: {
-      if (!root.battery) root.pickBattery()
-    }
-  }
+  onChargeLimitMonitoringChanged: if (root.chargeLimitMonitoring) root.refreshChargeLimit()
 
   Timer {
     interval: 10000
-    running: true
+    running: root.chargeLimitMonitoring
     repeat: true
     onTriggered: root.refreshChargeLimit()
   }

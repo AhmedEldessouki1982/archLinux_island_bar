@@ -10,6 +10,7 @@ Item {
   property real tempC: 0
   property int weatherCode: -1
   property string _pendingCity: ""
+  property bool active: false
 
   function refresh() {
     if (!geoProc.running) geoProc.running = true
@@ -65,10 +66,10 @@ Item {
   Timer {
     id: weatherTimer
     interval: 1800000
-    running: true
+    running: root.active
     repeat: true
     onTriggered: root.refresh()
   }
 
-  Component.onCompleted: root.refresh()
+  onActiveChanged: if (root.active && root.weatherCode < 0) root.refresh()
 }

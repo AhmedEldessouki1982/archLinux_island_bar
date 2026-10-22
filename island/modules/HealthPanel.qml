@@ -268,7 +268,7 @@ Item {
 
   Timer {
     interval: 60000
-    running: true
+    running: root.active
     repeat: true
     onTriggered: root.rebuild()
   }
@@ -347,7 +347,7 @@ Item {
 
             Timer {
               interval: 1000
-              running: true
+              running: root.active
               repeat: true
               onTriggered: parent.text = Qt.formatDateTime(new Date(), "HH:mm")
             }

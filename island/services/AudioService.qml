@@ -15,6 +15,7 @@ Item {
   property bool _initialized: false
   property int _activeStreams: 0
   property bool fastPoll: false
+  property bool monitoring: false
   property var sinks: []
   property var sources: []
   property string defaultSink: ""
@@ -24,9 +25,9 @@ Item {
   signal externalChangeDetected()
 
   function sync() {
-    readProc.running = true
-    portProc.running = true
-    sourcePortProc.running = true
+    if (!readProc.running) readProc.running = true
+    if (!portProc.running) portProc.running = true
+    if (!sourcePortProc.running) sourcePortProc.running = true
   }
 
   function refreshDevices() {
@@ -258,10 +259,22 @@ Item {
     }
   }
 
+  Connections {
+    target: Pipewire.nodes
+    function onValuesChanged() { root._scanStreams() }
+  }
+
+  onMonitoringChanged: {
+    if (root.monitoring) {
+      root.sync()
+      root._scanStreams()
+    }
+  }
+
   Timer {
     id: fullSyncTimer
     interval: root.fastPoll ? 150 : 1000
-    running: true
+    running: root.monitoring || root.fastPoll
     repeat: true
     onTriggered: root.sync()
   }
@@ -280,7 +293,7 @@ Item {
   Timer {
     id: streamScanTimer
     interval: 1000
-    running: true
+    running: root.monitoring
     repeat: true
     onTriggered: root._scanStreams()
   }

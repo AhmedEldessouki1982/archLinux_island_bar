@@ -379,9 +379,9 @@ PanelWindow {
 
   Timer {
     id: regRecheckTimer
-    interval: 30000
+    interval: 1000
     running: true
-    repeat: true
+    repeat: false
     onTriggered: regCheckProc.running = true
   }
 

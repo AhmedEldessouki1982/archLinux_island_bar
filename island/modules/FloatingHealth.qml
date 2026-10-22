@@ -31,7 +31,10 @@ PanelWindow {
 
   property bool panelActive: false
 
-  WeatherService { id: _weatherService }
+  WeatherService {
+    id: _weatherService
+    active: root.panelActive
+  }
   SystemStatsService { id: _systemStatsService }
   ThermalService { id: _thermalService }
   GpuModeService { id: _gpuModeService }

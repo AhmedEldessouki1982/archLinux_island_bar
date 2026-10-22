@@ -12,6 +12,7 @@ Item {
   property string type: "wifi"
   property real latencyMs: -1
   property string pingHost: "8.8.8.8"
+  property bool monitoring: false
 
   // --- stats for HealthPanel (start/stop by panel visibility) ---
   property string iface: ""
@@ -27,6 +28,10 @@ Item {
     root._resetStatsBaseline()
     statsTimer.running = true
     root._sampleStats()
+  }
+
+  onMonitoringChanged: {
+    if (root.monitoring) root.refreshIp()
   }
 
   function stopStats() {
@@ -117,7 +122,7 @@ Item {
 
   Timer {
     interval: 10000
-    running: true
+    running: root.monitoring
     repeat: true
     onTriggered: {
       if (root.connected) {
@@ -130,7 +135,7 @@ Item {
 
   Timer {
     interval: 30000
-    running: true
+    running: root.monitoring
     repeat: true
     onTriggered: root.refreshIp()
   }
@@ -189,5 +194,4 @@ Item {
     }
   }
 
-  Component.onCompleted: root.refreshIp()
 }

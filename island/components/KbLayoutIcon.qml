@@ -56,14 +56,6 @@ Item {
     }
   }
 
-  Timer {
-    id: pollTimer
-    interval: 2000
-    running: true
-    repeat: true
-    onTriggered: initProc.running = true
-  }
-
   Connections {
     target: Hyprland
     function onRawEvent(ev) {

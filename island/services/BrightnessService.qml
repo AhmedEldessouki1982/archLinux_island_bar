@@ -9,13 +9,14 @@ Item {
   property real percent: 95
   property int realMaxPercent: 95
   property bool fastPoll: false
+  property bool monitoring: false
   property int _pendingPercent: -1
   readonly property real displayPercent: Math.max(1, Math.min(100, Math.round(root.percent / root.realMaxPercent * 100)))
 
   signal externalChangeDetected()
 
   function refresh() {
-    getProc.running = true
+    if (!getProc.running) getProc.running = true
   }
 
   function setPercent(v) {
@@ -77,7 +78,7 @@ Item {
   Timer {
     id: pollTimer
     interval: root.fastPoll ? 150 : 2000
-    running: true
+    running: root.monitoring || root.fastPoll
     repeat: true
     onTriggered: root.refresh()
   }
@@ -92,6 +93,8 @@ Item {
     interval: 2000
     onTriggered: root.fastPoll = false
   }
+
+  onMonitoringChanged: if (root.monitoring) root.refresh()
 
   Component.onCompleted: root.refresh()
 }

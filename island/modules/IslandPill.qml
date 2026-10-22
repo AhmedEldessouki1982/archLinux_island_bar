@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
@@ -38,16 +37,20 @@ Item {
     lockService: lockService
   }
 
-  DropShadow {
-    id: pillShadow
-    anchors.fill: pill
-    source: pill
-    radius: 16
-    samples: 24
-    horizontalOffset: 0
-    verticalOffset: 4
-    color: Qt.rgba(0, 0, 0, 0.4)
-    transparentBorder: true
+  Rectangle {
+    anchors.centerIn: pill
+    width: pill.width + 10
+    height: pill.height + 8
+    radius: height / 2
+    color: Qt.rgba(0, 0, 0, 0.16)
+  }
+
+  Rectangle {
+    anchors.centerIn: pill
+    width: pill.width + 4
+    height: pill.height + 3
+    radius: height / 2
+    color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.05)
   }
 
   Rectangle {
@@ -132,7 +135,7 @@ Item {
         Layout.alignment: Qt.AlignVCenter
 
         Timer {
-          interval: 1000
+          interval: 30000
           running: true
           repeat: true
           onTriggered: root.currentDateTime = new Date()
@@ -603,11 +606,29 @@ component RegWarningIcon: Text {
 
   property date currentDateTime: new Date()
 
-  AudioService { id: _audioService }
-  NetworkService { id: _networkService }
-  BatteryService { id: _batteryService }
-  BrightnessService { id: brightnessService }
-  LockService { id: lockService }
+  AudioService {
+    id: _audioService
+    monitoring: _psm.isExpanded || _psm.meterMode === "volume"
+      || (root.healthWindow && root.healthWindow.visible)
+  }
+  NetworkService {
+    id: _networkService
+    monitoring: _psm.isExpanded || (root.healthWindow && root.healthWindow.visible)
+  }
+  BatteryService {
+    id: _batteryService
+    chargeLimitMonitoring: (root.batteryLimitWindow && root.batteryLimitWindow.visible)
+      || (root.healthWindow && root.healthWindow.visible)
+  }
+  BrightnessService {
+    id: brightnessService
+    monitoring: _psm.isExpanded || _psm.meterMode === "brightness"
+      || (root.healthWindow && root.healthWindow.visible)
+  }
+  LockService {
+    id: lockService
+    monitoring: _psm.isExpanded || _psm.meterMode === "caps" || _psm.meterMode === "num"
+  }
 
   Component.onCompleted: {
     root.sharedBrightnessService = brightnessService
