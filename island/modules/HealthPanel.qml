@@ -35,6 +35,8 @@ Item {
   property string kernelVersion: ""
   property string userName: ""
   property string hostName: ""
+  property bool gpuConfirming: false
+  property string pendingGpuMode: ""
   property var cpuSamples: []
   property var gpuSamples: []
   property var ramSamples: []
@@ -209,6 +211,30 @@ Item {
     return next
   }
 
+  function requestGpuModeSwitch() {
+    if (!root.gpuModeService || root.gpuModeService.gpuModeChanging) return
+    var modes = root.gpuModeService.availableGpuModes
+    if (!modes || modes.length < 2) return
+    var current = modes.indexOf(root.gpuMode)
+    root.pendingGpuMode = modes[(current + 1) % modes.length]
+    root.gpuConfirming = true
+    root.userActivity()
+  }
+
+  function confirmGpuModeSwitch() {
+    if (root.gpuModeService && root.pendingGpuMode.length > 0)
+      root.gpuModeService.setGpuMode(root.pendingGpuMode)
+    root.gpuConfirming = false
+    root.pendingGpuMode = ""
+    root.userActivity()
+  }
+
+  function cancelGpuModeSwitch() {
+    root.gpuConfirming = false
+    root.pendingGpuMode = ""
+    root.userActivity()
+  }
+
   onCpuLoadChanged: if (root.active) root.cpuSamples = root.appendSample(root.cpuSamples, root.cpuLoad)
   onGpuLoadChanged: if (root.active) root.gpuSamples = root.appendSample(root.gpuSamples, root.gpuLoad)
   onRamPercentChanged: if (root.active) root.ramSamples = root.appendSample(root.ramSamples, root.ramPercent)
@@ -262,6 +288,8 @@ Item {
 
   function stop() {
     root.active = false
+    root.gpuConfirming = false
+    root.pendingGpuMode = ""
     if (root.systemStatsService) root.systemStatsService.stop()
     if (root.thermalService) root.thermalService.stop()
     if (root.gpuModeService) root.gpuModeService.stop()
@@ -816,14 +844,17 @@ Item {
         }
 
         Rectangle {
+          id: gpuModeCard
           Layout.fillWidth: true
           radius: 8
-          color: root.cardColor
+          color: gpuModeMouse.containsMouse && !root.gpuConfirming
+            ? Qt.rgba(Theme.pink.r, Theme.pink.g, Theme.pink.b, 0.11) : root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 44
+          implicitHeight: root.gpuConfirming ? 82 : 44
 
           RowLayout {
+            visible: !root.gpuConfirming
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -858,6 +889,90 @@ Item {
               horizontalAlignment: Text.AlignRight
               Layout.fillWidth: true
               Layout.alignment: Qt.AlignVCenter
+            }
+          }
+
+          MouseArea {
+            id: gpuModeMouse
+            anchors.fill: parent
+            enabled: !root.gpuConfirming
+            hoverEnabled: enabled
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: root.requestGpuModeSwitch()
+          }
+
+          ColumnLayout {
+            visible: root.gpuConfirming
+            anchors.fill: parent
+            anchors.margins: 7
+            spacing: 3
+
+            Text {
+              text: "SWITCH TO " + root.pendingGpuMode.toUpperCase() + "?"
+              color: Theme.pink
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              font.bold: true
+              elide: Text.ElideRight
+              Layout.fillWidth: true
+            }
+
+            Text {
+              text: "Logout or reboot may be required"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: 9
+              elide: Text.ElideRight
+              Layout.fillWidth: true
+            }
+
+            RowLayout {
+              Layout.fillWidth: true
+              spacing: 6
+
+              Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 22
+                radius: 4
+                color: Qt.rgba(Theme.green.r, Theme.green.g, Theme.green.b, 0.16)
+                border.width: 1
+                border.color: Theme.green
+                Text {
+                  anchors.centerIn: parent
+                  text: "CONFIRM"
+                  color: Theme.green
+                  font.family: Theme.fontFamily
+                  font.pixelSize: 9
+                  font.bold: true
+                }
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.confirmGpuModeSwitch()
+                }
+              }
+
+              Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 22
+                radius: 4
+                color: "transparent"
+                border.width: 1
+                border.color: Theme.comment
+                Text {
+                  anchors.centerIn: parent
+                  text: "CANCEL"
+                  color: Theme.foreground
+                  font.family: Theme.fontFamily
+                  font.pixelSize: 9
+                  font.bold: true
+                }
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: root.cancelGpuModeSwitch()
+                }
+              }
             }
           }
         }
