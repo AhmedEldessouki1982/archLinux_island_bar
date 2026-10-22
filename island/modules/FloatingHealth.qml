@@ -17,6 +17,7 @@ PanelWindow {
   signal panelClosed()
 
   WlrLayershell.layer: WlrLayer.Overlay
+  WlrLayershell.namespace: "island-health"
 
   anchors.top: true
   anchors.left: true
@@ -99,7 +100,7 @@ PanelWindow {
     Rectangle {
       anchors.fill: parent
       radius: 12
-      color: Theme.background
+      color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.88)
       clip: true
       border.width: 1
       border.color: Theme.selection
