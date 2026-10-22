@@ -294,33 +294,57 @@ Item {
 
       VDiv {}
 
-      Repeater {
-        model: Hyprland.workspaces
+      Item {
+        id: workspaceArea
+        Layout.preferredWidth: workspaceRow.implicitWidth
+        Layout.preferredHeight: 20
+        Layout.alignment: Qt.AlignVCenter
 
-        Item {
-          width: txt.implicitWidth + 6
-          height: 20
-          Layout.alignment: Qt.AlignVCenter
+        HoverHandler {
+          id: workspaceHover
+          target: workspaceArea
+        }
 
-          required property var modelData
+        RowLayout {
+          id: workspaceRow
+          anchors.centerIn: parent
+          spacing: 2
 
-          Text {
-            id: txt
-            anchors.centerIn: parent
-            text: modelData?.id ?? ""
-            color: modelData?.focused ? Theme.yellow : Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: 11
-            font.bold: modelData?.focused ?? false
-            font.letterSpacing: 0.5
-          }
+          Repeater {
+            model: Hyprland.workspaces
 
-          MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              if (modelData)
-                modelData.activate()
+            Item {
+              id: workspaceItem
+              required property var modelData
+              readonly property bool occupied: modelData && modelData.toplevels
+                ? modelData.toplevels.values.length > 0 : false
+
+              visible: workspaceHover.hovered || occupied
+                || (modelData ? modelData.active || modelData.focused : false)
+              Layout.preferredWidth: txt.implicitWidth + 6
+              Layout.preferredHeight: 20
+              Layout.alignment: Qt.AlignVCenter
+
+              Text {
+                id: txt
+                anchors.centerIn: parent
+                text: workspaceItem.modelData?.id ?? ""
+                color: workspaceItem.modelData?.focused ? Theme.yellow : Theme.comment
+                opacity: workspaceItem.occupied || workspaceItem.modelData?.active ? 1 : 0.6
+                font.family: Theme.fontFamily
+                font.pixelSize: 11
+                font.bold: workspaceItem.modelData?.focused ?? false
+                font.letterSpacing: 0.5
+              }
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  if (workspaceItem.modelData)
+                    workspaceItem.modelData.activate()
+                }
+              }
             }
           }
         }
