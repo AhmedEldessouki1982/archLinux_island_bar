@@ -1360,10 +1360,11 @@ Item {
             anchors.margins: 8
             spacing: 8
 
-            WeatherIcon {
+            WeatherGlyph {
               weatherCode: root.weatherService ? root.weatherService.weatherCode : -1
-              Layout.preferredWidth: 34
-              Layout.preferredHeight: 34
+              isDay: root.weatherService ? root.weatherService.isDay : true
+              Layout.preferredWidth: 48
+              Layout.preferredHeight: 48
               Layout.alignment: Qt.AlignVCenter
             }
 
