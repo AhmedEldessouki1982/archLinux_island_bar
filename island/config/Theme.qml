@@ -48,6 +48,29 @@ QtObject {
   // 12-column layout widths sum to fit the panel; body width used by DropShape.
   readonly property int bentoBodyWidth: 900
 
+  // Opaque bento palette. The panel surface is one flat colour, so every card
+  // is a solid shade lighter than it plus a low-contrast 1px border. Nothing
+  // in the panel is translucent, which keeps the layout readable on top of
+  // any wallpaper.
+  readonly property color cardFill: "#313445"
+  readonly property color cardBorderColor: "#3d4258"
+
+  // Storage ring gauges: diameter bounds, in pixels.
+  readonly property int ringMinSize: 28
+  readonly property int ringMaxSize: 132
+
+  // Storage "used / total" caption: derived from the cell width, clamped.
+  readonly property int storageTextMinFont: 9
+  readonly property int storageTextMaxFont: 12
+
+  // Narrowest a storage cell may get before the grid drops to two rows.
+  readonly property int storageCellMinWidth: 72
+
+  // Weather condition word: normal size, plus the fallback used when the
+  // string does not fit the available width.
+  readonly property int fontSizeCondition: 14
+  readonly property int fontSizeConditionSmall: 11
+
   // Typography scales (one monospace font; use only these sizes)
   readonly property int fontSizeMicro: 9
   readonly property int fontSizeTiny: 10
@@ -55,11 +78,6 @@ QtObject {
   readonly property int fontSizeValue: 15
   readonly property int fontSizeTitle: 15
   readonly property int fontSizeHero: 30
-
-  // More readable muted text while staying in the Dracula palette.
-  property color mutedText: "#a6b0e0"
-  property color sectionLabel: "#c9d1ff"
-  property color labelText: "#d0d8ff"
 
   function ascendingColor(value, warning, high, critical) {
     if (value >= critical) return root.red
@@ -117,12 +135,6 @@ QtObject {
   ]
 
   property string fontFamily: "JetBrainsMono Nerd Font"
-  readonly property int fontSizeMicro: 9
-  readonly property int fontSizeTiny: 10
-  readonly property int fontSizeLabel: 10
-  readonly property int fontSizeValue: 15
-  readonly property int fontSizeTitle: 15
-  readonly property int fontSizeHero: 30
   property int fontSizeIcon: 17
 
   property real iconLineWidth: 1.5
