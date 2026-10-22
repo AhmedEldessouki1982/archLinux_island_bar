@@ -50,6 +50,8 @@ PanelWindow {
   property var thermalService: _thermalService
   property var gpuModeService: _gpuModeService
   property var processStatsService: _processStatsService
+  property var notificationLayer: null
+  property var idleInhibitController: null
 
   onVisibleChanged: {
     if (root.visible) autoCloseTimer.restart()
@@ -120,6 +122,8 @@ PanelWindow {
         thermalService: root.thermalService
         gpuModeService: root.gpuModeService
         processStatsService: root.processStatsService
+        notificationLayer: root.notificationLayer
+        idleInhibitController: root.idleInhibitController
         onUserActivity: root.resetIdleTimer()
 
         Component.onCompleted: {

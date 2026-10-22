@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Bluetooth
 import "../config"
 import "../components"
 import "../services"
@@ -55,6 +56,8 @@ Item {
   property var thermalService: null
   property var gpuModeService: null
   property var processStatsService: null
+  property var notificationLayer: null
+  property var idleInhibitController: null
 
   onBatteryServiceChanged: {
     if (root.batteryService) {
@@ -557,6 +560,50 @@ Item {
         Layout.preferredWidth: root._colW2
         Layout.alignment: Qt.AlignTop
         spacing: 8
+
+        Text {
+          text: "QUICK TOGGLES"
+          color: Theme.comment
+          font.family: Theme.fontFamily
+          font.pixelSize: Theme.fontSizeLabel
+          font.bold: true
+          font.letterSpacing: 1.6
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: 6
+
+          QuickToggle {
+            label: "DND"
+            active: root.notificationLayer ? root.notificationLayer.dnd : false
+            onTriggered: {
+              root.userActivity()
+              if (root.notificationLayer) root.notificationLayer.toggleDnd()
+            }
+          }
+
+          QuickToggle {
+            label: "AWAKE"
+            active: root.idleInhibitController ? root.idleInhibitController.idleInhibitEnabled : false
+            onTriggered: {
+              root.userActivity()
+              if (root.idleInhibitController)
+                root.idleInhibitController.idleInhibitEnabled = !root.idleInhibitController.idleInhibitEnabled
+            }
+          }
+
+          QuickToggle {
+            visible: Bluetooth.defaultAdapter !== null
+            label: "BT"
+            active: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
+            onTriggered: {
+              root.userActivity()
+              if (Bluetooth.defaultAdapter)
+                Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled
+            }
+          }
+        }
 
         Text {
           text: "CONTROLS"
@@ -1331,6 +1378,38 @@ Item {
         else ctx.lineTo(x, y)
       }
       ctx.stroke()
+    }
+  }
+
+  component QuickToggle: Rectangle {
+    id: quickToggle
+    property string label: ""
+    property bool active: false
+    signal triggered()
+
+    Layout.fillWidth: true
+    Layout.preferredHeight: 28
+    radius: 4
+    color: quickToggle.active
+      ? Qt.rgba(Theme.cyan.r, Theme.cyan.g, Theme.cyan.b, 0.14)
+      : Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.22)
+    border.width: 1
+    border.color: quickToggle.active ? Theme.cyan : Theme.selection
+
+    Text {
+      anchors.centerIn: parent
+      text: quickToggle.label
+      color: quickToggle.active ? Theme.cyan : Theme.foreground
+      font.family: Theme.fontFamily
+      font.pixelSize: 9
+      font.bold: true
+      font.letterSpacing: 0.8
+    }
+
+    MouseArea {
+      anchors.fill: parent
+      cursorShape: Qt.PointingHandCursor
+      onClicked: quickToggle.triggered()
     }
   }
 

@@ -43,7 +43,7 @@ PanelWindow {
   Component.onDestruction: root.tearingDown = true
 
   function shouldShowBanner(urgency) {
-    return !root.dnd || urgency >= 2
+    return !root.dnd
   }
 
   function newHistoryKey() {
@@ -130,6 +130,11 @@ PanelWindow {
 
   function toggleDnd() {
     root.dnd = !root.dnd
+    if (root.dnd) {
+      var copy = root.notifs.slice()
+      for (var i = 0; i < copy.length; i++) copy[i].showBanner = false
+      root.notifs = copy
+    }
   }
 
   function handleNotification(n) {

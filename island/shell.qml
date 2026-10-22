@@ -14,6 +14,7 @@ PanelWindow {
   aboveWindows: true
   implicitHeight: 60
   exclusiveZone: 38
+  property bool idleInhibitEnabled: false
 
   // Only the visible pill should receive pointer input. Without this mask the
   // transparent remainder of this full-width layer blocks application menus.
@@ -35,9 +36,16 @@ PanelWindow {
 
   WlrLayershell.layer: WlrLayer.Overlay
 
+  IdleInhibitor {
+    window: root
+    enabled: root.idleInhibitEnabled
+  }
+
   FloatingHealth {
     id: floatingHealth
     screen: root.screen
+    notificationLayer: notificationLayer
+    idleInhibitController: root
   }
 
   BatteryLimitPopup {
