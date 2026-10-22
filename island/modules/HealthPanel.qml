@@ -854,44 +854,58 @@ Item {
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: weatherLabel.height + weatherValue.height + 32
+          implicitHeight: 78
 
-          Text {
-            id: weatherLabel
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.leftMargin: 8
-            anchors.rightMargin: 8
-            anchors.topMargin: 15
-            text: "WEATHER"
-            color: Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSizeLabel
-            font.bold: true
-            font.letterSpacing: 1.2
-          }
+          RowLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 8
 
-          Text {
-            id: weatherValue
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: weatherLabel.bottom
-            anchors.topMargin: 2
-            anchors.leftMargin: 8
-            anchors.rightMargin: 8
-            height: contentHeight
-            text: {
-              if (!root.weatherService) return "--"
-              var c = root.weatherService.city
-              if (c.length === 0) return "--"
-              return c + " \u00b7 " + Math.round(root.weatherService.tempC) + "\u00b0C \u00b7 " + root.weatherStatus(root.weatherService.weatherCode)
+            WeatherIcon {
+              weatherCode: root.weatherService ? root.weatherService.weatherCode : -1
+              Layout.preferredWidth: 34
+              Layout.preferredHeight: 34
+              Layout.alignment: Qt.AlignVCenter
             }
-            color: Theme.cyan
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSizeValue
-            font.bold: true
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+
+            ColumnLayout {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignVCenter
+              spacing: 1
+
+              Text {
+                text: root.weatherService && root.weatherService.city.length > 0 ? root.weatherService.city.toUpperCase() : "WEATHER"
+                color: Theme.comment
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeLabel
+                font.bold: true
+                font.letterSpacing: 1.2
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+              }
+
+              Text {
+                text: root.weatherService && root.weatherService.weatherCode >= 0
+                  ? Math.round(root.weatherService.tempC) + "\u00b0  " + root.weatherStatus(root.weatherService.weatherCode) : "--"
+                color: Theme.cyan
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeValue
+                font.bold: true
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+              }
+
+              Text {
+                text: root.weatherService && root.weatherService.weatherCode >= 0
+                  ? "H" + Math.round(root.weatherService.highC) + "\u00b0 L" + Math.round(root.weatherService.lowC)
+                    + "\u00b0  FEELS " + Math.round(root.weatherService.feelsLikeC) + "\u00b0" : ""
+                color: Theme.foreground
+                font.family: Theme.fontFamily
+                font.pixelSize: 9
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+              }
+            }
           }
         }
       }
