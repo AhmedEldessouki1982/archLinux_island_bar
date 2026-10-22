@@ -1362,7 +1362,7 @@ Item {
 
             WeatherGlyph {
               weatherCode: root.weatherService ? root.weatherService.weatherCode : -1
-              isDay: root.weatherService ? root.weatherService.isDay : true
+              isDay: (root.weatherService && root.weatherService.isDay !== undefined) ? root.weatherService.isDay : true
               Layout.preferredWidth: 48
               Layout.preferredHeight: 48
               Layout.alignment: Qt.AlignVCenter
@@ -1386,7 +1386,7 @@ Item {
 
               Text {
                 text: root.weatherService && root.weatherService.weatherCode >= 0
-                  ? Math.round(root.weatherService.tempC) + "\u00b0  " + root.weatherStatus(root.weatherService.weatherCode) : "--"
+                  ? Math.round(root.weatherService.tempC) + "\u00b0C  " + root.weatherStatus(root.weatherService.weatherCode) : "--"
                 color: Theme.cyan
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSizeValue
@@ -1397,9 +1397,10 @@ Item {
 
               Text {
                 text: root.weatherService && root.weatherService.weatherCode >= 0
-                  ? "H" + Math.round(root.weatherService.highC) + "\u00b0 L" + Math.round(root.weatherService.lowC)
-                    + "\u00b0  FEELS " + Math.round(root.weatherService.feelsLikeC) + "\u00b0" : ""
+                  ? "H" + Math.round(root.weatherService.highC) + "\u00b0 / L" + Math.round(root.weatherService.lowC)
+                    + "\u00b0   \u00b7   Feels like " + Math.round(root.weatherService.feelsLikeC) + "\u00b0C" : ""
                 color: Theme.foreground
+                opacity: 0.72
                 font.family: Theme.fontFamily
                 font.pixelSize: 9
                 elide: Text.ElideRight

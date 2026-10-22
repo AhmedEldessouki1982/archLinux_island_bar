@@ -1,0 +1,217 @@
+{
+  "format": 1,
+  "entries": {
+    "topology/peer-seq": {
+      "key": "topology/peer-seq",
+      "value": {
+        "format": 1,
+        "next": 3
+      },
+      "version": 3,
+      "updatedAt": 1789575795300,
+      "updatedBy": {
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135"
+      }
+    },
+    "topology/hosts/308e926ac680930485985633ac40797d9fd76b28b641831f2eb2b9ebc2e72182": {
+      "key": "topology/hosts/308e926ac680930485985633ac40797d9fd76b28b641831f2eb2b9ebc2e72182",
+      "value": {
+        "format": 1,
+        "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "rootId": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "identity": {
+          "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+          "name": "main",
+          "kind": "main",
+          "sessionId": "01a09f89-9a06-736d-a531-0bb9b4bf310e"
+        },
+        "startedAt": 1789384403386,
+        "updatedAt": 1789397584208,
+        "expiresAt": 1789397599208
+      },
+      "version": 2944,
+      "updatedAt": 1789397584209,
+      "updatedBy": {
+        "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a09f89-9a06-736d-a531-0bb9b4bf310e"
+      }
+    },
+    "sessions/01a09f89-9a06-736d-a531-0bb9b4bf310e": {
+      "key": "sessions/01a09f89-9a06-736d-a531-0bb9b4bf310e",
+      "value": {
+        "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "name": "QUI-1",
+        "label": "QUI-1",
+        "kind": "peer",
+        "status": "idle",
+        "runner": "pi",
+        "transport": "host",
+        "cwd": "/home/eldessouki/.config/quickshell",
+        "sessionId": "01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "model": "openrouter/deepseek/deepseek-v4-pro",
+        "thinking": "high",
+        "startedAt": 1789384403385,
+        "updatedAt": 1789397584208,
+        "pendingMessages": false,
+        "local": false
+      },
+      "version": 2944,
+      "updatedAt": 1789397584209,
+      "updatedBy": {
+        "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a09f89-9a06-736d-a531-0bb9b4bf310e"
+      }
+    },
+    "topology/participants/308e926ac680930485985633ac40797d9fd76b28b641831f2eb2b9ebc2e72182": {
+      "key": "topology/participants/308e926ac680930485985633ac40797d9fd76b28b641831f2eb2b9ebc2e72182",
+      "value": {
+        "format": 1,
+        "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "kind": "root",
+        "rootId": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "ownerHostId": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "ownerIdentityId": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "name": "main",
+        "status": "idle",
+        "runner": "pi",
+        "transport": "host",
+        "capabilities": [
+          "steer",
+          "followUp",
+          "fabric"
+        ],
+        "cwd": "/home/eldessouki/.config/quickshell",
+        "sessionId": "01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "model": "openrouter/deepseek/deepseek-v4-pro",
+        "thinking": "high",
+        "startedAt": 1789384403385,
+        "updatedAt": 1789397584208,
+        "pendingMessages": false,
+        "controlProtocol": "v1",
+        "label": "QUI-1"
+      },
+      "version": 2944,
+      "updatedAt": 1789397584213,
+      "updatedBy": {
+        "id": "session:01a09f89-9a06-736d-a531-0bb9b4bf310e",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a09f89-9a06-736d-a531-0bb9b4bf310e"
+      }
+    },
+    "sessions/01a0ab06-aacf-77d8-87e0-026905d5e135": {
+      "key": "sessions/01a0ab06-aacf-77d8-87e0-026905d5e135",
+      "value": {
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "name": "QUI-3",
+        "label": "QUI-3",
+        "kind": "peer",
+        "status": "idle",
+        "runner": "pi",
+        "transport": "host",
+        "cwd": "/home/eldessouki/.config/quickshell",
+        "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "model": "opencode-cli/opencode/big-pickle",
+        "thinking": "off",
+        "startedAt": 1789575795287,
+        "updatedAt": 1789576200320,
+        "pendingMessages": false,
+        "local": false
+      },
+      "version": 136,
+      "updatedAt": 1789576200321,
+      "updatedBy": {
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135"
+      }
+    },
+    "topology/participants/de208aa3b1144b69e4dda78f91f8aed0ceaf29109f42fcd35116caae1f65e078": {
+      "key": "topology/participants/de208aa3b1144b69e4dda78f91f8aed0ceaf29109f42fcd35116caae1f65e078",
+      "value": {
+        "format": 1,
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "kind": "root",
+        "rootId": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "ownerHostId": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "ownerIdentityId": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "name": "main",
+        "status": "idle",
+        "runner": "pi",
+        "transport": "host",
+        "capabilities": [
+          "steer",
+          "followUp",
+          "fabric"
+        ],
+        "cwd": "/home/eldessouki/.config/quickshell",
+        "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "model": "opencode-cli/opencode/big-pickle",
+        "thinking": "off",
+        "startedAt": 1789575795287,
+        "updatedAt": 1789576200320,
+        "pendingMessages": false,
+        "controlProtocol": "v1",
+        "label": "QUI-3"
+      },
+      "version": 136,
+      "updatedAt": 1789576200322,
+      "updatedBy": {
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135"
+      }
+    },
+    "topology/hosts/de208aa3b1144b69e4dda78f91f8aed0ceaf29109f42fcd35116caae1f65e078": {
+      "key": "topology/hosts/de208aa3b1144b69e4dda78f91f8aed0ceaf29109f42fcd35116caae1f65e078",
+      "value": {
+        "format": 1,
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "rootId": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "identity": {
+          "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+          "name": "main",
+          "kind": "main",
+          "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135"
+        },
+        "startedAt": 1789575795287,
+        "updatedAt": 1789576200324,
+        "expiresAt": 1789576215324
+      },
+      "version": 136,
+      "updatedAt": 1789576200324,
+      "updatedBy": {
+        "id": "session:01a0ab06-aacf-77d8-87e0-026905d5e135",
+        "name": "main",
+        "kind": "main",
+        "sessionId": "01a0ab06-aacf-77d8-87e0-026905d5e135"
+      }
+    }
+  },
+  "versions": {
+    "topology/peer-seq": 3,
+    "topology/hosts/308e926ac680930485985633ac40797d9fd76b28b641831f2eb2b9ebc2e72182": 2944,
+    "sessions/01a09f89-9a06-736d-a531-0bb9b4bf310e": 2944,
+    "topology/participants/308e926ac680930485985633ac40797d9fd76b28b641831f2eb2b9ebc2e72182": 2944,
+    "sessions/01a0a913-85c2-77df-b58e-753477609cb5": 2658,
+    "topology/participants/1313e3a3b8b4e6f6c27f98f4fda81a1a2ab5e2ecc4218468e4e7eb143db8e874": 2659,
+    "topology/hosts/1313e3a3b8b4e6f6c27f98f4fda81a1a2ab5e2ecc4218468e4e7eb143db8e874": 2659,
+    "sessions/01a0ab06-aacf-77d8-87e0-026905d5e135": 136,
+    "topology/participants/de208aa3b1144b69e4dda78f91f8aed0ceaf29109f42fcd35116caae1f65e078": 136,
+    "topology/hosts/de208aa3b1144b69e4dda78f91f8aed0ceaf29109f42fcd35116caae1f65e078": 136
+  },
+  "tombstoneOrder": [
+    "sessions/01a0a913-85c2-77df-b58e-753477609cb5",
+    "topology/participants/1313e3a3b8b4e6f6c27f98f4fda81a1a2ab5e2ecc4218468e4e7eb143db8e874",
+    "topology/hosts/1313e3a3b8b4e6f6c27f98f4fda81a1a2ab5e2ecc4218468e4e7eb143db8e874"
+  ]
+}
