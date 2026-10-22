@@ -71,21 +71,8 @@ Item {
     lockService: lockService
   }
 
-  Rectangle {
-    anchors.centerIn: pill
-    width: pill.width + 10
-    height: pill.height + 8
-    radius: height / 2
-    color: Qt.rgba(0, 0, 0, 0.16)
-  }
-
-  Rectangle {
-    anchors.centerIn: pill
-    width: pill.width + 4
-    height: pill.height + 3
-    radius: height / 2
-    color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.05)
-  }
+  // Flat style: no drop shadow, no accent halo behind the pill.
+  // Depth comes from fill shades only (pill fill + 1px border).
 
   Rectangle {
     id: pill
