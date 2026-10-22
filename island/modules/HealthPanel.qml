@@ -57,6 +57,7 @@ Item {
   property var gpuModeService: null
   property var processStatsService: null
   property var updateService: null
+  property var storageService: null
   property var notificationLayer: null
   property var idleInhibitController: null
 
@@ -200,6 +201,15 @@ Item {
     return base + " \u00b7 " + lat
   }
 
+  function uptimeText() {
+    if (!root.storageService || root.storageService.uptimeSeconds <= 0) return "--"
+    var totalMinutes = Math.floor(root.storageService.uptimeSeconds / 60)
+    var days = Math.floor(totalMinutes / 1440)
+    var hours = Math.floor((totalMinutes % 1440) / 60)
+    var minutes = totalMinutes % 60
+    return (days > 0 ? days + "D " : "") + hours + "H " + minutes + "M"
+  }
+
   function networkSubText() {
     var iface = root.networkService ? root.networkService.iface : ""
     if (iface.length === 0)
@@ -291,6 +301,7 @@ Item {
     if (root.networkService) root.networkService.startStats()
     if (root.processStatsService) root.processStatsService.start()
     if (root.updateService) root.updateService.start()
+    if (root.storageService) root.storageService.start()
   }
 
   function stop() {
@@ -303,6 +314,7 @@ Item {
     if (root.networkService) root.networkService.stopStats()
     if (root.processStatsService) root.processStatsService.stop()
     if (root.updateService) root.updateService.stop()
+    if (root.storageService) root.storageService.stop()
   }
 
   Timer {
@@ -1167,6 +1179,57 @@ Item {
                   onClicked: root.cancelGpuModeSwitch()
                 }
               }
+            }
+          }
+        }
+
+        Rectangle {
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 62
+
+          ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 2
+
+            RowLayout {
+              Layout.fillWidth: true
+              Text {
+                text: "STORAGE"
+                color: Theme.comment
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSizeLabel
+                font.bold: true
+                font.letterSpacing: 1.2
+              }
+              Item { Layout.fillWidth: true }
+              Text {
+                text: root.uptimeText()
+                color: Theme.cyan
+                font.family: Theme.fontFamily
+                font.pixelSize: 9
+                font.bold: true
+              }
+            }
+
+            Text {
+              text: root.storageService && root.storageService.rootPercent >= 0
+                ? "/     " + String(root.storageService.rootPercent).padStart(3, "0") + "%" : "/     ---"
+              color: root.storageService ? Theme.memoryColor(root.storageService.rootPercent) : Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: 9
+            }
+
+            Text {
+              text: root.storageService && root.storageService.homePercent >= 0
+                ? "/HOME " + String(root.storageService.homePercent).padStart(3, "0") + "%" : "/HOME ---"
+              color: root.storageService ? Theme.memoryColor(root.storageService.homePercent) : Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: 9
             }
           }
         }
