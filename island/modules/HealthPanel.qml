@@ -195,7 +195,11 @@ Item {
   }
 
   function fanText() {
-    return "C:" + pad(isNaN(root.cpuFanSpeed) ? 0 : Math.round(root.cpuFanSpeed), 4) + "  G:" + pad(isNaN(root.gpuFanSpeed) ? 0 : Math.round(root.gpuFanSpeed), 4)
+    var cpu = isNaN(root.cpuFanSpeed) ? 0 : Math.round(root.cpuFanSpeed)
+    var gpu = isNaN(root.gpuFanSpeed) ? 0 : Math.round(root.gpuFanSpeed)
+    if (cpu <= 0 && gpu <= 0)
+      return "IDLE"
+    return "C:" + pad(cpu, 4) + " G:" + pad(gpu, 4) + " RPM"
   }
 
   function netText() {
@@ -635,6 +639,7 @@ Item {
           StatTile {
             title: "FAN"
             valueText: root.fanText()
+            valueColor: root.cpuFanSpeed <= 0 && root.gpuFanSpeed <= 0 ? Theme.comment : Theme.orange
             FanIcon {}
           }
 
