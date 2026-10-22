@@ -66,11 +66,10 @@ Item {
   }
 
   readonly property string qualityStatus: root.latencyMs < 0 ? "Unknown"
-    : root.latencyMs <= 30 ? "Good"
-    : root.latencyMs <= 80 ? "OK" : "Poor"
-  readonly property color qualityColor: root.latencyMs < 0 ? Theme.comment
-    : root.latencyMs <= 30 ? Theme.green
-    : root.latencyMs <= 80 ? Theme.yellow : Theme.orange
+    : root.latencyMs < Theme.latencyWarning ? "Good"
+    : root.latencyMs < Theme.latencyHigh ? "Fair"
+    : root.latencyMs < Theme.latencyCritical ? "Poor" : "Critical"
+  readonly property color qualityColor: Theme.latencyColor(root.latencyMs)
 
   function refreshIp() {
     if (!routeProcess.running) routeProcess.running = true

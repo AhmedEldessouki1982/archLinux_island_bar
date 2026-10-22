@@ -246,11 +246,8 @@ Item {
 
       Text {
         text: Math.round(_batteryService.capacity) + "%"
-        color: _batteryService.charging ? Theme.green
-          : !_psm.readyForDisplay ? Theme.foreground
-          : _batteryService.capacity <= 10 ? Theme.red
-          : _batteryService.capacity <= 20 ? Theme.orange
-          : Theme.foreground
+        color: !_psm.readyForDisplay ? Theme.foreground
+          : Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
         font.family: Theme.fontFamily
         font.pixelSize: 12
         font.bold: true

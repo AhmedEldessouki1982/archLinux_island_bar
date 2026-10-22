@@ -129,31 +129,16 @@ Item {
     return (b / 1048576).toFixed(1) + " MB/s"
   }
 
-  function levelColor(val, warn, crit) {
-    if (val >= crit) return Theme.red
-    if (val >= warn) return Theme.yellow
-    return Theme.foreground
-  }
-
   function ringColor(v) {
-    if (v >= 85) return Theme.red
-    if (v >= 60) return Theme.yellow
-    return Theme.green
+    return Theme.memoryColor(v)
   }
 
   function loadTempColor(load, temp) {
-    var lc = levelColor(load, 60, 80)
-    var tc = levelColor(temp, 65, 80)
-    if (lc === Theme.red || tc === Theme.red) return Theme.red
-    if (lc === Theme.yellow || tc === Theme.yellow) return Theme.yellow
-    return Theme.foreground
+    return Theme.systemColor(load, temp)
   }
 
   function batteryColor(pct, charging) {
-    if (charging) return Theme.green
-    if (pct <= 15) return Theme.red
-    if (pct <= 30) return Theme.yellow
-    return Theme.foreground
+    return Theme.batteryColor(pct, charging)
   }
 
   function weatherStatus(code) {
@@ -958,7 +943,7 @@ Item {
   component BatIcon: Text {
     width: Theme.iconSize; height: Theme.iconSize
     text: root.batteryCharging ? "󰂄" : "󰁹"
-    color: root.batteryCharging ? Theme.green : (root.batteryCapacity > 20 ? Theme.foreground : Theme.red)
+    color: Theme.batteryColor(root.batteryCapacity, root.batteryCharging)
     font.family: Theme.fontFamily
     font.pixelSize: Theme.iconFontSize
     horizontalAlignment: Text.AlignHCenter

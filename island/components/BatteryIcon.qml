@@ -33,10 +33,7 @@ Item {
 
   function batteryColor() {
     var pct = root.percent;
-    if (root.charging) return Theme.green;
-    if (pct <= 10) return Theme.red;
-    if (pct <= 20) return Theme.orange;
-    return Theme.foreground;
+    return Theme.batteryColor(pct, root.charging);
   }
 
   RowLayout {
