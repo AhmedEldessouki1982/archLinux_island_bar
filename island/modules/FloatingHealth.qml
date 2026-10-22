@@ -8,11 +8,18 @@ PanelWindow {
   id: root
   visible: false
   color: "transparent"
+
+  // Never reserve screen space: the panel floats over whatever is below it.
   exclusionMode: ExclusionMode.Ignore
+  exclusiveZone: 0
   aboveWindows: true
 
+  // Window size = visible card + one ear radius on each side.
   property int hpW: 0
   property int hpH: 0
+  readonly property int ear: Theme.panelEarRadius
+
+  property bool panelActive: false
 
   signal panelClosed()
 
@@ -29,8 +36,6 @@ PanelWindow {
     interval: 15000
     onTriggered: root.close()
   }
-
-  property bool panelActive: false
 
   WeatherService {
     id: _weatherService
@@ -66,19 +71,24 @@ PanelWindow {
     if (root.visible) autoCloseTimer.restart()
   }
 
+  // Click anywhere outside the panel to dismiss it.
   MouseArea {
     anchors.fill: parent
     onClicked: root.close()
   }
 
+  // ---------------------------------------------------------------------------
+  // Panel container. `y` is driven imperatively (never bound) so the drop
+  // animation can own it; it is parked at -height whenever the panel is hidden.
+  // ---------------------------------------------------------------------------
+
   Item {
     id: container
     width: root.hpW
     height: root.hpH
-    anchors.top: parent.top
     anchors.horizontalCenter: parent.horizontalCenter
-    anchors.topMargin: 44
-    opacity: 0
+    // Parked above the screen edge whenever the panel is hidden.
+    y: -Math.max(1, height)
 
     MouseArea {
       anchors.fill: parent
@@ -101,105 +111,158 @@ PanelWindow {
       }
     }
 
-    Behavior on opacity {
-      NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
-    }
+    // --- flat background: one static path, painted only on size change ---
+    //
+    // Body spans x = ear .. width-ear. Top corners are inverted (concave)
+    // radii biting out of the corner, bottom corners are normal convex radii.
+    // The whole silhouette is a single filled path, so the ears can never show
+    // a seam, and it carries the same colour as the island pill so the panel
+    // reads as growing out of it.
 
-    Rectangle {
+    Canvas {
+      id: panelShape
       anchors.fill: parent
-      radius: 12
-      color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.88)
-      clip: true
-      border.width: 1
-      border.color: Theme.selection
+      antialiasing: true
+      renderTarget: Canvas.Image
 
-      HealthPanel {
-        id: healthPanel
-        anchors.fill: parent
-        active: root.panelActive
-        audioService: root.audioService
-        brightnessService: root.brightnessService
-        batteryService: root.batteryService
-        weatherService: root.weatherService
-        networkService: root.networkService
-        systemStatsService: root.systemStatsService
-        thermalService: root.thermalService
-        gpuModeService: root.gpuModeService
-        processStatsService: root.processStatsService
-        updateService: root.updateService
-        storageService: root.storageService
-        notificationLayer: root.notificationLayer
-        idleInhibitController: root.idleInhibitController
-        onUserActivity: root.resetIdleTimer()
+      property color fillColor: Theme.background
+      property color edgeColorA: Theme.panelBorderA
+      property color edgeColorB: Theme.panelBorderB
+      property real earRadius: Theme.panelEarRadius
+      property real bottomRadius: Theme.panelBottomRadius
 
-        Component.onCompleted: {
-          root.hpW = Qt.binding(() => healthPanel.contentWidth + 24)
-          root.hpH = Qt.binding(() => healthPanel.contentHeight)
-        }
+      onFillColorChanged: requestPaint()
+      onEdgeColorAChanged: requestPaint()
+      onEdgeColorBChanged: requestPaint()
+      onEarRadiusChanged: requestPaint()
+      onBottomRadiusChanged: requestPaint()
+      onWidthChanged: requestPaint()
+      onHeightChanged: requestPaint()
+
+      onPaint: {
+        var ctx = getContext("2d")
+        ctx.reset()
+        ctx.clearRect(0, 0, width, height)
+
+        var E = Math.min(earRadius, width / 2, height)
+        var B = Math.min(bottomRadius, width / 2, height)
+        var W = width
+        var H = height
+
+        ctx.beginPath()
+        // top-left concave ear: centre (0, E), from (0,0) to (E,E)
+        ctx.arc(0, E, E, -Math.PI / 2, 0, false)
+        ctx.lineTo(E, H - B)
+        // bottom-left convex corner
+        ctx.arc(E + B, H - B, B, Math.PI, Math.PI / 2, true)
+        ctx.lineTo(W - B, H)
+        // bottom-right convex corner
+        ctx.arc(W - B, H - B, B, Math.PI / 2, 0, true)
+        ctx.lineTo(W - E, E)
+        // top-right concave ear: centre (W, E), from (W-E,E) to (W,0)
+        ctx.arc(W, E, E, Math.PI, Math.PI * 1.5, false)
+        ctx.closePath()
+
+        ctx.fillStyle = fillColor
+        ctx.fill()
+
+        var g = ctx.createLinearGradient(0, 0, W, H)
+        g.addColorStop(0, edgeColorA)
+        g.addColorStop(1, edgeColorB)
+        ctx.strokeStyle = g
+        ctx.lineWidth = 1
+        ctx.stroke()
       }
     }
 
-    // --- corner dots (cosmetic "hardware panel" accent) ---
+    HealthPanel {
+      id: healthPanel
+      x: root.ear
+      y: 0
+      width: container.width - root.ear * 2
+      height: container.height
+      active: root.panelActive
+      audioService: root.audioService
+      brightnessService: root.brightnessService
+      batteryService: root.batteryService
+      weatherService: root.weatherService
+      networkService: root.networkService
+      systemStatsService: root.systemStatsService
+      thermalService: root.thermalService
+      gpuModeService: root.gpuModeService
+      processStatsService: root.processStatsService
+      updateService: root.updateService
+      storageService: root.storageService
+      notificationLayer: root.notificationLayer
+      idleInhibitController: root.idleInhibitController
+      onUserActivity: root.resetIdleTimer()
 
-    Rectangle {
-      width: 5
-      height: 5
-      radius: 2.5
-      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-      anchors.top: parent.top
-      anchors.left: parent.left
-      anchors.topMargin: 7
-      anchors.leftMargin: 9
+      Component.onCompleted: {
+        root.hpW = Qt.binding(() => healthPanel.contentWidth + root.ear * 2)
+        root.hpH = Qt.binding(() => healthPanel.contentHeight)
+      }
     }
+  }
 
-    Rectangle {
-      width: 5
-      height: 5
-      radius: 2.5
-      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-      anchors.top: parent.top
-      anchors.right: parent.right
-      anchors.topMargin: 7
-      anchors.rightMargin: 9
-    }
+  // --- drop in / drop out ----------------------------------------------------
 
-    Rectangle {
-      width: 5
-      height: 5
-      radius: 2.5
-      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-      anchors.bottom: parent.bottom
-      anchors.left: parent.left
-      anchors.bottomMargin: 7
-      anchors.leftMargin: 9
-    }
+  NumberAnimation {
+    id: dropIn
+    target: container
+    properties: "y"
+    to: 0
+    duration: Theme.panelDropInDuration
+    easing.type: Easing.OutCubic
+  }
 
-    Rectangle {
-      width: 5
-      height: 5
-      radius: 2.5
-      color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-      anchors.bottom: parent.bottom
-      anchors.right: parent.right
-      anchors.bottomMargin: 7
-      anchors.rightMargin: 9
-    }
+  NumberAnimation {
+    id: dropOut
+    target: container
+    properties: "y"
+    duration: Theme.panelDropOutDuration
+    easing.type: Easing.InCubic
+    onFinished: root.finishClose()
   }
 
   function open() {
+    // Re-opening while the close animation is still running simply reverses it.
+    var reopening = dropOut.running
+    if (root.visible && root.panelActive && !reopening) return
+
+    var wasHidden = !root.visible || !root.panelActive
     root.panelActive = true
     root.visible = true
-    container.opacity = 0
-    container.opacity = 1
-    healthPanel.start()
+
+    if (wasHidden) {
+      healthPanel.start()
+      healthPanel.playEntrance()
+      container.y = -Math.max(1, container.height)
+    }
+
+    dropOut.stop()
+    dropIn.from = container.y
+    dropIn.start()
+    autoCloseTimer.restart()
   }
 
+  // Reverses the drop; services and timers are only torn down once the panel
+  // has actually left the screen.
   function close() {
     autoCloseTimer.stop()
-    container.opacity = 0
+    if (!root.visible) return
+    if (dropOut.running) return
+    dropIn.stop()
+    dropOut.from = container.y
+    dropOut.to = -Math.max(1, container.height)
+    dropOut.start()
+  }
+
+  function finishClose() {
+    if (!root.panelActive) return
     healthPanel.stop()
     root.panelActive = false
     root.visible = false
+    container.y = -Math.max(1, container.height)
     root.panelClosed()
   }
 }

@@ -88,4 +88,14 @@ QtObject {
 
   property color borderA: Qt.rgba(0.2, 0.8, 1.0, 0.35)
   property color borderB: Qt.rgba(0, 1.0, 0.6, 0.35)
+
+  // Health panel: flat drop-down shape. The top corners are inverted (concave)
+  // radii so the surface reads as growing out of the top screen edge; the
+  // bottom corners are normal convex radii.
+  property int panelEarRadius: 26
+  property int panelBottomRadius: 26
+  property int panelDropInDuration: 280
+  property int panelDropOutDuration: 180
+  property color panelBorderA: Qt.rgba(0.55, 0.91, 0.99, 0.28)
+  property color panelBorderB: Qt.rgba(0.74, 0.58, 0.98, 0.28)
 }

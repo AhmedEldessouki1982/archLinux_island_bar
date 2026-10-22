@@ -126,7 +126,37 @@ Item {
 
   readonly property real contentWidth: root.panelPadding * 2 + root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
   readonly property real gridHeight: Math.ceil(gridModel.count / 7) * 28 - 2
-  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + Math.max(leftCol.implicitHeight, rightCol.implicitHeight))
+  readonly property real contentHeight: Math.max(300, root.panelPadding * 2
+    + Math.max(leftCol.implicitHeight, Math.max(middleCol.implicitHeight, rightCol.implicitHeight)))
+
+  // --- staggered entrance ----------------------------------------------------
+  // One animation drives a shared progress value; every card derives its own
+  // alpha from a static index, so a whole cascade costs a single animation
+  // object. When idle (progress === 1) every card is simply opaque.
+
+  property real entranceProgress: 1
+  readonly property real _entranceStep: 0.045
+  readonly property real _entranceSpan: 0.24
+
+  function cardAlpha(index) {
+    if (root.entranceProgress >= 1) return 1
+    return Math.max(0, Math.min(1, (root.entranceProgress - index * root._entranceStep) / root._entranceSpan))
+  }
+
+  function playEntrance() {
+    root.entranceProgress = 0
+    entranceAnim.restart()
+  }
+
+  NumberAnimation {
+    id: entranceAnim
+    target: root
+    property: "entranceProgress"
+    from: 0
+    to: 1
+    duration: 780
+    easing.type: Easing.OutQuad
+  }
 
   width: contentWidth
   height: contentHeight
@@ -356,6 +386,8 @@ Item {
 
         ColumnLayout {
           id: calCol
+          property int entranceIndex: 0
+          opacity: root.cardAlpha(entranceIndex)
           Layout.preferredWidth: root._colBlock
           Layout.alignment: Qt.AlignHCenter
           spacing: 4
@@ -481,6 +513,8 @@ Item {
         }
 
         Rectangle {
+          property int entranceIndex: 1
+          opacity: root.cardAlpha(entranceIndex)
           Layout.preferredWidth: root._colBlock
           Layout.fillWidth: true
           Layout.preferredHeight: 132
@@ -572,6 +606,7 @@ Item {
 
       // ---------- MIDDLE: sliders + tiles ----------
       ColumnLayout {
+        id: middleCol
         Layout.preferredWidth: root._colW2
         Layout.alignment: Qt.AlignTop
         spacing: 8
@@ -586,6 +621,8 @@ Item {
         }
 
         RowLayout {
+          property int entranceIndex: 2
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           spacing: 6
 
@@ -630,6 +667,8 @@ Item {
         }
 
         RowLayout {
+          property int entranceIndex: 3
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           spacing: 8
 
@@ -720,6 +759,8 @@ Item {
         }
 
         RowLayout {
+          property int entranceIndex: 4
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           spacing: 8
 
@@ -772,6 +813,8 @@ Item {
         }
 
         GridLayout {
+          property int entranceIndex: 5
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           columns: 2
           columnSpacing: 8
@@ -832,6 +875,8 @@ Item {
 
         Rectangle {
           id: identityCard
+          property int entranceIndex: 6
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: root.cardColor
@@ -876,6 +921,8 @@ Item {
 
         Rectangle {
           id: batteryCard
+          property int entranceIndex: 7
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: root.cardColor
@@ -997,6 +1044,8 @@ Item {
 
         Rectangle {
           id: profileCard
+          property int entranceIndex: 8
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: profileMouse.containsMouse
@@ -1051,6 +1100,8 @@ Item {
 
         Rectangle {
           id: gpuModeCard
+          property int entranceIndex: 9
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: gpuModeMouse.containsMouse && !root.gpuConfirming
@@ -1184,6 +1235,8 @@ Item {
         }
 
         Rectangle {
+          property int entranceIndex: 10
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: root.cardColor
@@ -1235,6 +1288,8 @@ Item {
         }
 
         Rectangle {
+          property int entranceIndex: 11
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: root.cardColor
@@ -1272,6 +1327,8 @@ Item {
         }
 
         Rectangle {
+          property int entranceIndex: 12
+          opacity: root.cardAlpha(entranceIndex)
           Layout.fillWidth: true
           radius: 8
           color: root.cardColor
