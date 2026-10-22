@@ -758,12 +758,15 @@ Item {
               }
             }
           }
+
         }
 
         Rectangle {
+          id: profileCard
           Layout.fillWidth: true
           radius: 8
-          color: root.cardColor
+          color: profileMouse.containsMouse
+            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12) : root.cardColor
           border.width: 1
           border.color: root.cardBorder
           implicitHeight: 44
@@ -797,6 +800,17 @@ Item {
               font.pixelSize: Theme.fontSizeValue
               font.bold: true
               Layout.alignment: Qt.AlignVCenter
+            }
+          }
+
+          MouseArea {
+            id: profileMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              root.userActivity()
+              if (root.gpuModeService) root.gpuModeService.cyclePowerProfile()
             }
           }
         }

@@ -10,10 +10,22 @@ Item {
   property string gpuMode: ""
   property string gpuPowerStatus: ""
   property string powerProfile: ""
+  property var availableProfiles: []
+  property bool profileChanging: false
 
   function start() {
-    gfxModeProc.running = true
-    pwrProfileProc.running = true
+    if (!gfxModeProc.running) gfxModeProc.running = true
+    if (!pwrProfileProc.running) pwrProfileProc.running = true
+  }
+
+  function cyclePowerProfile() {
+    if (root.profileChanging || pwrProfileProc.running) return
+    var profiles = root.availableProfiles.length > 0
+      ? root.availableProfiles : ["Quiet", "Balanced", "Performance"]
+    var current = profiles.indexOf(root.powerProfile)
+    root.powerProfile = profiles[(current + 1) % profiles.length]
+    root.profileChanging = true
+    profileCycleProc.running = true
   }
 
   function stop() {
@@ -35,13 +47,32 @@ Item {
 
   Process {
     id: pwrProfileProc
-    command: ["sh", "-c", "asusctl profile get 2>/dev/null | head -1 | cut -d: -f2 | xargs"]
+    command: ["sh", "-c", "asusctl profile list 2>/dev/null | sed 's/^/L:/'; asusctl profile get 2>/dev/null | sed -n '1s/^/A:/p'"]
     running: false
     stdout: SplitParser {
       onRead: data => {
         var v = data.trim()
-        if (v.length > 0) root.powerProfile = v
+        if (v.indexOf("L:") === 0) {
+          var profile = v.substring(2).trim()
+          if (profile.length > 0 && root.availableProfiles.indexOf(profile) < 0) {
+            var copy = root.availableProfiles.slice()
+            copy.push(profile)
+            root.availableProfiles = copy
+          }
+        } else if (v.indexOf("A:Active profile:") === 0) {
+          root.powerProfile = v.substring("A:Active profile:".length).trim()
+        }
       }
+    }
+  }
+
+  Process {
+    id: profileCycleProc
+    command: ["asusctl", "profile", "next"]
+    running: false
+    onExited: code => {
+      root.profileChanging = false
+      if (!pwrProfileProc.running) pwrProfileProc.running = true
     }
   }
 }
