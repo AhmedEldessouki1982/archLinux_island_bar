@@ -16,16 +16,19 @@ Item {
 
   property int diameter: 58
   property int thickness: 4
+  // The drive glyph sits above the percentage. Callers that only want the
+  // number (the storage cells) switch it off and the % centres itself.
+  property bool showGlyph: true
 
   readonly property bool known: root.value >= 0
   readonly property real clamped: Math.max(0, Math.min(100, root.value))
   readonly property color valueColor: root.known ? Theme.diskColor(root.value) : Theme.comment
   readonly property int glyphSize: Math.round(root.diameter * 0.26)
 
+  // Sized by the layout: the gauge only declares its preferred size so a
+  // layout can stretch or shrink it without fighting an explicit binding.
   implicitWidth: root.diameter
   implicitHeight: root.diameter + (root.label !== "" ? 32 : 0)
-  width: implicitWidth
-  height: implicitHeight
 
   // Animated arc fraction. The Behavior only runs while the value is actually
   // changing; when it settles there is no timer and no repaint left behind.
@@ -98,6 +101,7 @@ Item {
     height: root.glyphSize
     anchors.horizontalCenter: parent.horizontalCenter
     y: root.diameter * 0.30
+    visible: root.showGlyph
     antialiasing: true
     renderTarget: Canvas.Image
 
@@ -156,7 +160,9 @@ Item {
   // Percentage, centred in the ring, monospace by way of the theme font.
   Text {
     anchors.horizontalCenter: parent.horizontalCenter
-    y: root.diameter * 0.46
+    anchors.verticalCenter: parent.verticalCenter
+    // With the glyph above it, the number sits below the centre.
+    anchors.verticalCenterOffset: root.showGlyph ? root.diameter * 0.1 : 0
     text: root.known ? Math.round(root.value) + "%" : "--"
     color: root.known ? Theme.foreground : Theme.comment
     font.family: Theme.fontFamily
