@@ -35,6 +35,9 @@ Item {
   property string kernelVersion: ""
   property string userName: ""
   property string hostName: ""
+  property var cpuSamples: []
+  property var gpuSamples: []
+  property var ramSamples: []
 
   property int panelPadding: 14
 
@@ -115,7 +118,7 @@ Item {
 
   readonly property real contentWidth: root.panelPadding * 2 + root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
   readonly property real gridHeight: Math.ceil(gridModel.count / 7) * 28 - 2
-  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + Math.max(ringRow.height + 10 + calCol.height, rightCol.implicitHeight))
+  readonly property real contentHeight: Math.max(300, root.panelPadding * 2 + Math.max(calCol.height, rightCol.implicitHeight))
 
   width: contentWidth
   height: contentHeight
@@ -211,6 +214,16 @@ Item {
     return ssid
   }
 
+  function appendSample(series, value) {
+    var next = series.slice(Math.max(0, series.length - 59))
+    next.push(Math.max(0, Math.min(100, Number(value) || 0)))
+    return next
+  }
+
+  onCpuLoadChanged: if (root.active) root.cpuSamples = root.appendSample(root.cpuSamples, root.cpuLoad)
+  onGpuLoadChanged: if (root.active) root.gpuSamples = root.appendSample(root.gpuSamples, root.gpuLoad)
+  onRamPercentChanged: if (root.active) root.ramSamples = root.appendSample(root.ramSamples, root.ramPercent)
+
   // --- calendar navigation (merged from CalendarPopup) ---
 
   function rebuild() {
@@ -296,39 +309,11 @@ Item {
       Layout.alignment: Qt.AlignTop
       spacing: root._colGap
 
-      // ---------- LEFT: rings + calendar ----------
+      // ---------- LEFT: calendar ----------
       ColumnLayout {
         Layout.preferredWidth: root._colW1
         Layout.alignment: Qt.AlignTop
         spacing: 10
-
-        RowLayout {
-          id: ringRow
-          Layout.preferredWidth: root._colBlock
-          Layout.alignment: Qt.AlignHCenter
-          spacing: 10
-
-          MeterRing {
-            value: root.cpuLoad / 100
-            ringColor: root.ringColor(root.cpuLoad)
-            label: "CPU"
-            CpuIcon {}
-          }
-
-          MeterRing {
-            value: root.ramPercent / 100
-            ringColor: root.ringColor(root.ramPercent)
-            label: "RAM"
-            RamIcon {}
-          }
-
-          MeterRing {
-            value: root.gpuLoad / 100
-            ringColor: root.ringColor(root.gpuLoad)
-            label: "GPU"
-            GpuIcon {}
-          }
-        }
 
         ColumnLayout {
           id: calCol
@@ -624,6 +609,8 @@ Item {
             title: "CPU"
             valueColor: root.loadTempColor(root.cpuLoad, root.cpuTemp)
             valueText: root.loadTempText(root.cpuLoad, root.cpuTemp, "")
+            sparkSamples: root.cpuSamples
+            sparkColor: valueColor
             CpuIcon {}
           }
 
@@ -631,6 +618,8 @@ Item {
             title: "GPU"
             valueColor: root.loadTempColor(root.gpuLoad, root.gpuTemp)
             valueText: root.loadTempText(root.gpuLoad, root.gpuTemp, "")
+            sparkSamples: root.gpuSamples
+            sparkColor: valueColor
             GpuIcon {}
           }
 
@@ -638,6 +627,8 @@ Item {
             title: "RAM"
             valueColor: root.ringColor(root.ramPercent)
             valueText: (root.ramUsed / (1024*1024*1024)).toFixed(1) + " / " + (root.ramTotal / (1024*1024*1024)).toFixed(1) + " GB"
+            sparkSamples: root.ramSamples
+            sparkColor: valueColor
             RamIcon {}
           }
 
@@ -1036,84 +1027,33 @@ Item {
     verticalAlignment: Text.AlignVCenter
   }
 
-  // --- animated circular progress ring ---
+  component Sparkline: Canvas {
+    id: spark
+    property var samples: []
+    property color lineColor: Theme.cyan
+    renderTarget: Canvas.Image
+    antialiasing: true
 
-  component MeterRing: Item {
-    id: ring
-    default property alias ringContent: iconSlot.data
-    property real value: 0
-    property color ringColor: Theme.green
-    property string label: ""
-    property real arc: 0
-
-    implicitWidth: 58
-    implicitHeight: 92
-
-    Behavior on arc {
-      NumberAnimation { duration: Theme.animDurationSlow; easing: Easing.OutCubic }
-    }
-
-    onValueChanged: ring.arc = Math.max(0, Math.min(1, ring.value))
-
-    Canvas {
-      id: ringCanvas
-      antialiasing: true
-      width: 52
-      height: 52
-      anchors.top: parent.top
-      anchors.horizontalCenter: parent.horizontalCenter
-
-      onPaint: {
-        var ctx = getContext("2d")
-        ctx.clearRect(0, 0, width, height)
-        var c = 26, r = 20, lw = 4.5
-        ctx.lineCap = "round"
-        ctx.lineWidth = lw
-        ctx.strokeStyle = Qt.rgba(Theme.comment.r, Theme.comment.g, Theme.comment.b, 0.5)
-        ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.stroke()
-        if (ring.arc > 0.005) {
-          ctx.strokeStyle = ring.ringColor
-          ctx.beginPath()
-          ctx.arc(c, c, r, -Math.PI / 2, -Math.PI / 2 + ring.arc * Math.PI * 2, false)
-          ctx.stroke()
-        }
+    onSamplesChanged: requestPaint()
+    onLineColorChanged: requestPaint()
+    onPaint: {
+      var ctx = getContext("2d")
+      ctx.clearRect(0, 0, width, height)
+      if (!spark.samples || spark.samples.length < 2 || width <= 1 || height <= 1)
+        return
+      var count = spark.samples.length
+      var dx = width / Math.max(1, count - 1)
+      ctx.strokeStyle = spark.lineColor
+      ctx.lineWidth = 1.25
+      ctx.lineJoin = "round"
+      ctx.beginPath()
+      for (var i = 0; i < count; i++) {
+        var x = i * dx
+        var y = height - 1 - Math.max(0, Math.min(100, spark.samples[i])) / 100 * (height - 2)
+        if (i === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
       }
-
-      Connections {
-        target: ring
-        function onArcChanged() { ringCanvas.requestPaint() }
-      }
-    }
-
-    Item {
-      id: iconSlot
-      width: 16
-      height: 16
-      anchors.centerIn: ringCanvas
-    }
-
-    Text {
-      id: pctText
-      text: Math.round(ring.value * 100) + "%"
-      color: ring.ringColor
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.fontSizeValue
-      font.bold: true
-      anchors.top: ringCanvas.bottom
-      anchors.topMargin: 6
-      anchors.horizontalCenter: parent.horizontalCenter
-    }
-
-    Text {
-      text: ring.label
-      color: Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.fontSizeLabel
-      font.bold: true
-      font.letterSpacing: 1.2
-      anchors.top: pctText.bottom
-      anchors.topMargin: 3
-      anchors.horizontalCenter: parent.horizontalCenter
+      ctx.stroke()
     }
   }
 
@@ -1192,12 +1132,14 @@ Item {
     property string subText: ""
     property color subTextColor: Theme.comment
     property int valueSize: Theme.fontSizeValue
+    property var sparkSamples: []
+    property color sparkColor: Theme.cyan
 
     radius: 8
     color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
     border.width: 1
     border.color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.55)
-    implicitHeight: tile.subText.length > 0 ? 74 : 56
+    implicitHeight: tile.subText.length > 0 || tile.sparkSamples.length > 1 ? 74 : 56
     Layout.preferredWidth: 140
     Layout.fillWidth: true
 
@@ -1238,6 +1180,14 @@ Item {
           font.pixelSize: tile.valueSize
           elide: Text.ElideRight
           Layout.fillWidth: true
+        }
+
+        Sparkline {
+          visible: tile.sparkSamples.length > 1
+          samples: tile.sparkSamples
+          lineColor: tile.sparkColor
+          Layout.fillWidth: true
+          Layout.preferredHeight: 16
         }
 
         Text {
