@@ -13,7 +13,31 @@ Item {
 
   // --- state delegated to PillStateMachine ---
   property int pillHeight: 35
+  readonly property int pillEarRadius: Theme.pillEarRadius
   property alias inputRegionItem: pill
+
+  // --- drop-shape geometry -------------------------------------------------
+  // Horizontal padding inside the body, on top of the ear radius which is
+  // part of the silhouette. Content therefore starts at ear + pillPad from
+  // the shape's outer edge and is identical on both sides.
+  readonly property int pillPad: 12
+  readonly property real _pillContentWidth: _psm.meterMode !== ""
+    ? _psm.meterPillWidth
+    : _psm.isExpanded ? expandedLayout.implicitWidth
+    : idleLayout.implicitWidth
+
+  // Body width (excluding the two ears). Rounded to an even number so the
+  // total shape width is even and centring lands on a whole pixel.
+  property real pillBodyWidth: {
+    var w = Math.round(_pillContentWidth) + 2 * pillPad
+    return w - (w % 2)
+  }
+
+  // A resize only animates while it is happening (one-shot, 180 ms); at rest
+  // no animation object is running.
+  Behavior on pillBodyWidth {
+    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+  }
   property alias audioService: _audioService
   property alias batteryService: _batteryService
   property alias networkService: _networkService
@@ -74,32 +98,26 @@ Item {
   // Flat style: no drop shadow, no accent halo behind the pill.
   // Depth comes from fill shades only (pill fill + 1px border).
 
-  Rectangle {
+  Item {
     id: pill
-    anchors.horizontalCenter: parent.horizontalCenter
     y: 0
-    width: _psm.meterMode !== "" ? _psm.meterPillWidth
-      : _psm.isExpanded ? expandedLayout.implicitWidth + 24
-      : idleLayout.implicitWidth + 24
-    height: parent.height
-    radius: root.pillHeight / 2
-    color: Theme.background
-    clip: false
+    width: pillShape.width
+    height: root.pillHeight
+    // Integer x keeps both edges on whole pixels; pillBodyWidth is forced
+    // even so the shape lands exactly on the window centre.
+    x: Math.round((root.width - width) / 2)
 
-    Behavior on width {
-      NumberAnimation {
-        duration: Theme.animDurationSlow
-        easing.type: Easing.OutBack
-        easing.overshoot: 1.3
-      }
-    }
-
-    Behavior on radius {
-      NumberAnimation {
-        duration: Theme.animDurationSlow
-        easing.type: Easing.OutBack
-        easing.overshoot: 1.3
-      }
+    // The same DropShape the health panel uses, with the small radii, hung
+    // directly off the top screen edge: y = 0, no gap and no seam.
+    DropShape {
+      id: pillShape
+      bodyWidth: root.pillBodyWidth
+      bodyHeight: root.pillHeight
+      earRadius: Theme.pillEarRadius
+      bottomRadius: Theme.pillBottomRadius
+      fillColor: Theme.background
+      borderColor: Theme.shapeBorder
+      borderWidth: 1
     }
 
     MouseArea {
@@ -119,9 +137,9 @@ Item {
       id: idleLayout
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
-      anchors.leftMargin: 12
+      anchors.leftMargin: Theme.pillEarRadius + root.pillPad
       anchors.right: parent.right
-      anchors.rightMargin: 12
+      anchors.rightMargin: Theme.pillEarRadius + root.pillPad
       spacing: 10
       opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
@@ -246,9 +264,9 @@ Item {
       id: expandedLayout
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
-      anchors.leftMargin: 12
+      anchors.leftMargin: Theme.pillEarRadius + root.pillPad
       anchors.right: parent.right
-      anchors.rightMargin: 12
+      anchors.rightMargin: Theme.pillEarRadius + root.pillPad
       spacing: 10
       opacity: _psm.isExpanded ? 1 : 0
       clip: true
@@ -447,21 +465,15 @@ Item {
       height: parent.height
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
-      anchors.leftMargin: 12
+      anchors.leftMargin: Theme.pillEarRadius + root.pillPad
       anchors.right: parent.right
-      anchors.rightMargin: 12
+      anchors.rightMargin: Theme.pillEarRadius + root.pillPad
       opacity: _psm.meterMode !== "" ? 1 : 0
       visible: _psm.meterMode !== ""
       clip: true
 
       Behavior on opacity {
         NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
-      }
-
-      Rectangle {
-        anchors.fill: parent
-        color: Theme.background
-        radius: root.pillHeight / 2
       }
 
       RowLayout {
@@ -586,41 +598,6 @@ Item {
           Layout.alignment: Qt.AlignVCenter
           Layout.minimumWidth: 38
         }
-      }
-    }
-
-    Canvas {
-      id: pillBorder
-      anchors.fill: parent
-      antialiasing: true
-      property real boundRadius: parent.radius
-      onBoundRadiusChanged: requestPaint()
-      onWidthChanged: requestPaint()
-      onHeightChanged: requestPaint()
-      onPaint: {
-        var ctx = getContext("2d")
-        ctx.clearRect(0, 0, width, height)
-        var g = ctx.createLinearGradient(0, 0, width, height)
-        g.addColorStop(0, Theme.borderA)
-        g.addColorStop(1, Theme.borderB)
-        ctx.strokeStyle = g
-        ctx.lineWidth = 1.5
-        ctx.lineCap = "round"
-        var x = 0.75, y = 0.75
-        var w = width - 1.5, h = height - 1.5
-        var r = Math.min(parent.radius, w / 2, h / 2)
-        ctx.beginPath()
-        ctx.moveTo(x + r, y)
-        ctx.lineTo(x + w - r, y)
-        ctx.arcTo(x + w, y, x + w, y + r, r)
-        ctx.lineTo(x + w, y + h - r)
-        ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
-        ctx.lineTo(x + r, y + h)
-        ctx.arcTo(x, y + h, x, y + h - r, r)
-        ctx.lineTo(x, y + r)
-        ctx.arcTo(x, y, x + r, y, r)
-        ctx.closePath()
-        ctx.stroke()
       }
     }
 

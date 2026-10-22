@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 import "../config"
+import "../components"
 import "../services"
 
 PanelWindow {
@@ -18,6 +19,9 @@ PanelWindow {
   property int hpW: 0
   property int hpH: 0
   readonly property int ear: Theme.panelEarRadius
+  // One inset for all four sides of the card, so the content is symmetric
+  // about the window centre and the bottom padding equals the top.
+  readonly property int pad: Theme.contentPadding
 
   property bool panelActive: false
 
@@ -111,76 +115,29 @@ PanelWindow {
       }
     }
 
-    // --- flat background: one static path, painted only on size change ---
+    // --- flat drop shape: one shared silhouette, one fill, one border ------
     //
-    // Body spans x = ear .. width-ear. Top corners are inverted (concave)
-    // radii biting out of the corner, bottom corners are normal convex radii.
-    // The whole silhouette is a single filled path, so the ears can never show
-    // a seam, and it carries the same colour as the island pill so the panel
-    // reads as growing out of it.
+    // Same DropShape component as the island pill, with the large radii. The
+    // top edge sits exactly on y = 0 of the screen, and the border path is
+    // open along the top so no line is drawn where the panel meets the edge.
 
-    Canvas {
+    DropShape {
       id: panelShape
-      anchors.fill: parent
-      antialiasing: true
-      renderTarget: Canvas.Image
-
-      property color fillColor: Theme.background
-      property color edgeColorA: Theme.panelBorderA
-      property color edgeColorB: Theme.panelBorderB
-      property real earRadius: Theme.panelEarRadius
-      property real bottomRadius: Theme.panelBottomRadius
-
-      onFillColorChanged: requestPaint()
-      onEdgeColorAChanged: requestPaint()
-      onEdgeColorBChanged: requestPaint()
-      onEarRadiusChanged: requestPaint()
-      onBottomRadiusChanged: requestPaint()
-      onWidthChanged: requestPaint()
-      onHeightChanged: requestPaint()
-
-      onPaint: {
-        var ctx = getContext("2d")
-        ctx.reset()
-        ctx.clearRect(0, 0, width, height)
-
-        var E = Math.min(earRadius, width / 2, height)
-        var B = Math.min(bottomRadius, width / 2, height)
-        var W = width
-        var H = height
-
-        ctx.beginPath()
-        // top-left concave ear: centre (0, E), from (0,0) to (E,E)
-        ctx.arc(0, E, E, -Math.PI / 2, 0, false)
-        ctx.lineTo(E, H - B)
-        // bottom-left convex corner
-        ctx.arc(E + B, H - B, B, Math.PI, Math.PI / 2, true)
-        ctx.lineTo(W - B, H)
-        // bottom-right convex corner
-        ctx.arc(W - B, H - B, B, Math.PI / 2, 0, true)
-        ctx.lineTo(W - E, E)
-        // top-right concave ear: centre (W, E), from (W-E,E) to (W,0)
-        ctx.arc(W, E, E, Math.PI, Math.PI * 1.5, false)
-        ctx.closePath()
-
-        ctx.fillStyle = fillColor
-        ctx.fill()
-
-        var g = ctx.createLinearGradient(0, 0, W, H)
-        g.addColorStop(0, edgeColorA)
-        g.addColorStop(1, edgeColorB)
-        ctx.strokeStyle = g
-        ctx.lineWidth = 1
-        ctx.stroke()
-      }
+      bodyWidth: container.width - root.ear * 2
+      bodyHeight: container.height
+      earRadius: Theme.panelEarRadius
+      bottomRadius: Theme.panelBottomRadius
+      fillColor: Theme.background
+      borderColor: Theme.shapeBorder
+      borderWidth: 1
     }
 
     HealthPanel {
       id: healthPanel
-      x: root.ear
-      y: 0
-      width: container.width - root.ear * 2
-      height: container.height
+      x: root.pad
+      y: root.pad
+      width: container.width - root.pad * 2
+      height: container.height - root.pad * 2
       active: root.panelActive
       audioService: root.audioService
       brightnessService: root.brightnessService
@@ -198,7 +155,7 @@ PanelWindow {
       onUserActivity: root.resetIdleTimer()
 
       Component.onCompleted: {
-        root.hpW = Qt.binding(() => healthPanel.contentWidth + root.ear * 2)
+        root.hpW = Qt.binding(() => healthPanel.contentWidth + root.pad * 2)
         root.hpH = Qt.binding(() => healthPanel.contentHeight)
       }
     }

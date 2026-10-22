@@ -18,9 +18,11 @@ PanelWindow {
 
   // Only the visible pill should receive pointer input. Without this mask the
   // transparent remainder of this full-width layer blocks application menus.
+  // The drop shape's top corners are cut away, so the rounded region matches
+  // the silhouette closely enough for hit-testing.
   mask: Region {
     item: islandPill.inputRegionItem
-    radius: islandPill.pillHeight / 2
+    radius: islandPill.pillEarRadius
   }
 
   screen: {
@@ -68,7 +70,7 @@ PanelWindow {
     id: islandPill
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
-    anchors.topMargin: 2
+    anchors.topMargin: 0
     healthWindow: floatingHealth
     batteryLimitWindow: batteryLimitPopup
     notificationLayer: notificationLayer

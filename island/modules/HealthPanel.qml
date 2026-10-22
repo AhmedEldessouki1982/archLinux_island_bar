@@ -42,7 +42,9 @@ Item {
   property var gpuSamples: []
   property var ramSamples: []
 
-  property int panelPadding: 14
+  // The card is inset from the drop shape by Theme.contentPadding on every
+  // side (applied by FloatingHealth), so the panel itself carries no padding.
+  property int panelPadding: 0
 
   // --- forwarded services (instantiated in FloatingHealth) ---
   property var audioService: null
@@ -124,9 +126,9 @@ Item {
   property color cardColor: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
   property color cardBorder: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.55)
 
-  readonly property real contentWidth: root.panelPadding * 2 + root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
+  readonly property real contentWidth: root._colW1 + root._colGap * 2 + root._colW2 + root._colW3
   readonly property real gridHeight: Math.ceil(gridModel.count / 7) * 28 - 2
-  readonly property real contentHeight: Math.max(300, root.panelPadding * 2
+  readonly property real contentHeight: Math.max(300, Theme.contentPadding * 2
     + Math.max(leftCol.implicitHeight, Math.max(middleCol.implicitHeight, rightCol.implicitHeight)))
 
   // --- staggered entrance ----------------------------------------------------
@@ -240,8 +242,20 @@ Item {
     return (days > 0 ? days + "D " : "") + hours + "H " + minutes + "M"
   }
 
-  function networkSubText() {
-    var iface = root.networkService ? root.networkService.iface : ""
+  // "412 / 931 GB" for the ring gauges.
+  function formatGiB(bytes) {
+    var v = Number(bytes) || 0
+    if (v >= 1024 * 1024 * 1024 * 1024) return (v / (1024 * 1024 * 1024 * 1024)).toFixed(1) + " TB"
+    if (v >= 1024 * 1024 * 1024) return Math.round(v / (1024 * 1024 * 1024)) + " GB"
+    return Math.round(v / (1024 * 1024)) + " MB"
+  }
+
+  function usedTotalText(used, size) {
+    if (!(size > 0)) return ""
+    return root.formatGiB(used) + " / " + root.formatGiB(size)
+  }
+
+  function networkSubText() {    var iface = root.networkService ? root.networkService.iface : ""
     if (iface.length === 0)
       return "OFFLINE"
     var ssid = root.wifiSsid.length > 0 ? root.wifiSsid : (iface.indexOf("wl") === 0 ? "WIFI" : "ETHERNET")
@@ -1242,12 +1256,12 @@ Item {
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 62
+          implicitHeight: 128
 
           ColumnLayout {
             anchors.fill: parent
             anchors.margins: 8
-            spacing: 2
+            spacing: 6
 
             RowLayout {
               Layout.fillWidth: true
@@ -1269,20 +1283,25 @@ Item {
               }
             }
 
-            Text {
-              text: root.storageService && root.storageService.rootPercent >= 0
-                ? "/     " + String(root.storageService.rootPercent).padStart(3, "0") + "%" : "/     ---"
-              color: root.storageService ? Theme.memoryColor(root.storageService.rootPercent) : Theme.comment
-              font.family: Theme.fontFamily
-              font.pixelSize: 9
-            }
+            RowLayout {
+              Layout.fillWidth: true
+              Layout.alignment: Qt.AlignHCenter
+              spacing: 6
 
-            Text {
-              text: root.storageService && root.storageService.homePercent >= 0
-                ? "/HOME " + String(root.storageService.homePercent).padStart(3, "0") + "%" : "/HOME ---"
-              color: root.storageService ? Theme.memoryColor(root.storageService.homePercent) : Theme.comment
-              font.family: Theme.fontFamily
-              font.pixelSize: 9
+              Repeater {
+                model: root.storageService ? root.storageService.volumes : []
+
+                RingGauge {
+                  Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                  Layout.preferredWidth: implicitWidth
+                  Layout.minimumWidth: implicitWidth
+                  Layout.preferredHeight: implicitHeight
+                  Layout.minimumHeight: implicitHeight
+                  value: modelData.percent
+                  label: modelData.label
+                  subLabel: root.usedTotalText(modelData.used, modelData.size)
+                }
+              }
             }
           }
         }

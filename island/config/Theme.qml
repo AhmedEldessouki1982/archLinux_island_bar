@@ -32,6 +32,11 @@ QtObject {
   readonly property int batteryWarning: 35
   readonly property int batteryLow: 20
   readonly property int batteryCritical: 10
+  // Disk bands read a little tighter than the other telemetry: a nearly full
+  // filesystem is a real problem well before 90%.
+  readonly property int diskWarning: 70
+  readonly property int diskHigh: 85
+  readonly property int diskCritical: 93
 
   function ascendingColor(value, warning, high, critical) {
     if (value >= critical) return root.red
@@ -72,6 +77,22 @@ QtObject {
     return severity === 3 ? root.red : severity === 2 ? root.orange : severity === 1 ? root.yellow : root.green
   }
 
+  function diskColor(value) {
+    if (value < 0) return root.comment
+    // spec: green < 70, yellow 70-85, orange 85-93, red > 93
+    if (value > root.diskCritical) return root.red
+    if (value > root.diskHigh) return root.orange
+    if (value >= root.diskWarning) return root.yellow
+    return root.green
+  }
+
+  // Filesystems shown as ring gauges in display order.
+  property var diskMounts: [
+    { "mount": "/", "label": "ROOT" },
+    { "mount": "/home", "label": "HOME" },
+    { "mount": "/mnt/data", "label": "DATA" }
+  ]
+
   property string fontFamily: "JetBrainsMono Nerd Font"
   property int fontSizeLabel: 12
   property int fontSizeTitle: 15
@@ -89,13 +110,28 @@ QtObject {
   property color borderA: Qt.rgba(0.2, 0.8, 1.0, 0.35)
   property color borderB: Qt.rgba(0, 1.0, 0.6, 0.35)
 
-  // Health panel: flat drop-down shape. The top corners are inverted (concave)
-  // radii so the surface reads as growing out of the top screen edge; the
-  // bottom corners are normal convex radii.
+  // Drop shapes. Both the island pill and the health panel use the same
+  // DropShape component, so their silhouette is identical by construction;
+  // only the radii differ. Top corners are concave (inverted) so the surface
+  // reads as hanging from the top screen edge; bottom corners are convex.
   property int panelEarRadius: 26
   property int panelBottomRadius: 26
+  property int pillEarRadius: 14
+  property int pillBottomRadius: 14
+
   property int panelDropInDuration: 280
   property int panelDropOutDuration: 180
+
+  // One content inset for the panel, applied identically on all four sides.
+  // Kept at least earRadius + 8 so no content ever touches the top curves,
+  // and so the bottom padding matches the top.
+  readonly property int contentPadding: panelEarRadius + 8
+
+  // A ShapePath stroke takes a single colour, so the old cyan->purple gradient
+  // is expressed as one low-alpha blend of the two ends of that ramp.
+  readonly property color shapeBorder: Qt.rgba(0.64, 0.75, 0.985, 0.30)
+
+  // Kept for any callers that still reference the old gradient pair.
   property color panelBorderA: Qt.rgba(0.55, 0.91, 0.99, 0.28)
   property color panelBorderB: Qt.rgba(0.74, 0.58, 0.98, 0.28)
 }
