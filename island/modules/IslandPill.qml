@@ -123,14 +123,17 @@ Item {
     MouseArea {
       id: mouseArea
       anchors.fill: parent
-      hoverEnabled: true
-      onEntered: _psm.onHoverEntered()
-      onExited: _psm.onHoverExited()
+      hoverEnabled: false
       onWheel: (event) => {
         var dir = event.angleDelta.y > 0 ? 1 : -1
         _psm.onWheel(dir)
         event.accepted = true
       }
+    }
+
+    HoverHandler {
+      target: pill
+      onHoveredChanged: _psm.setPointerInside(hovered)
     }
 
     RowLayout {
@@ -140,7 +143,7 @@ Item {
       anchors.leftMargin: Theme.pillEarRadius + root.pillPad
       anchors.right: parent.right
       anchors.rightMargin: Theme.pillEarRadius + root.pillPad
-      spacing: 10
+      spacing: Theme.pillGap
       opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
 
@@ -150,28 +153,27 @@ Item {
 
       EQBars {
         active: _audioService.active
+        animate: _psm.isExpanded || (root.healthWindow && root.healthWindow.visible)
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Text {
+      Txt {
+        Layout.maximumWidth: Theme.pillWorkspaceWidth
         text: Hyprland.focusedWorkspace?.id ?? ""
-        color: Theme.pink
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-        font.bold: true
-        font.letterSpacing: 0.5
+        color: Theme.accent
+        variant: "body"
         Layout.alignment: Qt.AlignVCenter
+        elide: Text.ElideNone
       }
 
-      Text {
+      Txt {
         id: timeText
+        Layout.maximumWidth: Theme.pillTimeWidth
         text: Qt.formatDateTime(root.currentDateTime, "HH:mm")
         color: Theme.accent
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-        font.letterSpacing: 0.5
-        font.bold: true
+        variant: "value"
         Layout.alignment: Qt.AlignVCenter
+        elide: Text.ElideNone
 
         Timer {
           interval: 30000
@@ -181,27 +183,27 @@ Item {
         }
       }
 
-      Text {
+      Txt {
+        Layout.maximumWidth: Theme.pillDateWidth
         text: Qt.formatDateTime(root.currentDateTime, "dd MMM yyyy")
-        color: Theme.yellow
-        font.family: Theme.fontFamily
-        font.pixelSize: 13
-        font.bold: true
+        color: Theme.foreground
+        variant: "body"
         Layout.alignment: Qt.AlignVCenter
+        elide: Text.ElideNone
       }
 
       RegWarningIcon {
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Text {
+      Txt {
+        Layout.maximumWidth: Theme.fontSizeBody
         text: "|"
         color: Theme.selection
-        font.family: Theme.fontFamily
-        font.pixelSize: 14
-        font.bold: true
+        variant: "body"
         Layout.alignment: Qt.AlignVCenter
         visible: SystemTray.items.length > 0
+        elide: Text.ElideNone
       }
 
       Repeater {
@@ -209,8 +211,8 @@ Item {
 
         Item {
           id: trayItem
-          width: 22
-          height: 22
+          width: Theme.trayIconSize
+          height: Theme.trayIconSize
           Layout.alignment: Qt.AlignVCenter
 
           required property var modelData
@@ -224,11 +226,11 @@ Item {
           Image {
             anchors.centerIn: parent
             source: modelData.icon
-            width: 18
-            height: 18
+            width: Theme.trayIconSize
+            height: Theme.trayIconSize
             fillMode: Image.PreserveAspectFit
-            sourceSize.width: 18
-            sourceSize.height: 18
+            sourceSize.width: Theme.trayIconSize
+            sourceSize.height: Theme.trayIconSize
           }
 
           MouseArea {
@@ -249,14 +251,14 @@ Item {
 
       VDiv {}
 
-      Text {
+      Txt {
+        Layout.maximumWidth: Theme.pillBatteryWidth
         text: Math.round(_batteryService.capacity) + "%"
         color: !_psm.readyForDisplay ? Theme.foreground
           : Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
-        font.family: Theme.fontFamily
-        font.pixelSize: 12
-        font.bold: true
+        variant: "body"
         Layout.alignment: Qt.AlignVCenter
+        elide: Text.ElideNone
       }
     }
 
@@ -267,7 +269,7 @@ Item {
       anchors.leftMargin: Theme.pillEarRadius + root.pillPad
       anchors.right: parent.right
       anchors.rightMargin: Theme.pillEarRadius + root.pillPad
-      spacing: 10
+      spacing: Theme.pillGap
       opacity: _psm.isExpanded ? 1 : 0
       clip: true
 
@@ -276,25 +278,24 @@ Item {
       }
 
       NetworkIcon {
-        width: 16
-        height: 16
-        color: Theme.cyan
+        width: Theme.iconSize
+        height: Theme.iconSize
+        color: Theme.accent
         connected: networkService.connected
         type: networkService.type
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Text {
+      Txt {
+        Layout.maximumWidth: Theme.pillIpMaxWidth
         text: networkService.ipAddress
-        color: Theme.cyan
-        font.family: Theme.fontFamily
-        font.pixelSize: 11
-        font.letterSpacing: 0.3
+        color: Theme.accent
+        variant: "body"
         Layout.minimumWidth: 60
         Layout.alignment: Qt.AlignVCenter
+        elide: Text.ElideNone
+        clip: true
       }
-
-      VDiv {}
 
       Item {
         id: workspaceArea
@@ -302,9 +303,11 @@ Item {
         Layout.preferredHeight: 20
         Layout.alignment: Qt.AlignVCenter
 
-        HoverHandler {
+        MouseArea {
           id: workspaceHover
-          target: workspaceArea
+          anchors.fill: parent
+          hoverEnabled: true
+          acceptedButtons: Qt.NoButton
         }
 
         RowLayout {
@@ -321,26 +324,29 @@ Item {
               readonly property bool occupied: modelData && modelData.toplevels
                 ? modelData.toplevels.values.length > 0 : false
 
-              visible: workspaceHover.hovered || occupied
-                || (modelData ? modelData.active || modelData.focused : false)
+              visible: true
+              opacity: workspaceHover.containsMouse || occupied
+                || (modelData ? modelData.active || modelData.focused : false) ? 1 : 0
               Layout.preferredWidth: txt.implicitWidth + 6
               Layout.preferredHeight: 20
               Layout.alignment: Qt.AlignVCenter
 
-              Text {
+              Txt {
                 id: txt
                 anchors.centerIn: parent
+                width: parent.width
+                height: parent.height
                 text: workspaceItem.modelData?.id ?? ""
-                color: workspaceItem.modelData?.focused ? Theme.yellow : Theme.comment
+                color: workspaceItem.modelData?.focused ? Theme.accent : Theme.comment
                 opacity: workspaceItem.occupied || workspaceItem.modelData?.active ? 1 : 0.6
-                font.family: Theme.fontFamily
-                font.pixelSize: 11
-                font.bold: workspaceItem.modelData?.focused ?? false
-                font.letterSpacing: 0.5
+                variant: "body"
+                elide: Text.ElideNone
               }
 
               MouseArea {
                 anchors.fill: parent
+                enabled: workspaceItem.opacity > 0
+                hoverEnabled: false
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                   if (workspaceItem.modelData)
@@ -352,40 +358,38 @@ Item {
         }
       }
 
-      VDiv {}
-
-      Text {
+      Txt {
         text: root.friendlyAppName(Hyprland.activeToplevel)
         color: Theme.foreground
-        font.family: Theme.fontFamily
-        font.pixelSize: 11
-        elide: Text.ElideMiddle
+        variant: "body"
+        elide: Text.ElideNone
+        clip: true
         maximumLineCount: 1
         Layout.maximumWidth: 140
         Layout.alignment: Qt.AlignVCenter
       }
 
-      VDiv {}
-
       // --- actions zone: health + notifications ---
-      Rectangle {
+      Item {
         Layout.alignment: Qt.AlignVCenter
         height: 26
-        radius: 13
-        width: actionsRow.implicitWidth + 16
-        color: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.75)
+        width: actionsRow.implicitWidth
 
         RowLayout {
           id: actionsRow
           anchors.centerIn: parent
-          spacing: 6
+          spacing: Theme.gapSmall
 
           RegWarningIcon {
+            width: Theme.trayIconSize
+            height: Theme.trayIconSize
             Layout.alignment: Qt.AlignVCenter
           }
 
           HealthIcon {
             id: healthIcon
+            width: Theme.trayIconSize
+            height: Theme.trayIconSize
             iconColor: Theme.foreground
             Layout.alignment: Qt.AlignVCenter
 
@@ -396,16 +400,18 @@ Item {
           }
 
           Item {
-            width: 22
-            height: 22
+            width: Theme.trayIconSize
+            height: Theme.trayIconSize
             Layout.alignment: Qt.AlignVCenter
 
-            Text {
+            Txt {
               anchors.centerIn: parent
+              width: parent.width
+              height: parent.height
               text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
               color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
-              font.family: Theme.fontFamily
-              font.pixelSize: Theme.iconFontSize
+              variant: "body"
+              elide: Text.ElideNone
             }
 
             Rectangle {
@@ -419,13 +425,14 @@ Item {
               border.color: Theme.background
               visible: root.notificationLayer && !root.notificationLayer.dnd && root.notificationLayer.notificationCount > 0
 
-              Text {
+              Txt {
                 anchors.centerIn: parent
+                width: parent.width
+                height: parent.height
                 text: root.notificationLayer ? Math.min(root.notificationLayer.notificationCount, 9) : ""
                 color: Theme.foreground
-                font.family: Theme.fontFamily
-                font.pixelSize: 8
-                font.bold: true
+                variant: "body"
+                elide: Text.ElideNone
               }
             }
 
@@ -436,11 +443,12 @@ Item {
             }
           }
 
-          KbLayoutIcon {}
+          KbLayoutIcon {
+            width: Theme.trayIconSize
+            height: Theme.trayIconSize
+          }
         }
       }
-
-      VDiv {}
 
       MouseArea {
         Layout.alignment: Qt.AlignVCenter
@@ -482,13 +490,12 @@ Item {
         anchors.right: parent.right
         spacing: 10
 
-        Text {
+        Txt {
           id: meterIcon
           width: 22
           height: 22
+          elide: Text.ElideNone
           Layout.alignment: Qt.AlignVCenter
-
-          font.family: Theme.fontFamily
           horizontalAlignment: Text.AlignHCenter
           verticalAlignment: Text.AlignVCenter
 
@@ -516,7 +523,7 @@ Item {
             } else if (_psm.meterMode === "caps" || _psm.meterMode === "num") {
               return (_psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn) ? Theme.green : Theme.foreground
             } else {
-              return Theme.yellow
+              return Theme.accent
             }
           }
 
@@ -528,8 +535,7 @@ Item {
             return 1
           }
 
-          font.bold: _psm.meterMode === "caps" || _psm.meterMode === "num"
-          font.pixelSize: _psm.meterMode === "caps" || _psm.meterMode === "num" ? 20 : 24
+          variant: "body"
         }
 
         Rectangle {
@@ -566,7 +572,7 @@ Item {
                 var lit = _psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn
                 return lit ? Theme.green : Theme.red
               }
-              return brightnessService.displayPercent > 20 ? Theme.yellow : Theme.red
+              return brightnessService.displayPercent > 20 ? Theme.accent : Theme.red
             }
 
             Behavior on width {
@@ -575,7 +581,8 @@ Item {
           }
         }
 
-        Text {
+        Txt {
+          Layout.maximumWidth: Theme.pillMeterMaxWidth
           text: {
             if (_psm.meterMode === "volume")
               return Math.round(_audioService.volume * 100) + "%"
@@ -589,14 +596,12 @@ Item {
               var lit = _psm.meterMode === "caps" ? lockService.capsOn : lockService.numOn
               return lit ? Theme.green : Theme.red
             }
-            return Theme.yellow
+            return Theme.accent
           }
-          font.family: Theme.fontFamily
-          font.pixelSize: 13
-          font.bold: true
-          font.letterSpacing: 0.5
+          variant: "body"
           Layout.alignment: Qt.AlignVCenter
           Layout.minimumWidth: 38
+          elide: Text.ElideNone
         }
       }
     }
@@ -611,16 +616,18 @@ Item {
     Layout.alignment: Qt.AlignVCenter
   }
 
-component RegWarningIcon: Text {
+component RegWarningIcon: Txt {
     id: regWarn
+    width: Theme.iconSize
+    height: Theme.iconSize
     text: "󰀦"
     color: Theme.yellow
-    font.family: Theme.fontFamily
-    font.pixelSize: 17
+    variant: "body"
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
     Layout.alignment: Qt.AlignVCenter
     visible: root.notificationLayer ? root.notificationLayer.registrationFailed : false
+    elide: Text.ElideNone
   }
 
   property date currentDateTime: new Date()
@@ -651,7 +658,6 @@ component RegWarningIcon: Text {
 
   Component.onCompleted: {
     root.sharedBrightnessService = brightnessService
-    _psm.mouseArea = mouseArea
   }
 }
 

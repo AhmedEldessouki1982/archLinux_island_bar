@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "."
 import "../config"
 
 Rectangle {
@@ -100,13 +101,15 @@ Rectangle {
           }
         }
 
-        Text {
+        Txt {
           anchors.centerIn: parent
+          width: parent.width
+          height: parent.height
           text: "\uF0F3"
           color: card.accentColor
           visible: !iconBox.hasImage && !iconBox.hasIcon
-          font.family: Theme.fontFamily
-          font.pixelSize: 16
+          variant: "value"
+          elide: Text.ElideNone
         }
       }
 
@@ -119,48 +122,48 @@ Rectangle {
           Layout.fillWidth: true
           spacing: 6
 
-          Text {
+          Txt {
             text: card.appName !== "" ? card.appName : "Notification"
             color: Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: 9
-            font.bold: true
-            font.letterSpacing: 0.5
-            elide: Text.ElideRight
+            variant: "caption"
+            elide: Text.ElideNone
+            clip: true
             Layout.maximumWidth: 180
           }
 
-          Text {
+          Txt {
             text: card.showTimestamp ? card.relativeTime(card.timestamp) : ""
             visible: card.showTimestamp
             color: Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: 9
+            variant: "caption"
+            Layout.maximumWidth: parent.width
+            elide: Text.ElideNone
           }
         }
 
-        Text {
+        Txt {
           text: card.summary
           color: Theme.foreground
-          font.family: Theme.fontFamily
-          font.pixelSize: 12
-          font.bold: true
-          elide: Text.ElideRight
+          variant: "body"
+          elide: Text.ElideNone
+          clip: true
           textFormat: Text.PlainText
           Layout.fillWidth: true
+          Layout.maximumWidth: parent.width
         }
 
-        Text {
+        Txt {
           text: card.body
           color: Theme.comment
-          font.family: Theme.fontFamily
-          font.pixelSize: 11
+          variant: "caption"
           wrapMode: Text.WordWrap
-          elide: Text.ElideRight
+          elide: Text.ElideNone
+          clip: true
           maximumLineCount: 2
           textFormat: Text.PlainText
           visible: card.body !== ""
           Layout.fillWidth: true
+          Layout.maximumWidth: parent.width
         }
       }
 
@@ -171,12 +174,14 @@ Rectangle {
         color: closeMa.containsMouse ? Theme.selection : "transparent"
         Layout.alignment: Qt.AlignTop
 
-        Text {
+        Txt {
           anchors.centerIn: parent
+          width: parent.width
+          height: parent.height
           text: "✕"
           color: closeMa.containsMouse ? Theme.foreground : Theme.comment
-          font.family: Theme.fontFamily
-          font.pixelSize: 10
+          variant: "caption"
+          elide: Text.ElideNone
         }
 
         MouseArea {
@@ -206,16 +211,17 @@ Rectangle {
           Layout.preferredHeight: 24
           Layout.preferredWidth: actionLabel.implicitWidth + 20
           radius: 6
-          color: hovered ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.3) : Theme.selection
+          color: hovered ? Theme.cardHoverFill : Theme.selection
 
-          Text {
+          Txt {
             id: actionLabel
             anchors.centerIn: parent
+            width: parent.width
+            height: parent.height
             text: actionBtn.modelData.text !== "" ? actionBtn.modelData.text : "Action"
             color: actionBtn.hovered ? Theme.foreground : Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: 10
-            font.bold: true
+            variant: "caption"
+            elide: Text.ElideNone
           }
 
           MouseArea {
@@ -253,16 +259,16 @@ Rectangle {
           clip: true
           color: Theme.foreground
           font.family: Theme.fontFamily
-          font.pixelSize: 11
+          font.pixelSize: Theme.fontSizeCaption
           echoMode: TextInput.Normal
-          Text {
+          Txt {
             anchors.fill: parent
             verticalAlignment: Text.AlignVCenter
             visible: replyInput.text === "" && !replyInput.activeFocus
             text: card.replyPlaceholder !== "" ? card.replyPlaceholder : "Reply…"
             color: Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: 11
+            variant: "caption"
+            elide: Text.ElideNone
           }
           Keys.onReturnPressed: card.sendReply()
           Keys.onEnterPressed: card.sendReply()
@@ -282,12 +288,14 @@ Rectangle {
         radius: 6
         color: hovered ? Theme.accent : Theme.selection
 
-        Text {
+        Txt {
           anchors.centerIn: parent
+          width: parent.width
+          height: parent.height
           text: "\uF061"
           color: parent.hovered ? Theme.background : Theme.comment
-          font.family: Theme.fontFamily
-          font.pixelSize: 12
+          variant: "body"
+          elide: Text.ElideNone
         }
 
         MouseArea {

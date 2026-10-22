@@ -5,12 +5,13 @@ import "../config"
 // No fonts, emoji, images, glow or shadow.
 Item {
   id: root
-  implicitWidth: 52
-  implicitHeight: 52
+  implicitWidth: Theme.weatherGlyphSize
+  implicitHeight: Theme.weatherGlyphSize
   property int weatherCode: -1
   property bool isDay: true
 
-  readonly property color glyphColor: Theme.cyan
+  // One muted lavender, like every other label in the panel.
+  property color glyphColor: Theme.label
 
   Canvas {
     id: canvas
@@ -26,6 +27,7 @@ Item {
     onDayChanged: requestPaint()
     onStrokeColorChanged: requestPaint()
     onWidthChanged: requestPaint()
+    onHeightChanged: requestPaint()
 
     onPaint: {
       var ctx = getContext("2d")

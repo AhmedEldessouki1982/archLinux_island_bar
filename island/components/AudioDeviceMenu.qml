@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "."
 import "../config"
 
 Popup {
@@ -46,13 +47,14 @@ Popup {
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Text {
+      Txt {
         text: row.label
         color: row.activeDevice ? Theme.foreground : Theme.comment
-        font.family: Theme.fontFamily
-        font.pixelSize: Theme.fontSizeLabel
-        elide: Text.ElideRight
+        variant: "caption"
+        elide: Text.ElideNone
+        clip: true
         Layout.fillWidth: true
+        Layout.maximumWidth: parent.width
         Layout.alignment: Qt.AlignVCenter
       }
     }
@@ -67,13 +69,13 @@ Popup {
   contentItem: ColumnLayout {
     spacing: 4
 
-    Text {
+    Txt {
+      Layout.fillWidth: true
+      Layout.maximumWidth: parent.width
       text: "OUTPUT"
       color: Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.fontSizeTitle
-      font.bold: true
-      font.letterSpacing: 1.6
+      variant: "value"
+      elide: Text.ElideNone
     }
 
     Repeater {
@@ -98,13 +100,13 @@ Popup {
       color: Theme.selection
     }
 
-    Text {
+    Txt {
+      Layout.fillWidth: true
+      Layout.maximumWidth: parent.width
       text: "INPUT"
       color: Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.fontSizeTitle
-      font.bold: true
-      font.letterSpacing: 1.6
+      variant: "value"
+      elide: Text.ElideNone
     }
 
     Repeater {
@@ -123,12 +125,14 @@ Popup {
       }
     }
 
-    Text {
+    Txt {
+      Layout.fillWidth: true
+      Layout.maximumWidth: parent.width
       visible: root.audioService && root.audioService.sinks.length === 0 && root.audioService.sources.length === 0
       text: "no audio devices found"
       color: Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.fontSizeLabel
+      variant: "caption"
+      elide: Text.ElideNone
     }
   }
 }

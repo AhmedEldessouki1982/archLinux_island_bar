@@ -2,6 +2,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import "."
+import "../config"
 
 Item {
   id: root
@@ -19,11 +21,14 @@ Item {
   width: Math.max(flagText.implicitWidth, 16) + 4
   height: 22
 
-  Text {
+  Txt {
     id: flagText
+    width: parent.width
+    height: parent.height
     anchors.centerIn: parent
     text: root.glyph
-    font.pixelSize: 18
+    variant: "body"
+    elide: Text.ElideNone
   }
 
   MouseArea {

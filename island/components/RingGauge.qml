@@ -1,38 +1,32 @@
 import QtQuick
+import "."
 import "../config"
 
-// Flat ring gauge: dim full-circle track plus a rounded-cap arc that is drawn
-// over it. Everything is painted in two small canvases (ring + drive glyph),
-// and both repaint only when their inputs change, so an idle gauge costs
-// nothing.
+// Flat storage ring: a dim full-circle track plus a rounded arc, with the
+// percentage centred inside it. The diameter is a theme token and never scales
+// with the card, so every ring in the panel has the same size; its arc and
+// percentage follow the shared green / yellow / orange / red disk thresholds.
+//
+// Both canvases repaint only when an input actually changes: an idle ring costs
+// nothing and there is no animation left running when the value settles.
 Item {
   id: root
 
   // 0..100, negative = unknown (ring drawn empty, "--" shown).
   property real value: -1
-  property string label: ""
-  property string subLabel: ""
-  property string iconType: "drive"
-
-  property int diameter: 58
-  property int thickness: 4
-  // The drive glyph sits above the percentage. Callers that only want the
-  // number (the storage cells) switch it off and the % centres itself.
-  property bool showGlyph: true
+  property int diameter: Theme.ringDiameter
+  property int thickness: Theme.ringThickness
 
   readonly property bool known: root.value >= 0
-  readonly property real clamped: Math.max(0, Math.min(100, root.value))
-  readonly property color valueColor: root.known ? Theme.diskColor(root.value) : Theme.comment
-  readonly property int glyphSize: Math.round(root.diameter * 0.26)
+  readonly property color valueColor: root.known
+    ? Theme.storageColor(root.value) : Theme.comment
 
-  // Sized by the layout: the gauge only declares its preferred size so a
-  // layout can stretch or shrink it without fighting an explicit binding.
   implicitWidth: root.diameter
-  implicitHeight: root.diameter + (root.label !== "" ? 32 : 0)
+  implicitHeight: root.diameter
 
   // Animated arc fraction. The Behavior only runs while the value is actually
-  // changing; when it settles there is no timer and no repaint left behind.
-  property real fraction: root.known ? root.clamped / 100 : 0
+  // changing; when it settles no timer and no repaint is left behind.
+  property real fraction: root.known ? Math.max(0, Math.min(100, root.value)) / 100 : 0
   Behavior on fraction {
     NumberAnimation {
       duration: Math.min(250, Theme.animDurationFast + 100)
@@ -42,16 +36,13 @@ Item {
 
   Canvas {
     id: ringCanvas
-    x: 0
-    y: 0
-    width: root.diameter
-    height: root.diameter
+    anchors.fill: parent
     antialiasing: true
     renderTarget: Canvas.Image
 
     property real fraction: root.fraction
     property color arcColor: root.valueColor
-    property color trackColor: Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.85)
+    property color trackColor: Theme.selection
     property int strokeWidth: root.thickness
 
     onFractionChanged: requestPaint()
@@ -59,6 +50,7 @@ Item {
     onTrackColorChanged: requestPaint()
     onStrokeWidthChanged: requestPaint()
     onWidthChanged: requestPaint()
+    onHeightChanged: requestPaint()
 
     onPaint: {
       var ctx = getContext("2d")
@@ -66,7 +58,7 @@ Item {
       ctx.clearRect(0, 0, width, height)
 
       var lw = strokeWidth
-      var r = (width - lw) / 2
+      var r = (Math.min(width, height) - lw) / 2
       var cx = width / 2
       var cy = height / 2
 
@@ -86,113 +78,25 @@ Item {
         ctx.strokeStyle = arcColor
         var start = -Math.PI / 2
         var end = start + Math.PI * 2 * fraction
-        // a tiny arc with round caps would paint a dot at 0% — start from a
-        // hair above zero so the cap sits on the 12 o'clock mark
+        // A tiny arc with round caps would paint a dot at 0% — start from a
+        // hair above zero so the cap sits on the 12 o'clock mark.
         ctx.arc(cx, cy, r, start, Math.max(end, start + 0.0001), false)
         ctx.stroke()
       }
     }
   }
 
-  // Drive glyph, painted once per size/colour change.
-  Canvas {
-    id: glyphCanvas
-    width: root.glyphSize
-    height: root.glyphSize
-    anchors.horizontalCenter: parent.horizontalCenter
-    y: root.diameter * 0.30
-    visible: root.showGlyph
-    antialiasing: true
-    renderTarget: Canvas.Image
-
-    property color strokeColor: root.known ? root.valueColor : Theme.comment
-    property string glyph: root.iconType
-
-    onStrokeColorChanged: requestPaint()
-    onGlyphChanged: requestPaint()
-    onWidthChanged: requestPaint()
-
-    onPaint: {
-      var ctx = getContext("2d")
-      ctx.reset()
-      ctx.clearRect(0, 0, width, height)
-
-      var s = Math.min(width, height)
-      ctx.strokeStyle = strokeColor
-      ctx.lineWidth = Math.max(1, s * 0.09)
-      ctx.lineCap = "round"
-      ctx.lineJoin = "round"
-
-      // A disk drive in side view: a wide rounded rectangle with a small
-      // activity slot on the lower left and a dot on the lower right.
-      var w = s * 0.86
-      var h = s * 0.58
-      var x = (width - w) / 2
-      var y = (height - h) / 2
-      var rr = h * 0.2
-
-      ctx.beginPath()
-      ctx.moveTo(x + rr, y)
-      ctx.lineTo(x + w - rr, y)
-      ctx.quadraticCurveTo(x + w, y, x + w, y + rr)
-      ctx.lineTo(x + w, y + h - rr)
-      ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h)
-      ctx.lineTo(x + rr, y + h)
-      ctx.quadraticCurveTo(x, y + h, x, y + h - rr)
-      ctx.lineTo(x, y + rr)
-      ctx.quadraticCurveTo(x, y, x + rr, y)
-      ctx.stroke()
-
-      // activity slot
-      ctx.beginPath()
-      ctx.moveTo(x + w * 0.2, y + h * 0.68)
-      ctx.lineTo(x + w * 0.46, y + h * 0.68)
-      ctx.stroke()
-
-      // indicator dot
-      ctx.beginPath()
-      ctx.fillStyle = strokeColor
-      ctx.arc(x + w * 0.76, y + h * 0.68, Math.max(0.7, s * 0.055), 0, Math.PI * 2, false)
-      ctx.fill()
-    }
-  }
-
-  // Percentage, centred in the ring, monospace by way of the theme font.
-  Text {
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.verticalCenter: parent.verticalCenter
-    // With the glyph above it, the number sits below the centre.
-    anchors.verticalCenterOffset: root.showGlyph ? root.diameter * 0.1 : 0
-    text: root.known ? Math.round(root.value) + "%" : "--"
-    color: root.known ? Theme.foreground : Theme.comment
-    font.family: Theme.fontFamily
-    font.pixelSize: Math.max(9, Math.round(root.diameter * 0.22))
-    font.bold: true
-  }
-
-  Column {
-    visible: root.label !== ""
-    anchors.horizontalCenter: parent.horizontalCenter
-    y: root.diameter + 4
-    spacing: 1
-
-    Text {
-      anchors.horizontalCenter: parent.horizontalCenter
-      text: root.label
-      color: Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: 9
-      font.bold: true
-      font.letterSpacing: 1.1
-    }
-
-    Text {
-      anchors.horizontalCenter: parent.horizontalCenter
-      visible: root.subLabel !== ""
-      text: root.subLabel
-      color: root.known ? Qt.rgba(Theme.foreground.r, Theme.foreground.g, Theme.foreground.b, 0.62) : Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: 9
-    }
+  // Percentage, centred in the ring, in the panel's value type.
+  Txt {
+    anchors.centerIn: parent
+    width: parent.width
+    height: parent.height
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
+    text: root.known ? Format.percent(root.value) : "--"
+    color: root.valueColor
+    variant: "value"
+    elide: Text.ElideNone
+    clip: true
   }
 }

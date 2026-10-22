@@ -23,23 +23,26 @@ Item {
   readonly property bool onAcPower: !UPower.onBattery
   property real power: root.battery ? root.battery.changeRate : 0
   property int chargeLimit: 0
+  property bool chargeLimitRead: false
   property bool chargeLimitSupported: false
   property bool chargeLimitMonitoring: false
 
   function refreshChargeLimit() {
-    if (!getLimitProc.running) getLimitProc.running = true
+    if (!getLimitProc.running) {
+      root.chargeLimitRead = false
+      getLimitProc.running = true
+    }
   }
 
   function setLimit(pct) {
     if (!root.chargeLimitSupported || setLimitProc.running) return
-    root.chargeLimit = Math.max(20, Math.min(100, pct))
-    setLimitProc.command = ["asusctl", "battery", "limit", String(root.chargeLimit)]
+    setLimitProc.command = ["asusctl", "battery", "limit", String(Math.max(20, Math.min(100, pct)))]
     setLimitProc.running = true
   }
 
   Process {
     id: getLimitProc
-    command: ["sh", "-c", "if asusctl battery --help 2>/dev/null | grep -q 'limit.*20-100'; then echo S:1; asusctl battery info 2>/dev/null | sed 's/^/V:/'; else echo S:0; fi"]
+    command: ["sh", "-c", "if asusctl battery --help 2>/dev/null | grep -Eq 'limit.*20-100'; then echo S:1; asusctl battery info 2>/dev/null | sed 's/^/V:/'; else echo S:0; fi"]
     running: false
     stdout: SplitParser {
       onRead: data => {
@@ -47,9 +50,14 @@ Item {
         if (line === "S:1") root.chargeLimitSupported = true
         else if (line === "S:0") root.chargeLimitSupported = false
         else if (line.indexOf("V:") === 0) {
-          var match = line.match(/([0-9]+)%/)
+          // Match only a labelled limit field, never the present battery
+          // percentage if the command prints both on the same line.
+          var match = line.match(/(?:charge\s+limit|limit)\s*[:=]?\s*([0-9]{1,3})\s*%?/i)
           var v = match ? parseInt(match[1], 10) : NaN
-          if (!isNaN(v) && v >= 20 && v <= 100) root.chargeLimit = v
+          if (!isNaN(v) && v >= 20 && v <= 100) {
+            root.chargeLimit = v
+            root.chargeLimitRead = true
+          }
         }
       }
     }
@@ -84,10 +92,4 @@ Item {
 
   onChargeLimitMonitoringChanged: if (root.chargeLimitMonitoring) root.refreshChargeLimit()
 
-  Timer {
-    interval: 10000
-    running: root.chargeLimitMonitoring
-    repeat: true
-    onTriggered: root.refreshChargeLimit()
-  }
 }

@@ -13,6 +13,7 @@ Item {
   property string meterMode: ""
   property bool meterReady: false
   property bool readyForDisplay: false
+  property bool pointerInside: false
 
   // --- external references ---
   property var healthWindow: null
@@ -55,10 +56,10 @@ Item {
 
   Timer {
     id: hoverRecheckTimer
-    interval: 300
+    interval: Theme.hoverCollapseDelay
     onTriggered: {
-      if (root.meterMode === "" && mouseArea && mouseArea.containsMouse)
-        root.isExpanded = true
+      if (root.meterMode === "" && root.pointerInside) root.isExpanded = true
+      else if (!root.isHealthPanelOpen) root.isExpanded = false
     }
   }
 
@@ -68,15 +69,15 @@ Item {
     onTriggered: root.meterReady = true
   }
 
-  // --- hover bridge (set by IslandPill's MouseArea) ---
-  property QtObject mouseArea: null
-
-  function onHoverEntered() {
-    if (root.meterMode === "") root.isExpanded = true
-  }
-
-  function onHoverExited() {
-    if (!root.isHealthPanelOpen) root.isExpanded = false
+  // --- hover bridge (set by the pill's single HoverHandler) ---
+  function setPointerInside(inside) {
+    root.pointerInside = inside
+    if (inside) {
+      hoverRecheckTimer.stop()
+      if (root.meterMode === "") root.isExpanded = true
+    } else if (!root.isHealthPanelOpen) {
+      hoverRecheckTimer.restart()
+    }
   }
 
   function onWheel(dir) {
@@ -132,8 +133,11 @@ Item {
 
   function dismissMeter() {
     root.meterMode = ""
-    root.isExpanded = false
-    hoverRecheckTimer.start()
+    if (root.pointerInside) root.isExpanded = true
+    else if (!root.isHealthPanelOpen) {
+      root.isExpanded = false
+      hoverRecheckTimer.restart()
+    }
   }
 
   // --- IPC ---

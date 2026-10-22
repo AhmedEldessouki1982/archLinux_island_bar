@@ -1,17 +1,17 @@
 import QtQuick
+import "."
 import "../config"
 
-Text {
+Txt {
   id: root
   antialiasing: true
   width: Theme.iconSize
   height: Theme.iconSize
+  elide: Text.ElideNone
 
   property bool connected: false
   property string type: "wifi"
-
-  font.family: Theme.fontFamily
-  font.pixelSize: Theme.iconFontSize
+  variant: "body"
   horizontalAlignment: Text.AlignHCenter
   verticalAlignment: Text.AlignVCenter
 

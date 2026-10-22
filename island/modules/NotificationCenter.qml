@@ -98,13 +98,12 @@ PanelWindow {
         Layout.rightMargin: 8
         spacing: 10
 
-        Text {
+        Txt {
+          Layout.maximumWidth: parent.width
           text: "Notifications"
           color: Theme.foreground
-          font.family: Theme.fontFamily
-          font.pixelSize: 12
-          font.bold: true
-          font.letterSpacing: 0.5
+          variant: "body"
+          elide: Text.ElideNone
         }
 
         Rectangle {
@@ -114,14 +113,15 @@ PanelWindow {
           radius: 8
           color: Theme.selection
 
-          Text {
+          Txt {
             id: countLabel
             anchors.centerIn: parent
+            width: implicitWidth
+            height: implicitHeight
             text: root.layer ? root.layer.notificationCount : 0
             color: Theme.comment
-            font.family: Theme.fontFamily
-            font.pixelSize: 9
-            font.bold: true
+            variant: "caption"
+            elide: Text.ElideNone
           }
         }
 
@@ -147,20 +147,20 @@ PanelWindow {
             anchors.centerIn: parent
             spacing: 5
 
-            Text {
+            Txt {
+              Layout.maximumWidth: parent.width
               text: "\uF186"
               color: dndBtn.active ? Theme.background : dndBtn.hovered ? Theme.foreground : Theme.comment
-              font.family: Theme.fontFamily
-              font.pixelSize: 11
+              variant: "caption"
+              elide: Text.ElideNone
             }
 
-            Text {
+            Txt {
+              Layout.maximumWidth: parent.width
               text: "DND"
               color: dndBtn.active ? Theme.background : dndBtn.hovered ? Theme.foreground : Theme.comment
-              font.family: Theme.fontFamily
-              font.pixelSize: 9
-              font.bold: true
-              font.letterSpacing: 0.5
+              variant: "caption"
+              elide: Text.ElideNone
             }
           }
 
@@ -176,12 +176,12 @@ PanelWindow {
           }
         }
 
-        Text {
+        Txt {
+          Layout.maximumWidth: Theme.notificationActionWidth
           text: "Clear all"
           color: clearMa.containsMouse ? Theme.red : Theme.comment
-          font.family: Theme.fontFamily
-          font.pixelSize: 10
-          font.bold: true
+          variant: "caption"
+          elide: Text.ElideNone
 
           MouseArea {
             id: clearMa
@@ -281,12 +281,14 @@ PanelWindow {
       color: Theme.background
       visible: root.layer ? root.layer.notificationCount === 0 : true
 
-      Text {
+      Txt {
         anchors.centerIn: parent
+        width: parent.width
+        height: parent.height
         text: "No notifications"
         color: Theme.comment
-        font.family: Theme.fontFamily
-        font.pixelSize: 11
+        variant: "caption"
+        elide: Text.ElideNone
       }
 
       MouseArea {

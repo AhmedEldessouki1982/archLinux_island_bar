@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "."
 import "../config"
 
 Item {
@@ -45,23 +46,27 @@ Item {
       height: Theme.iconSize
       Layout.alignment: Qt.AlignVCenter
 
-      Text {
+      Txt {
         anchors.centerIn: parent
+        width: parent.width
+        height: parent.height
         anchors.verticalCenterOffset: root.glyphNudge
         text: root.batteryGlyph()
         color: root.batteryColor()
-        font.family: Theme.fontFamily
-        font.pixelSize: Theme.iconFontSize
+        variant: "body"
+        elide: Text.ElideNone
       }
     }
 
-    Text {
+    Txt {
+      width: 32
+      height: parent.height
       Layout.preferredWidth: 32
       Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-      text: Math.round(root.percent) + "%"
+      text: Format.percent(root.percent)
       color: root.batteryColor()
-      font.family: Theme.fontFamily
-      font.pixelSize: Theme.fontSizeLabel
+      variant: "body"
+      elide: Text.ElideNone
     }
   }
 }

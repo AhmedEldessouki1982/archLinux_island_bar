@@ -7,6 +7,7 @@ Item {
   implicitHeight: 12
 
   property bool active: false
+  property bool animate: false
 
   visible: active
   opacity: active ? 1 : 0
@@ -37,7 +38,7 @@ Item {
 
   Timer {
     interval: 160
-    running: root.active
+    running: root.active && root.animate
     repeat: true
     onTriggered: {
       for (var i = 0; i < barRepeater.count; i++) {

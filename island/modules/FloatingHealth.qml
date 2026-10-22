@@ -5,6 +5,9 @@ import "../config"
 import "../components"
 import "../services"
 
+// Flat floating container for the health panel. The window is sized to the
+// panel body plus one ear radius on each side and padded by Theme.panelPadding.
+// The DropShape is shared with the island pill so the silhouette is identical.
 PanelWindow {
   id: root
   visible: false
@@ -19,9 +22,8 @@ PanelWindow {
   property int hpW: 0
   property int hpH: 0
   readonly property int ear: Theme.panelEarRadius
-  // One inset for all four sides of the card, so the content is symmetric
-  // about the window centre and the bottom padding equals the top.
-  readonly property int pad: Theme.contentPadding
+  // Inset of the card body from the window edge (matches Theme.panelPadding).
+  readonly property int pad: Theme.panelPadding
 
   property bool panelActive: false
 
@@ -37,7 +39,7 @@ PanelWindow {
 
   Timer {
     id: autoCloseTimer
-    interval: 15000
+    interval: Theme.healthPanelAutoCloseMs
     onTriggered: root.close()
   }
 
@@ -129,15 +131,15 @@ PanelWindow {
       bottomRadius: Theme.panelBottomRadius
       fillColor: Theme.background
       borderColor: Theme.shapeBorder
-      borderWidth: 1
+      borderWidth: Theme.cardBorderWidth
     }
 
     HealthPanel {
       id: healthPanel
-      x: root.pad
+      x: root.ear + root.pad
       y: root.pad
-      width: container.width - root.pad * 2
-      height: container.height - root.pad * 2
+      width: Theme.bodyWidth
+      height: Theme.columnHeight
       active: root.panelActive
       audioService: root.audioService
       brightnessService: root.brightnessService
@@ -155,8 +157,8 @@ PanelWindow {
       onUserActivity: root.resetIdleTimer()
 
       Component.onCompleted: {
-        root.hpW = Qt.binding(() => healthPanel.contentWidth + root.pad * 2)
-        root.hpH = Qt.binding(() => healthPanel.contentHeight)
+        root.hpW = Theme.panelWidth
+        root.hpH = Theme.panelHeight
       }
     }
   }

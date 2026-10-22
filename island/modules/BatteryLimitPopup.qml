@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
+import "../components"
 import "../config"
 
 PanelWindow {
@@ -70,30 +71,34 @@ PanelWindow {
         Layout.fillWidth: true
         spacing: 6
 
-        Text {
-          text: "CHARGE LIMIT"
+        Txt {
+          Layout.preferredWidth: Theme.chargeLimitLabelWidth
+          Layout.maximumWidth: Theme.chargeLimitLabelWidth
+          text: root.batteryService && root.batteryService.chargeLimitRead
+            ? "CHARGE LIMIT" : "LIMIT N/A"
           color: Theme.comment
-          font.family: Theme.fontFamily
-          font.pixelSize: Theme.fontSizeLabel
-          font.bold: true
-          font.letterSpacing: 1.2
+          variant: "caption"
           Layout.alignment: Qt.AlignVCenter
+          elide: Text.ElideNone
         }
 
         Item { Layout.fillWidth: true }
 
-        Text {
-          text: root.batteryService ? root.batteryService.chargeLimit + "%" : "--"
-          color: Theme.yellow
-          font.family: Theme.fontFamily
-          font.pixelSize: Theme.fontSizeValue
-          font.bold: true
+        Txt {
+          Layout.preferredWidth: Theme.chargeLimitValueWidth
+          Layout.maximumWidth: Theme.chargeLimitValueWidth
+          text: root.batteryService && root.batteryService.chargeLimitRead
+            ? Format.percent(root.batteryService.chargeLimit) : ""
+          color: Theme.chargeLimitActive
+          variant: "value"
           Layout.alignment: Qt.AlignVCenter
+          elide: Text.ElideNone
         }
       }
 
       Repeater {
-        model: root.batteryService && root.batteryService.chargeLimitSupported ? [
+        model: root.batteryService && root.batteryService.chargeLimitSupported
+          && root.batteryService.chargeLimitRead ? [
           { pct: 60, title: "Max Protection", sub: "Limit charging to 60%" },
           { pct: 80, title: "Balanced Protection", sub: "Limit charging to 80%" },
           { pct: 100, title: "Fully Charged", sub: "Allow charging to 100%" }
@@ -106,7 +111,7 @@ PanelWindow {
           radius: 8
           color: root.cardColorFor(root.isActive(modelData.pct))
           border.width: 1
-          border.color: root.isActive(modelData.pct) ? Theme.yellow : root.cardBorderColor()
+          border.color: root.isActive(modelData.pct) ? Theme.accent : root.cardBorderColor()
           antialiasing: true
 
           MouseArea {
@@ -131,7 +136,7 @@ PanelWindow {
               height: 14
               radius: 7
               border.width: 2
-              border.color: root.isActive(modelData.pct) ? Theme.yellow : Theme.comment
+              border.color: root.isActive(modelData.pct) ? Theme.accent : Theme.comment
               color: "transparent"
               Layout.alignment: Qt.AlignVCenter
 
@@ -141,7 +146,7 @@ PanelWindow {
                 radius: 3
                 anchors.centerIn: parent
                 visible: root.isActive(modelData.pct)
-                color: Theme.yellow
+                color: Theme.accent
               }
             }
 
@@ -149,19 +154,22 @@ PanelWindow {
               Layout.fillWidth: true
               spacing: 1
 
-              Text {
+              Txt {
+                Layout.fillWidth: true
+                Layout.maximumWidth: parent.width
                 text: modelData.title
-                color: root.isActive(modelData.pct) ? Theme.yellow : Theme.foreground
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSizeValue
-                font.bold: true
+                color: root.isActive(modelData.pct) ? Theme.accent : Theme.foreground
+                variant: "value"
+                elide: Text.ElideNone
               }
 
-              Text {
+              Txt {
+                Layout.fillWidth: true
+                Layout.maximumWidth: parent.width
                 text: modelData.sub
                 color: Theme.comment
-                font.family: Theme.fontFamily
-                font.pixelSize: 11
+                variant: "caption"
+                elide: Text.ElideNone
               }
             }
           }
@@ -171,16 +179,16 @@ PanelWindow {
   }
 
   function isActive(pct) {
-    return root.batteryService !== null && root.batteryService.chargeLimit === pct
+    return root.batteryService !== null && root.batteryService.chargeLimitRead
+      && root.batteryService.chargeLimit === pct
   }
 
   function cardColorFor(active) {
-    return active ? Qt.rgba(Theme.yellow.r, Theme.yellow.g, Theme.yellow.b, 0.12)
-                  : Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.3)
+    return active ? Theme.activeTint : Theme.cardFill
   }
 
   function cardBorderColor() {
-    return Qt.rgba(Theme.selection.r, Theme.selection.g, Theme.selection.b, 0.55)
+    return Theme.cardBorderColor
   }
 
   function open() {

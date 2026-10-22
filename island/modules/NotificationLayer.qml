@@ -494,14 +494,14 @@ PanelWindow {
     visible: root.hiddenBannerCount > 0
     color: hovered ? Theme.accent : Theme.selection
 
-    Text {
+    Txt {
       anchors.centerIn: parent
+      width: parent.width
+      height: parent.height
       text: "+" + root.hiddenBannerCount + " more · open center"
       color: moreChip.hovered ? Theme.background : Theme.comment
-      font.family: Theme.fontFamily
-      font.pixelSize: 10
-      font.bold: true
-      font.letterSpacing: 0.5
+      variant: "caption"
+      elide: Text.ElideNone
     }
 
     MouseArea {
