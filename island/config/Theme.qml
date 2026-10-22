@@ -15,9 +15,11 @@ QtObject {
   property color red: "#ff5555"
   property color yellow: "#f1fa8c"
 
-  // Shared telemetry thresholds. Ascending values progress green -> yellow ->
-  // orange -> red; battery thresholds are evaluated in reverse.
-  readonly property int loadWarning: 55
+  // Health panel bento grid (layout only; tokens defined in Theme).
+  // More readable muted text while staying in the Dracula palette.
+  property color mutedText: "#a6b0e0"
+  property color sectionLabel: "#c9d1ff"
+  property color labelText: "#d0d8ff"
   readonly property int loadHigh: 75
   readonly property int loadCritical: 90
   readonly property int memoryWarning: 60
@@ -37,6 +39,27 @@ QtObject {
   readonly property int diskWarning: 70
   readonly property int diskHigh: 85
   readonly property int diskCritical: 93
+
+  // Health panel bento grid
+  readonly property int gridUnit: 56
+  readonly property int gridGutter: 10
+  readonly property int cardRadius: 8
+  readonly property int cardPadding: 10
+  // 12-column layout widths sum to fit the panel; body width used by DropShape.
+  readonly property int bentoBodyWidth: 900
+
+  // Typography scales (one monospace font; use only these sizes)
+  readonly property int fontSizeMicro: 9
+  readonly property int fontSizeTiny: 10
+  readonly property int fontSizeLabel: 10
+  readonly property int fontSizeValue: 15
+  readonly property int fontSizeTitle: 15
+  readonly property int fontSizeHero: 30
+
+  // More readable muted text while staying in the Dracula palette.
+  property color mutedText: "#a6b0e0"
+  property color sectionLabel: "#c9d1ff"
+  property color labelText: "#d0d8ff"
 
   function ascendingColor(value, warning, high, critical) {
     if (value >= critical) return root.red
@@ -94,10 +117,13 @@ QtObject {
   ]
 
   property string fontFamily: "JetBrainsMono Nerd Font"
-  property int fontSizeLabel: 12
-  property int fontSizeTitle: 15
-  property int fontSizeValue: 14
-  property int fontSizeHero: 20
+  readonly property int fontSizeMicro: 9
+  readonly property int fontSizeTiny: 10
+  readonly property int fontSizeLabel: 10
+  readonly property int fontSizeValue: 15
+  readonly property int fontSizeTitle: 15
+  readonly property int fontSizeHero: 30
+  property int fontSizeIcon: 17
 
   property real iconLineWidth: 1.5
   property int iconSize: 16
