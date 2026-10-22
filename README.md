@@ -17,7 +17,9 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Notifications** — banner + center, with deadline-based expiry for transient notifications and true pinning for persistent ones.
 - **Calendar** — month navigation and the current date are integrated into the health panel.
 - **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 15 s idle and resets its timer while you interact with it.
-- **Live weather card** — the health panel shows current location (geo via `ipwho.is`) and temperature + conditions (via `open-meteo`), refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading.
+- **Bento health panel** — the overlay is a three column bento (3 / 5 / 4 of a twelve column grid). The left column carries the clock/calendar and the top process list, the middle column carries the toggles, the audio/brightness controls, CPU/GPU, RAM/fan, network and the weather card, and the right column carries the identity, the AC power hero, the power profile / GPU mode pair, the storage card and the updates / uptime pair. Every column ends on the same bottom edge: the slack is given to one flexible card per column (weather, storage, process list) instead of being padded away.
+- **Storage card** — one ring gauge per mount (ring, mount label, `used / total` caption). The ring grows and shrinks with the card, a third mount shrinks all the cells equally, and the caption never wraps.
+- **Live weather card** — the health panel shows current location (geo via `ipwho.is`) and temperature + conditions (via `open-meteo`), refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The card also shows the day/night state and the sunrise / sunset times.
 - **Native Quickshell integration** — battery/charging read straight from the built-in **UPower** service (event-driven, zero polling); active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
 - **Dracula throughout** — one singleton theme, a single palette, no hard-coded colors.
 - **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
@@ -135,23 +137,35 @@ island/
 │   ├── qmldir             # QML module definition (Theme singleton)
 │   └── Theme.qml          # Dracula palette + font/type scale, single source of truth
 ├── components/
+│   ├── AudioDeviceMenu.qml # Output / input device picker for the controls card
 │   ├── BatteryIcon.qml    # Canvas-drawn battery
+│   ├── DropShape.qml      # Shared flat silhouette (pill + health panel)
 │   ├── EQBars.qml         # Animated equalizer bars
 │   ├── HealthIcon.qml     # Health panel toggle icon
+│   ├── KbLayoutIcon.qml   # Keyboard layout glyph
 │   ├── NetworkIcon.qml    # WiFi / ethernet / disconnected
-│   └── WeatherIcon.qml    # Canvas-drawn WMO weather-condition icon
+│   ├── NotificationCard.qml # Notification banner content
+│   ├── PillStateMachine.qml # Idle / hover / meter state machine
+│   ├── RingGauge.qml      # Flat ring gauge (storage disks, power)
+│   └── WeatherGlyph.qml   # Canvas-drawn WMO weather-condition icon
 ├── services/
 │   ├── AudioService.qml   # Pipewire stream detect; volume/mute via wpctl
 │   ├── BatteryService.qml # Native UPower + asusctl charge-limit read/set
 │   ├── BrightnessService.qml # Backlight via brightnessctl, 0–95% remap
+│   ├── GpuModeService.qml # Hybrid / integrated GPU mode switch
 │   ├── LockService.qml    # Caps/Num-OSD (LED sysfs)
 │   ├── NetworkService.qml # Network readout
+│   ├── ProcessStatsService.qml # Top CPU / RAM processes
+│   ├── StorageService.qml # Per-mount usage (df), sampled while open
+│   ├── SystemStatsService.qml # CPU / RAM / uptime / load averages
+│   ├── ThermalService.qml # CPU + GPU temperatures, fan speeds
+│   ├── UpdateService.qml  # Pending package updates
 │   └── WeatherService.qml # ipwho.is geolocation + open-meteo forecast
 └── modules/
     ├── IslandPill.qml     # The pill — idle / hover / meter states + IPC
     ├── BatteryLimitPopup.qml # Charge-threshold radio presets (58/79/100%)
     ├── FloatingHealth.qml # Overlay window hosting the consolidated panel
-    ├── HealthPanel.qml    # 3-column panel: rings+calendar / sliders+tiles / battery+weather
+    ├── HealthPanel.qml    # Bento panel: clock+procs / controls+weather / power+storage
     ├── NotificationLayer.qml # Banner stack w/ expiry
     └── NotificationCenter.qml # Full notification history
 ```
