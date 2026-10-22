@@ -23,6 +23,7 @@ Item {
   readonly property bool onAcPower: !UPower.onBattery
   property real power: root.battery ? root.battery.changeRate : 0
   property int chargeLimit: 0
+  property bool chargeLimitSupported: false
   property bool chargeLimitMonitoring: false
 
   function refreshChargeLimit() {
@@ -30,25 +31,33 @@ Item {
   }
 
   function setLimit(pct) {
+    if (!root.chargeLimitSupported || setLimitProc.running) return
     root.chargeLimit = Math.max(20, Math.min(100, pct))
+    setLimitProc.command = ["asusctl", "battery", "limit", String(root.chargeLimit)]
     setLimitProc.running = true
   }
 
   Process {
     id: getLimitProc
-    command: ["sh", "-c", "echo \"$(asusctl battery info 2>/dev/null)\" | grep -o '[0-9]*' | head -1"]
+    command: ["sh", "-c", "if asusctl battery --help 2>/dev/null | grep -q 'limit.*20-100'; then echo S:1; asusctl battery info 2>/dev/null | sed 's/^/V:/'; else echo S:0; fi"]
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var v = parseInt(String(data).trim(), 10)
-        if (!isNaN(v) && v >= 20 && v <= 100) root.chargeLimit = v
+        var line = String(data).trim()
+        if (line === "S:1") root.chargeLimitSupported = true
+        else if (line === "S:0") root.chargeLimitSupported = false
+        else if (line.indexOf("V:") === 0) {
+          var match = line.match(/([0-9]+)%/)
+          var v = match ? parseInt(match[1], 10) : NaN
+          if (!isNaN(v) && v >= 20 && v <= 100) root.chargeLimit = v
+        }
       }
     }
   }
 
   Process {
     id: setLimitProc
-    command: ["sh", "-c", "asusctl battery limit " + root.chargeLimit + " 2>/dev/null"]
+    command: ["true"]
     running: false
     onExited: () => { root.refreshChargeLimit() }
   }

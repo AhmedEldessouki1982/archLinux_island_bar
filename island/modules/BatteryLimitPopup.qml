@@ -93,11 +93,11 @@ PanelWindow {
       }
 
       Repeater {
-        model: [
-          { pct: 58, title: "Max Protection", sub: "Limit charging to 58%" },
-          { pct: 79, title: "Balanced Protection", sub: "Limit charging to 79%" },
+        model: root.batteryService && root.batteryService.chargeLimitSupported ? [
+          { pct: 60, title: "Max Protection", sub: "Limit charging to 60%" },
+          { pct: 80, title: "Balanced Protection", sub: "Limit charging to 80%" },
           { pct: 100, title: "Fully Charged", sub: "Allow charging to 100%" }
-        ]
+        ] : []
 
         delegate: Rectangle {
           required property var modelData

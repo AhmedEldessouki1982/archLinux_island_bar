@@ -720,12 +720,13 @@ Item {
         }
 
         Rectangle {
+          id: batteryCard
           Layout.fillWidth: true
           radius: 8
           color: root.cardColor
           border.width: 1
           border.color: root.cardBorder
-          implicitHeight: 62
+          implicitHeight: chargeLimitRow.visible ? 90 : 62
 
           ColumnLayout {
             anchors.fill: parent
@@ -783,6 +784,56 @@ Item {
                 height: parent.height
                 radius: parent.radius
                 color: root.batteryColor(root.batteryCapacity, root.batteryCharging)
+              }
+            }
+
+            RowLayout {
+              id: chargeLimitRow
+              visible: root.batteryOnAc && root.batteryService && root.batteryService.chargeLimitSupported
+              Layout.fillWidth: true
+              spacing: 4
+
+              Text {
+                text: "LIMIT"
+                color: Theme.comment
+                font.family: Theme.fontFamily
+                font.pixelSize: 9
+                font.bold: true
+                Layout.alignment: Qt.AlignVCenter
+              }
+
+              Repeater {
+                model: [60, 80, 100]
+
+                Rectangle {
+                  id: limitChoice
+                  required property int modelData
+                  readonly property bool selected: root.batteryService && root.batteryService.chargeLimit === modelData
+                  Layout.fillWidth: true
+                  Layout.preferredHeight: 20
+                  radius: 3
+                  color: selected ? Qt.rgba(Theme.yellow.r, Theme.yellow.g, Theme.yellow.b, 0.16) : "transparent"
+                  border.width: 1
+                  border.color: selected ? Theme.yellow : Theme.selection
+
+                  Text {
+                    anchors.centerIn: parent
+                    text: limitChoice.modelData + "%"
+                    color: limitChoice.selected ? Theme.yellow : Theme.foreground
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 9
+                    font.bold: true
+                  }
+
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      root.userActivity()
+                      root.batteryService.setLimit(limitChoice.modelData)
+                    }
+                  }
+                }
               }
             }
           }
