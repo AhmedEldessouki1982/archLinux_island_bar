@@ -31,7 +31,10 @@ Item {
 
   onHealthWindowChanged: {
     if (root.healthWindow)
-      root.healthWindow.panelClosed.connect(() => root.isHealthPanelOpen = false)
+      root.healthWindow.panelClosed.connect(() => {
+        root.isHealthPanelOpen = false
+        root.isExpanded = false
+      })
   }
 
   // --- timers ---

@@ -40,6 +40,7 @@ PanelWindow {
   ThermalService { id: _thermalService }
   GpuModeService { id: _gpuModeService }
   ProcessStatsService { id: _processStatsService }
+  UpdateService { id: _updateService }
 
   property var audioService: null
   property var brightnessService: null
@@ -50,6 +51,7 @@ PanelWindow {
   property var thermalService: _thermalService
   property var gpuModeService: _gpuModeService
   property var processStatsService: _processStatsService
+  property var updateService: _updateService
   property var notificationLayer: null
   property var idleInhibitController: null
 
@@ -122,6 +124,7 @@ PanelWindow {
         thermalService: root.thermalService
         gpuModeService: root.gpuModeService
         processStatsService: root.processStatsService
+        updateService: root.updateService
         notificationLayer: root.notificationLayer
         idleInhibitController: root.idleInhibitController
         onUserActivity: root.resetIdleTimer()

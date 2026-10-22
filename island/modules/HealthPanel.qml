@@ -56,6 +56,7 @@ Item {
   property var thermalService: null
   property var gpuModeService: null
   property var processStatsService: null
+  property var updateService: null
   property var notificationLayer: null
   property var idleInhibitController: null
 
@@ -289,6 +290,7 @@ Item {
     if (root.gpuModeService) root.gpuModeService.start()
     if (root.networkService) root.networkService.startStats()
     if (root.processStatsService) root.processStatsService.start()
+    if (root.updateService) root.updateService.start()
   }
 
   function stop() {
@@ -300,6 +302,7 @@ Item {
     if (root.gpuModeService) root.gpuModeService.stop()
     if (root.networkService) root.networkService.stopStats()
     if (root.processStatsService) root.processStatsService.stop()
+    if (root.updateService) root.updateService.stop()
   }
 
   Timer {
@@ -1164,6 +1167,43 @@ Item {
                   onClicked: root.cancelGpuModeSwitch()
                 }
               }
+            }
+          }
+        }
+
+        Rectangle {
+          Layout.fillWidth: true
+          radius: 8
+          color: root.cardColor
+          border.width: 1
+          border.color: root.cardBorder
+          implicitHeight: 44
+
+          RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 8
+            anchors.rightMargin: 8
+            spacing: 8
+
+            Text {
+              text: "UPDATES"
+              color: Theme.comment
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeLabel
+              font.bold: true
+              font.letterSpacing: 1.2
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+              text: root.updateService && root.updateService.count >= 0
+                ? String(root.updateService.count).padStart(3, "0") : "---"
+              color: root.updateService && root.updateService.count >= 0 ? Theme.green : Theme.comment
+              opacity: root.updateService && root.updateService.count >= 0 ? 1 : 0.65
+              font.family: Theme.fontFamily
+              font.pixelSize: Theme.fontSizeValue
+              font.bold: true
             }
           }
         }
