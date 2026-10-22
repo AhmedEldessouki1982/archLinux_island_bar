@@ -26,6 +26,40 @@ Item {
   width: parent.width
   height: root.pillHeight
 
+  function friendlyAppName(toplevel) {
+    if (!toplevel)
+      return "DESKTOP"
+    var ipc = toplevel.lastIpcObject || ({})
+    var raw = String(ipc["class"] || ipc.initialClass || "").trim()
+    if (!raw)
+      return "APP"
+    raw = raw.replace(/\\/g, "/")
+    if (raw.indexOf("/") >= 0)
+      raw = raw.substring(raw.lastIndexOf("/") + 1)
+    raw = raw.replace(/\.desktop$/i, "")
+    var key = raw.toLowerCase()
+    var names = {
+      "google-chrome": "Chrome",
+      "google-chrome-stable": "Chrome",
+      "chromium": "Chromium",
+      "firefox": "Firefox",
+      "code": "VS Code",
+      "code-oss": "Code OSS",
+      "kitty": "Kitty",
+      "alacritty": "Alacritty",
+      "org.wezfurlong.wezterm": "WezTerm",
+      "org.gnome.nautilus": "Files",
+      "thunar": "Thunar",
+      "steam": "Steam",
+      "discord": "Discord"
+    }
+    if (names[key])
+      return names[key]
+    if (/^python(?:[0-9]+(?:\.[0-9]+)?)?$/.test(key))
+      return key.replace(/\.\d+$/, "")
+    return raw.length > 0 ? raw.charAt(0).toUpperCase() + raw.slice(1) : "APP"
+  }
+
   PillStateMachine {
     id: _psm
     healthWindow: root.healthWindow
@@ -295,11 +329,11 @@ Item {
       VDiv {}
 
       Text {
-        text: Hyprland.activeToplevel?.title ?? ""
+        text: root.friendlyAppName(Hyprland.activeToplevel)
         color: Theme.foreground
         font.family: Theme.fontFamily
         font.pixelSize: 11
-        elide: Text.ElideRight
+        elide: Text.ElideMiddle
         maximumLineCount: 1
         Layout.maximumWidth: 140
         Layout.alignment: Qt.AlignVCenter
