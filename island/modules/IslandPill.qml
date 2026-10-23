@@ -23,7 +23,8 @@ Item {
   readonly property int pillPad: 12
   readonly property real _pillContentWidth: _psm.meterMode !== ""
     ? _psm.meterPillWidth
-    : _psm.isExpanded ? expandedLayout.implicitWidth
+    : _psm.isExpanded ? Math.max(Theme.pillMinWidth,
+        Math.min(Theme.pillMaxWidth, expandedLayout.implicitWidth))
     : idleLayout.implicitWidth
 
   // Body width (excluding the two ears). Rounded to an even number so the
@@ -51,12 +52,11 @@ Item {
   height: root.pillHeight
 
   function friendlyAppName(toplevel) {
-    if (!toplevel)
-      return "DESKTOP"
+    if (!toplevel) return ""
     var ipc = toplevel.lastIpcObject || ({})
     var raw = String(ipc["class"] || ipc.initialClass || "").trim()
-    if (!raw)
-      return "APP"
+    var title = String(ipc.title || toplevel.title || "").trim()
+    if (!raw) return title && title.toUpperCase() !== "APP" ? title : ""
     raw = raw.replace(/\\/g, "/")
     if (raw.indexOf("/") >= 0)
       raw = raw.substring(raw.lastIndexOf("/") + 1)
@@ -79,9 +79,13 @@ Item {
     }
     if (names[key])
       return names[key]
+    // X11/Wayland app identifiers often retain the reverse-domain id.
+    raw = raw.replace(/^(?:org|com|net|io|dev|app)\.[^.]+\./i, "")
+    raw = raw.replace(/[-_]+/g, " ").trim()
     if (/^python(?:[0-9]+(?:\.[0-9]+)?)?$/.test(key))
       return key.replace(/\.\d+$/, "")
-    return raw.length > 0 ? raw.charAt(0).toUpperCase() + raw.slice(1) : "APP"
+    if (raw.length > 0) return raw.charAt(0).toUpperCase() + raw.slice(1)
+    return title && title.toUpperCase() !== "APP" ? title : ""
   }
 
   PillStateMachine {
@@ -277,25 +281,28 @@ Item {
         NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
       }
 
-      NetworkIcon {
-        width: Theme.iconSize
-        height: Theme.iconSize
-        color: Theme.accent
-        connected: networkService.connected
-        type: networkService.type
+      RowLayout {
+        spacing: Theme.pillInnerGap
         Layout.alignment: Qt.AlignVCenter
+        NetworkIcon {
+          width: Theme.pillIcon
+          height: Theme.pillIcon
+          color: Theme.accent
+          connected: networkService.connected
+          type: networkService.type
+        }
+        Txt {
+          Layout.maximumWidth: Theme.pillIpMaxWidth
+          text: networkService.ipAddress
+          color: Theme.accent
+          variant: "body"
+          Layout.minimumWidth: 60
+          elide: Text.ElideRight
+          clip: true
+        }
       }
 
-      Txt {
-        Layout.maximumWidth: Theme.pillIpMaxWidth
-        text: networkService.ipAddress
-        color: Theme.accent
-        variant: "body"
-        Layout.minimumWidth: 60
-        Layout.alignment: Qt.AlignVCenter
-        elide: Text.ElideNone
-        clip: true
-      }
+      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
 
       Item {
         id: workspaceArea
@@ -303,31 +310,31 @@ Item {
         Layout.preferredHeight: 20
         Layout.alignment: Qt.AlignVCenter
 
-        MouseArea {
-          id: workspaceHover
-          anchors.fill: parent
-          hoverEnabled: true
-          acceptedButtons: Qt.NoButton
-        }
-
         RowLayout {
           id: workspaceRow
           anchors.centerIn: parent
           spacing: 2
 
           Repeater {
-            model: Hyprland.workspaces
+            model: 10
 
             Item {
               id: workspaceItem
-              required property var modelData
-              readonly property bool occupied: modelData && modelData.toplevels
-                ? modelData.toplevels.values.length > 0 : false
+              required property int index
+              readonly property int workspaceId: index + 1
+              readonly property var workspaceObject: {
+                var values = Hyprland.workspaces.values
+                for (var i = 0; i < values.length; i++)
+                  if (values[i].id === workspaceId) return values[i]
+                return null
+              }
+              readonly property bool occupied: workspaceObject && workspaceObject.toplevels
+                ? workspaceObject.toplevels.values.length > 0 : false
+              readonly property bool isCurrent: Hyprland.focusedWorkspace?.id === workspaceId
 
-              visible: true
-              opacity: workspaceHover.containsMouse || occupied
-                || (modelData ? modelData.active || modelData.focused : false) ? 1 : 0
-              Layout.preferredWidth: txt.implicitWidth + 6
+              Layout.preferredWidth: Theme.pillWorkspaceCell
+              Layout.minimumWidth: Theme.pillWorkspaceCell
+              Layout.maximumWidth: Theme.pillWorkspaceCell
               Layout.preferredHeight: 20
               Layout.alignment: Qt.AlignVCenter
 
@@ -336,21 +343,21 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width
                 height: parent.height
-                text: workspaceItem.modelData?.id ?? ""
-                color: workspaceItem.modelData?.focused ? Theme.accent : Theme.comment
-                opacity: workspaceItem.occupied || workspaceItem.modelData?.active ? 1 : 0.6
+                text: String(workspaceItem.workspaceId)
+                color: workspaceItem.isCurrent ? Theme.accent
+                  : workspaceItem.occupied ? Theme.foreground : Theme.comment
+                font.weight: workspaceItem.isCurrent ? Theme.fontWeightValue : Theme.fontWeightBody
                 variant: "body"
                 elide: Text.ElideNone
               }
 
               MouseArea {
                 anchors.fill: parent
-                enabled: workspaceItem.opacity > 0
                 hoverEnabled: false
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                  if (workspaceItem.modelData)
-                    workspaceItem.modelData.activate()
+                  if (workspaceItem.workspaceObject)
+                    workspaceItem.workspaceObject.activate()
                 }
               }
             }
@@ -358,38 +365,45 @@ Item {
         }
       }
 
+      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
+
       Txt {
+        id: appTitle
         text: root.friendlyAppName(Hyprland.activeToplevel)
         color: Theme.foreground
         variant: "body"
-        elide: Text.ElideNone
+        elide: Text.ElideRight
         clip: true
         maximumLineCount: 1
-        Layout.maximumWidth: 140
+        Layout.fillWidth: true
+        Layout.maximumWidth: Theme.pillTitleMaxWidth
+        Layout.minimumWidth: 0
         Layout.alignment: Qt.AlignVCenter
       }
+
+      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
 
       // --- actions zone: health + notifications ---
       Item {
         Layout.alignment: Qt.AlignVCenter
-        height: 26
+        height: Theme.pillIcon
         width: actionsRow.implicitWidth
 
         RowLayout {
           id: actionsRow
           anchors.centerIn: parent
-          spacing: Theme.gapSmall
+          spacing: Theme.pillInnerGap
 
           RegWarningIcon {
-            width: Theme.trayIconSize
-            height: Theme.trayIconSize
+            width: Theme.pillIcon
+            height: Theme.pillIcon
             Layout.alignment: Qt.AlignVCenter
           }
 
           HealthIcon {
             id: healthIcon
-            width: Theme.trayIconSize
-            height: Theme.trayIconSize
+            width: Theme.pillIcon
+            height: Theme.pillIcon
             iconColor: Theme.foreground
             Layout.alignment: Qt.AlignVCenter
 
@@ -400,8 +414,8 @@ Item {
           }
 
           Item {
-            width: Theme.trayIconSize
-            height: Theme.trayIconSize
+            width: Theme.pillIcon
+            height: Theme.pillIcon
             Layout.alignment: Qt.AlignVCenter
 
             Txt {
@@ -444,22 +458,38 @@ Item {
           }
 
           KbLayoutIcon {
-            width: Theme.trayIconSize
-            height: Theme.trayIconSize
+            width: Theme.pillIcon
+            height: Theme.pillIcon
           }
         }
       }
 
+      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
+
       MouseArea {
         Layout.alignment: Qt.AlignVCenter
-        width: 56
-        height: Theme.iconSize
+        width: Theme.pillIcon + Theme.pillInnerGap + batteryPercent.implicitWidth
+        height: Theme.pillIcon
         cursorShape: Qt.PointingHandCursor
 
         BatteryIcon {
-          anchors.fill: parent
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          width: Theme.pillIcon
+          height: Theme.pillIcon
           percent: _batteryService.capacity
           charging: _batteryService.charging
+        }
+
+        Txt {
+          id: batteryPercent
+          anchors.left: parent.left
+          anchors.leftMargin: Theme.pillIcon + Theme.pillInnerGap
+          anchors.verticalCenter: parent.verticalCenter
+          text: Math.round(_batteryService.capacity) + "%"
+          color: Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
+          variant: "body"
+          elide: Text.ElideNone
         }
 
         onClicked: {

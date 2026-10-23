@@ -166,6 +166,14 @@ QtObject {
   readonly property int chipPadX: 6
   readonly property int chipHeight: 26
   readonly property int pillGap: 12
+  readonly property int pillInnerGap: 8
+  readonly property int pillIcon: 16
+  readonly property int pillWorkspaceCell: 20
+  readonly property int pillMinWidth: 150
+  readonly property int pillMaxWidth: 920
+  readonly property int pillTitleMaxWidth: 300
+  readonly property int pillDividerWidth: 1
+  readonly property color pillDivider: "#50566b"
   readonly property int trayIconSize: 18
   readonly property int toggleBadgeSize: 12
 
