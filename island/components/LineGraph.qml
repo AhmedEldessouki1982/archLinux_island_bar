@@ -124,7 +124,8 @@ Item {
         v = i > 0 ? Number(values[i - 1]) : 0
       v = Math.max(0, Math.min(root.maxValue, v))
       xs.push(offset + i * dx)
-      ys.push(root.height - (v / root.maxValue) * root.height)
+      var usableHeight = Math.max(1, root.height - 2 * Theme.graphInset)
+      ys.push(Theme.graphInset + usableHeight - (v / root.maxValue) * usableHeight)
     }
 
     var d = "M " + xs[0].toFixed(2) + " " + ys[0].toFixed(2)

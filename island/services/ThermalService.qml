@@ -1,130 +1,145 @@
-import Quickshell
 import Quickshell.Io
 import QtQuick
-import "../config"
 
+// Hardware telemetry exists only while the health panel is open. ASUS fan
+// readings come directly from hwmon; NVIDIA is queried only while its PCI
+// function reports runtime_status=active.
 Item {
   id: root
   visible: false
 
   property real cpuTemp: 0
-  property real cpuFanSpeed: 0
-  property real gpuFanSpeed: 0
-  property real gpuTemp: 0
-  property real gpuLoad: 0
-
-  property string _hwmonTempPath: ""
-  property string _hwmonFanPath: ""
-  property bool _active: false
+  property real cpuFanSpeed: -1
+  property real gpuFanSpeed: -1
+  property real gpuTemp: -1
+  property real gpuLoad: -1
+  property bool gpuSuspended: true
+  property bool active: false
+  property string _asusHwmon: ""
+  property string _cpuTempPath: ""
+  property string _cpuFanPath: ""
+  property string _gpuFanPath: ""
+  property string _gpuRuntimePath: ""
 
   function start() {
-    root._active = true
-    hwmonResolveProc.running = true
-    gpuDataProc.running = true
+    if (root.active) return
+    root.active = true
+    if (!resolveProc.running) resolveProc.running = true
   }
 
   function stop() {
-    root._active = false
+    root.active = false
+    resolveProc.running = false
+    gpuSampleProc.running = false
+    runtimePoll.stop()
+    root.gpuLoad = -1
+    root.gpuTemp = -1
+    root.gpuSuspended = true
   }
 
-  // --- one-shot: resolve hwmon paths (no sysfs glob equivalent) ---
   Process {
-    id: hwmonResolveProc
-    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do echo \"$(basename $d) $(cat $d/name 2>/dev/null)\"; done"]
+    id: resolveProc
+    command: ["sh", "-c", "for d in /sys/class/hwmon/hwmon*; do n=$(cat $d/name 2>/dev/null); [ \"$n\" = asus ] && echo H:$d; [ \"$n\" = k10temp ] && echo T:$d/temp1_input; done; for d in /sys/bus/pci/devices/*; do [ \"$(cat $d/vendor 2>/dev/null)\" = 0x10de ] && [ -r $d/power/runtime_status ] && echo N:$d/power/runtime_status && break; done"]
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var lines = data.trim().split("\n")
-        for (var i = 0; i < lines.length; i++) {
-          var parts = lines[i].split(" ")
-          if (parts.length >= 2) {
-            var hwmon = parts[0]
-            var name = parts.slice(1).join(" ")
-            if (name === "k10temp" && root._hwmonTempPath.length === 0)
-              root._hwmonTempPath = "/sys/class/hwmon/" + hwmon + "/temp1_input"
-            if (name === "asus" && root._hwmonFanPath.length === 0)
-              root._hwmonFanPath = "/sys/class/hwmon/" + hwmon
-          }
-        }
-        // start reading once paths resolved
-        if (root._hwmonTempPath.length > 0) cpuTempView.reload()
-        if (root._hwmonFanPath.length > 0) {
-          fan1View.reload()
-          fan2View.reload()
+        if (!root.active) return
+        var line = String(data).trim()
+        if (line.indexOf("H:") === 0) {
+          root._asusHwmon = line.slice(2)
+          root._cpuFanPath = root._asusHwmon + "/fan1_input"
+          root._gpuFanPath = root._asusHwmon + "/fan2_input"
+          cpuFanView.reload(); gpuFanView.reload()
+        } else if (line.indexOf("T:") === 0) {
+          root._cpuTempPath = line.slice(2)
+          cpuTempView.reload()
+        } else if (line.indexOf("N:") === 0) {
+          root._gpuRuntimePath = line.slice(2)
+          runtimeView.reload()
+          if (root.active) runtimePoll.start()
         }
       }
     }
   }
 
-  // --- FileView: zero-fork cpu temp ---
   FileView {
     id: cpuTempView
-    path: root._hwmonTempPath
+    path: root._cpuTempPath
     watchChanges: false
     onLoaded: {
-      var temp = parseInt(text().trim())
-      if (!isNaN(temp) && temp > 0)
-        root.cpuTemp = temp / 1000
+      var v = parseInt(text().trim(), 10)
+      if (isFinite(v) && v > 0) root.cpuTemp = v / 1000
     }
   }
-
-  // --- FileView: zero-fork fan1 ---
   FileView {
-    id: fan1View
-    path: root._hwmonFanPath.length > 0 ? root._hwmonFanPath + "/fan1_input" : ""
+    id: cpuFanView
+    path: root._cpuFanPath
     watchChanges: false
     onLoaded: {
-      var fan1 = parseInt(text().trim())
-      if (!isNaN(fan1) && fan1 >= 0) root.cpuFanSpeed = fan1
+      var v = parseInt(text().trim(), 10)
+      root.cpuFanSpeed = isFinite(v) && v >= 0 ? v : -1
     }
   }
-
-  // --- FileView: zero-fork fan2 ---
   FileView {
-    id: fan2View
-    path: root._hwmonFanPath.length > 0 ? root._hwmonFanPath + "/fan2_input" : ""
+    id: gpuFanView
+    path: root._gpuFanPath
     watchChanges: false
     onLoaded: {
-      var fan2 = parseInt(text().trim())
-      if (!isNaN(fan2) && fan2 >= 0) root.gpuFanSpeed = fan2
+      var v = parseInt(text().trim(), 10)
+      root.gpuFanSpeed = isFinite(v) && v >= 0 ? v : -1
     }
   }
+  FileView {
+    id: runtimeView
+    path: root._gpuRuntimePath
+    watchChanges: false
+    onLoaded: root.updateGpuRuntime(text().trim())
+  }
 
-  // --- poll timer: reloads FileViews instead of forking shells ---
   Timer {
-    id: collectData
+    id: runtimePoll
     interval: 2000
-    running: root._active
     repeat: true
-    onTriggered: {
-      if (root._hwmonTempPath.length > 0) cpuTempView.reload()
-      if (root._hwmonFanPath.length > 0) {
-        fan1View.reload()
-        fan2View.reload()
-      }
+    running: false
+    onTriggered: if (root.active && root._gpuRuntimePath.length > 0) runtimeView.reload()
+  }
+
+  function updateGpuRuntime(state) {
+    if (!root.active) return
+    var suspended = state === "suspended"
+    root.gpuSuspended = suspended
+    if (suspended) {
+      root.gpuLoad = -1
+      root.gpuTemp = -1
+      gpuSampleProc.running = false
+    } else if (state === "active" && !gpuSampleProc.running) {
+      gpuSampleProc.running = true
     }
   }
 
-  // --- nvidia-smi: no sysfs equivalent, keep as shell (5s interval) ---
   Timer {
-    id: collectGpu
-    interval: 5000
-    running: root._active
+    interval: 2000
     repeat: true
-    onTriggered: gpuDataProc.running = true
+    running: root.active
+    onTriggered: {
+      if (root._cpuTempPath.length > 0) cpuTempView.reload()
+      if (root._cpuFanPath.length > 0) cpuFanView.reload()
+      if (root._gpuFanPath.length > 0) gpuFanView.reload()
+    }
   }
 
   Process {
-    id: gpuDataProc
-    command: ["sh", "-c", "nvidia-smi --query-gpu=temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null || echo '--,--'"]
+    id: gpuSampleProc
+    command: ["nvidia-smi", "--query-gpu=utilization.gpu,temperature.gpu,power.draw", "--format=csv,noheader,nounits", "-l", "2"]
     running: false
     stdout: SplitParser {
       onRead: data => {
-        var parts = data.trim().split(/,\s*/)
-        if (parts.length >= 2) {
-          root.gpuTemp = parseFloat(parts[0]) || 0
-          root.gpuLoad = parseFloat(parts[1]) || 0
-        }
+        if (!root.active || root.gpuSuspended) return
+        var parts = String(data).trim().split(/,\s*/)
+        var load = Number(parts[0])
+        var temp = Number(parts[1])
+        if (isFinite(load) && load >= 0 && load <= 100) root.gpuLoad = load
+        if (isFinite(temp) && temp >= 0) root.gpuTemp = temp
       }
     }
   }

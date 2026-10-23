@@ -17,10 +17,10 @@ import "../services"
 // columns end on the same line by construction and no card is ever stretched
 // to eat leftover space.
 //
-//   LEFT   196px   clock + calendar (7u) · top processes (3u)
-//   MIDDLE 232px   toggles (1u) · controls (2u) · cpu|gpu (2u) · ram|fan (1u)
+//   LEFT   196px   clock + calendar (7u) · top processes (4u)
+//   MIDDLE 232px   toggles (1u) · controls (2u) · cpu|gpu (2u) · ram|fan (2u)
 //                  network (2u) · weather (2u)
-//   RIGHT  196px   identity (1u) · power (3u) · profile|gpu mode (1u)
+//   RIGHT  196px   identity (1u) · power (4u) · profile|gpu mode (1u)
 //                  storage (4u) · updates|uptime (1u)
 //
 // Only Theme.qml may define a size, a colour or a weight; only Format.qml may
@@ -275,9 +275,9 @@ Item {
     rows.sort(function (a, b) {
       return Math.max(b.cpu, b.memory) - Math.max(a.cpu, a.memory)
     })
-    return rows.slice(0, 3)
+    return rows.slice(0, 4)
   }
-  readonly property int procRowCount: 3
+  readonly property int procRowCount: 4
   readonly property real procNameW: root.colAW - 2 * Theme.cardPadX
     - Theme.procCpuColWidth - Theme.procRamColWidth
 
@@ -359,6 +359,13 @@ Item {
   readonly property real storageCellW: (root.colCW - 2 * Theme.cardPadX - root.gut) / 2
   readonly property string uptimeText: root.storageService && root.storageService.uptimeSeconds > 0
     ? Format.uptime(root.storageService.uptimeSeconds) : "--"
+  readonly property string batteryTimeText: {
+    if (!root.batteryService || !root.batteryService.battery) return ""
+    var seconds = root.batteryCharging
+      ? root.batteryService.battery.timeToFull
+      : root.batteryService.battery.timeToEmpty
+    return seconds > 0 ? Format.uptime(seconds) + (root.batteryCharging ? " to full" : " remaining") : ""
+  }
 
   // "foxware · 7.2.11": the release part of the kernel fits the caption line.
   readonly property string hostLine: {
@@ -657,10 +664,10 @@ Item {
         }
       }
 
-      // --- top processes (3u) ------------------------------------------------
+      // --- top processes (4u) ------------------------------------------------
       Card {
         width: colA.width
-        height: root.h3
+        height: root.h4
         entranceIndex: 1
 
         Item {
@@ -772,7 +779,7 @@ Item {
 
     // -------------------------------------------------------------------------
     // MIDDLE — 232px — toggles (1u) · controls (2u) · cpu|gpu (2u) ·
-    // ram|fan (1u) · network (2u) · weather (2u)
+    // ram|fan (2u) · network (2u) · weather (2u)
     // -------------------------------------------------------------------------
     Column {
       id: colB
@@ -1092,7 +1099,8 @@ Item {
               width: parent.width
               height: root.mCaptionH
               verticalAlignment: Text.AlignVCenter
-              text: "GPU"
+              text: root.thermalService && root.thermalService.gpuSuspended
+                ? "GPU . SUSPENDED" : "GPU"
             }
             Row {
               width: parent.width
@@ -1102,8 +1110,10 @@ Item {
                 width: Theme.metricValueWidth
                 height: parent.height
                 verticalAlignment: Text.AlignVCenter
-                color: Theme.loadColor(root.gpuLoad)
-                text: Format.percent(root.gpuLoad)
+                color: root.thermalService && root.thermalService.gpuSuspended
+                  ? Theme.comment : Theme.loadColor(root.gpuLoad)
+                text: root.thermalService && root.thermalService.gpuSuspended
+                  ? "--" : Format.percent(root.gpuLoad)
               }
               Item {
                 width: Theme.gapSmall
@@ -1113,8 +1123,10 @@ Item {
                 width: parent.width - Theme.metricValueWidth - Theme.gapSmall
                 height: parent.height
                 verticalAlignment: Text.AlignBottom
-                color: Theme.temperatureColor(root.gpuTemp)
-                text: Format.temp(root.gpuTemp)
+                color: root.thermalService && root.thermalService.gpuSuspended
+                  ? Theme.comment : Theme.temperatureColor(root.gpuTemp)
+                text: root.thermalService && root.thermalService.gpuSuspended
+                  ? "--" : Format.temp(root.gpuTemp)
               }
             }
             LineGraph {
@@ -1129,10 +1141,10 @@ Item {
         }
       }
 
-      // --- ram | fan (1u) ----------------------------------------------------
+      // --- ram | fan (2u) ----------------------------------------------------
       Row {
         width: colB.width
-        height: root.h1
+        height: root.h2
         spacing: root.gut
 
         Card {
@@ -1145,31 +1157,49 @@ Item {
             anchors.leftMargin: Theme.cardPadXDense
             anchors.rightMargin: Theme.cardPadXDense
 
-            Row {
+            Column {
               id: ramRow
               width: parent.width
-              height: parent.height
-              spacing: 0
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Theme.gapMedium
 
-              Caption {
-                id: ramCaption
-                width: Theme.compactCaptionWidth
-                height: parent.height
-                verticalAlignment: Text.AlignVCenter
-                text: "RAM"
+              Column {
+                width: parent.width
+                spacing: Theme.gapTight
+                Caption {
+                  width: parent.width
+                  height: root.mCaptionH
+                  verticalAlignment: Text.AlignBottom
+                  text: "RAM"
+                }
+                Value {
+                  id: ramValue
+                  width: parent.width
+                  height: root.mValueH
+                  horizontalAlignment: Text.AlignRight
+                  verticalAlignment: Text.AlignVCenter
+                  color: Theme.memoryColor(root.ramPercent)
+                  text: Format.usedTotal(root.ramUsed, root.ramTotal)
+                  elide: Text.ElideNone
+                }
               }
-              Item {
-                width: parent.width - ramCaption.width - ramValue.width
-                height: parent.height
-              }
-              Value {
-                id: ramValue
-                width: parent.width - ramCaption.width
-                height: parent.height
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-                color: Theme.memoryColor(root.ramPercent)
-                text: Format.usedTotal(root.ramUsed, root.ramTotal)
+
+              Row {
+                width: parent.width
+                height: Theme.ramBarHeight
+                spacing: Theme.batteryBarGap
+                Repeater {
+                  model: Theme.batteryBarSegments
+                  delegate: Rectangle {
+                    required property int index
+                    width: (parent.width - (Theme.batteryBarSegments - 1) * Theme.batteryBarGap)
+                      / Theme.batteryBarSegments
+                    height: Theme.ramBarHeight
+                    radius: Theme.batteryBarRadius
+                    color: index < Math.round(root.ramPercent / 10)
+                      ? Theme.memoryColor(root.ramPercent) : Theme.selection
+                  }
+                }
               }
             }
           }
@@ -1185,32 +1215,43 @@ Item {
             anchors.leftMargin: Theme.cardPadXDense
             anchors.rightMargin: Theme.cardPadXDense
 
-            Row {
+            Column {
               id: fanRow
               width: parent.width
-              height: parent.height
-              spacing: 0
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Theme.gapTight
 
               Caption {
-                id: fanCaption
-                width: Theme.compactCaptionWidth
-                height: parent.height
+                width: parent.width
+                height: Theme.fanHeaderHeight
                 verticalAlignment: Text.AlignVCenter
-                text: "FAN"
+                text: "FAN . RPM"
               }
-              Item {
-                width: parent.width - fanCaption.width - fanValue.width
-                height: parent.height
+              Row {
+                width: parent.width
+                height: Theme.fanLineHeight
+                Caption { width: Theme.fanLabelWidth; height: parent.height; verticalAlignment: Text.AlignVCenter; text: "CPU" }
+                Value {
+                  width: parent.width - Theme.fanLabelWidth
+                  height: parent.height
+                  horizontalAlignment: Text.AlignRight
+                  verticalAlignment: Text.AlignVCenter
+                  color: root.cpuFanSpeed > 0 ? Theme.foreground : Theme.comment
+                  text: root.cpuFanSpeed >= 0 ? String(Math.round(root.cpuFanSpeed)) : "N/A"
+                }
               }
-              Value {
-                id: fanValue
-                width: parent.width - fanCaption.width
-                height: parent.height
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-                color: root.cpuFanSpeed > 0 ? Theme.foreground : Theme.comment
-                text: root.cpuFanSpeed > 0
-                  ? Math.round(root.cpuFanSpeed) + " RPM" : "IDLE"
+              Row {
+                width: parent.width
+                height: Theme.fanLineHeight
+                Caption { width: Theme.fanLabelWidth; height: parent.height; verticalAlignment: Text.AlignVCenter; text: "GPU" }
+                Value {
+                  width: parent.width - Theme.fanLabelWidth
+                  height: parent.height
+                  horizontalAlignment: Text.AlignRight
+                  verticalAlignment: Text.AlignVCenter
+                  color: root.gpuFanSpeed > 0 ? Theme.foreground : Theme.comment
+                  text: root.gpuFanSpeed >= 0 ? String(Math.round(root.gpuFanSpeed)) : "N/A"
+                }
               }
             }
           }
@@ -1432,10 +1473,10 @@ Item {
         }
       }
 
-      // --- power (3u) --------------------------------------------------------
+      // --- power (4u) --------------------------------------------------------
       Card {
         width: colC.width
-        height: root.h3
+        height: root.h4
         entranceIndex: 11
 
         Column {
@@ -1490,6 +1531,15 @@ Item {
             elide: Text.ElideNone
             clip: true
             text: root.batteryStatusText
+          }
+
+          Body {
+            width: parent.width
+            height: root.mBodyH
+            verticalAlignment: Text.AlignVCenter
+            color: Theme.comment
+            text: root.batteryTimeText
+            visible: root.batteryTimeText.length > 0
           }
 
           Item {
