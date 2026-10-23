@@ -50,6 +50,7 @@ QtObject {
   readonly property color cardHoverFill: "#3a3e52"
   readonly property color activeTint: "#383548"
   readonly property color chargeLimitActiveTint: "#4b313a"
+  readonly property color transparent: "transparent"
 
   // ===========================================================================
   // Grid — the compact panel is laid out on a 36px unit
@@ -86,10 +87,10 @@ QtObject {
   readonly property int columnLeftWidth: 196
   readonly property int columnMiddleWidth: 232
   readonly property int columnRightWidth: 196
-  readonly property int columnUnits: 10
+  readonly property int columnUnits: 11
 
   // Derived body geometry: 196 + 232 + 196 + two 8px gutters = 640px of
-  // columns, and 10 units + 9 gutters = 432px of height.
+  // columns, and 11 units + 10 gutters = 476px of height.
   readonly property int bodyWidth: columnLeftWidth + columnMiddleWidth
     + columnRightWidth + gridGutter * 2
   readonly property int columnHeight: columnUnits * gridUnit
@@ -139,6 +140,7 @@ QtObject {
   readonly property int graphSampleCount: 60
   readonly property int graphSampleInterval: 1000
   readonly property int graphBorderWidth: 1
+  readonly property int graphInset: 2
   readonly property real graphLineWidth: 1.5
   readonly property color graphGrid: "#263a3e52"
 
@@ -169,6 +171,8 @@ QtObject {
   readonly property int pillInnerGap: 8
   readonly property int pillIcon: 16
   readonly property int pillWorkspaceCell: 20
+  readonly property int pillWorkspaceHeight: 20
+  readonly property int pillWorkspaceGap: 2
   readonly property int pillMinWidth: 150
   readonly property int pillMaxWidth: 920
   readonly property int pillTitleMaxWidth: 300
@@ -203,6 +207,17 @@ QtObject {
   readonly property int pillMeterMaxWidth: 80
   readonly property int chargeLimitLabelWidth: 92
   readonly property int chargeLimitValueWidth: 48
+  readonly property int chargePopupWidth: 286
+  readonly property int chargePopupRowHeight: 44
+  readonly property int chargePopupGap: 8
+  readonly property int chargePopupPad: 12
+  readonly property int chargePopupOffset: 8
+  readonly property int chargeRadioSize: 14
+  readonly property int chargeRadioDot: 6
+  readonly property int fanLabelWidth: 34
+  readonly property int fanHeaderHeight: 12
+  readonly property int fanLineHeight: 18
+  readonly property int ramBarHeight: 4
 
   // One control row (VOL / BRI): label slot, icon slot, value slot.
   readonly property int controlRowHeight: 22

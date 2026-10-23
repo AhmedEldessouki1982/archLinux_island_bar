@@ -56,6 +56,7 @@ Item {
     var ipc = toplevel.lastIpcObject || ({})
     var raw = String(ipc["class"] || ipc.initialClass || "").trim()
     var title = String(ipc.title || toplevel.title || "").trim()
+    if (raw.toLowerCase() === "app") raw = ""
     if (!raw) return title && title.toUpperCase() !== "APP" ? title : ""
     raw = raw.replace(/\\/g, "/")
     if (raw.indexOf("/") >= 0)
@@ -273,7 +274,7 @@ Item {
       anchors.leftMargin: Theme.pillEarRadius + root.pillPad
       anchors.right: parent.right
       anchors.rightMargin: Theme.pillEarRadius + root.pillPad
-      spacing: Theme.pillGap
+      spacing: 0
       opacity: _psm.isExpanded ? 1 : 0
       clip: true
 
@@ -302,18 +303,22 @@ Item {
         }
       }
 
-      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
+      Item {
+        Layout.preferredWidth: Theme.pillGap
+        Layout.preferredHeight: Theme.pillIcon
+        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
+      }
 
       Item {
         id: workspaceArea
         Layout.preferredWidth: workspaceRow.implicitWidth
-        Layout.preferredHeight: 20
+        Layout.preferredHeight: Theme.pillWorkspaceHeight
         Layout.alignment: Qt.AlignVCenter
 
         RowLayout {
           id: workspaceRow
           anchors.centerIn: parent
-          spacing: 2
+          spacing: Theme.pillWorkspaceGap
 
           Repeater {
             model: 10
@@ -335,7 +340,7 @@ Item {
               Layout.preferredWidth: Theme.pillWorkspaceCell
               Layout.minimumWidth: Theme.pillWorkspaceCell
               Layout.maximumWidth: Theme.pillWorkspaceCell
-              Layout.preferredHeight: 20
+              Layout.preferredHeight: Theme.pillWorkspaceHeight
               Layout.alignment: Qt.AlignVCenter
 
               Txt {
@@ -365,7 +370,11 @@ Item {
         }
       }
 
-      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
+      Item {
+        Layout.preferredWidth: Theme.pillGap
+        Layout.preferredHeight: Theme.pillIcon
+        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
+      }
 
       Txt {
         id: appTitle
@@ -381,7 +390,11 @@ Item {
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
+      Item {
+        Layout.preferredWidth: Theme.pillGap
+        Layout.preferredHeight: Theme.pillIcon
+        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
+      }
 
       // --- actions zone: health + notifications ---
       Item {
@@ -464,9 +477,14 @@ Item {
         }
       }
 
-      Rectangle { Layout.preferredWidth: Theme.pillDividerWidth; Layout.preferredHeight: Theme.pillIcon; color: Theme.pillDivider }
+      Item {
+        Layout.preferredWidth: Theme.pillGap
+        Layout.preferredHeight: Theme.pillIcon
+        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
+      }
 
       MouseArea {
+        id: batteryButton
         Layout.alignment: Qt.AlignVCenter
         width: Theme.pillIcon + Theme.pillInnerGap + batteryPercent.implicitWidth
         height: Theme.pillIcon
@@ -479,6 +497,7 @@ Item {
           height: Theme.pillIcon
           percent: _batteryService.capacity
           charging: _batteryService.charging
+          showPercent: false
         }
 
         Txt {
@@ -493,7 +512,7 @@ Item {
         }
 
         onClicked: {
-          if (root.batteryLimitWindow) root.batteryLimitWindow.open()
+          if (root.batteryLimitWindow) root.batteryLimitWindow.open(batteryButton)
         }
       }
     }

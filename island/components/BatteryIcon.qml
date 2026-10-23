@@ -5,12 +5,13 @@ import "../config"
 
 Item {
   id: root
-  width: 56
-  height: Theme.iconSize
-
   property int percent: 100
   property bool charging: false
   property int glyphNudge: -2
+  property bool showPercent: true
+
+  width: root.showPercent ? Theme.pillBatteryWidth : Theme.pillIcon
+  height: Theme.pillIcon
 
   // ---- battery glyph selection based on percentage & charging ----
   function batteryGlyph() {
@@ -39,11 +40,11 @@ Item {
 
   RowLayout {
     anchors.centerIn: parent
-    spacing: 4
+    spacing: Theme.pillInnerGap
 
     Item {
-      width: Theme.iconSize
-      height: Theme.iconSize
+      width: Theme.pillIcon
+      height: Theme.pillIcon
       Layout.alignment: Qt.AlignVCenter
 
       Txt {
@@ -59,10 +60,11 @@ Item {
     }
 
     Txt {
-      width: 32
+      width: Theme.pillBatteryWidth - Theme.pillIcon - Theme.pillInnerGap
       height: parent.height
-      Layout.preferredWidth: 32
+      Layout.preferredWidth: width
       Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+      visible: root.showPercent
       text: Format.percent(root.percent)
       color: root.batteryColor()
       variant: "body"
