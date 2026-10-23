@@ -529,11 +529,15 @@ Item {
           text: Math.round(_batteryService.capacity) + "%"
           color: Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
           variant: "body"
+          font.pixelSize: Theme.iconFontSize
+          verticalAlignment: Text.AlignVCenter
           elide: Text.ElideNone
         }
 
-        onClicked: {
-          if (root.batteryLimitWindow) root.batteryLimitWindow.open(batteryButton)
+        // enlarge text slightly on hover for better legibility/center feel
+        scale: batteryButton.containsMouse ? 1.08 : 1.0
+        Behavior on scale {
+          NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
         }
       }
     }
