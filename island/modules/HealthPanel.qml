@@ -455,7 +455,8 @@ Item {
       var dayKey = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
       if (dayKey !== root.calendarDayKey) root.rebuildCalendar()
       root.cpuHistory = root.pushSample(root.cpuHistory, root.cpuLoad)
-      var gpuVal = (root.thermalService && root.thermalService.gpuSuspended) ? 0 : root.gpuLoad
+      var gpuVal = (root.thermalService && root.thermalService.gpuReading)
+        ? root.thermalService.gpuLoadOut : 0
       root.gpuHistory = root.pushSample(root.gpuHistory, gpuVal)
     }
   }
@@ -1100,8 +1101,12 @@ Item {
               width: parent.width
               height: root.mCaptionH
               verticalAlignment: Text.AlignVCenter
-              text: root.thermalService && root.thermalService.gpuSuspended
-                ? "GPU . SUSPENDED" : "GPU"
+              text: {
+                var t = root.thermalService
+                if (!t) return "GPU"
+                if (t.showIgpu) return "GPU . IGPU"
+                return t.gpuReading ? "GPU" : "GPU . SUSPENDED"
+              }
             }
             Row {
               width: parent.width
@@ -1111,10 +1116,10 @@ Item {
                 width: Theme.metricValueWidth
                 height: parent.height
                 verticalAlignment: Text.AlignVCenter
-                color: root.thermalService && root.thermalService.gpuSuspended
-                  ? Theme.comment : Theme.loadColor(root.gpuLoad)
-                text: root.thermalService && root.thermalService.gpuSuspended
-                  ? "--" : Format.percent(root.gpuLoad)
+                color: root.thermalService && root.thermalService.gpuReading
+                  ? Theme.loadColor(root.thermalService.gpuLoadOut) : Theme.comment
+                text: root.thermalService && root.thermalService.gpuReading
+                  ? Format.percent(root.thermalService.gpuLoadOut) : "--"
               }
               Item {
                 width: Theme.gapSmall
@@ -1124,20 +1129,21 @@ Item {
                 width: parent.width - Theme.metricValueWidth - Theme.gapSmall
                 height: parent.height
                 verticalAlignment: Text.AlignBottom
-                color: root.thermalService && root.thermalService.gpuSuspended
-                  ? Theme.comment : Theme.temperatureColor(root.gpuTemp)
-                text: root.thermalService && root.thermalService.gpuSuspended
-                  ? "--" : Format.temp(root.gpuTemp)
+                color: root.thermalService && root.thermalService.gpuReading
+                  ? Theme.temperatureColor(root.thermalService.gpuTempOut) : Theme.comment
+                text: root.thermalService && root.thermalService.gpuReading
+                  ? Format.temp(root.thermalService.gpuTempOut) : "--"
               }
             }
             LineGraph {
               width: parent.width
               height: Theme.sparklineHeight
               samples: root.gpuHistory
-              color: (root.thermalService && root.thermalService.gpuSuspended)
-                ? Theme.comment : Theme.graphColor(root.gpuLoad)
+              color: (root.thermalService && !root.thermalService.gpuReading)
+                ? Theme.comment : Theme.graphColor(root.thermalService
+                    ? root.thermalService.gpuLoadOut : 0)
               maxValue: 100
-              active: root.active && !(root.thermalService && root.thermalService.gpuSuspended)
+              active: root.active && !!(root.thermalService && root.thermalService.gpuReading)
             }
           }
         }
@@ -1621,9 +1627,12 @@ Item {
               }
               Value {
                 width: parent.width
-                height: root.mValueH
+                height: root.mBodyH
                 verticalAlignment: Text.AlignVCenter
+                variant: "body"
                 text: root.profileText
+                elide: Text.ElideRight
+                clip: true
               }
             }
           }
@@ -1675,10 +1684,12 @@ Item {
               }
               Value {
                 width: parent.width
-                height: root.mValueH
+                height: root.mBodyH
                 verticalAlignment: Text.AlignVCenter
+                variant: "body"
                 text: root.gpuModeText
-                elide: Text.ElideNone
+                elide: Text.ElideRight
+                clip: true
               }
             }
           }
@@ -1813,6 +1824,7 @@ Item {
                 width: parent.width
                 height: root.updateIsCount ? root.mValueH : root.mBodyH
                 verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
                 variant: root.updateIsCount ? "value" : "body"
                 color: root.updateCount === 0 ? Theme.green
                   : (root.updateCount > 0 ? Theme.foreground : Theme.comment)
