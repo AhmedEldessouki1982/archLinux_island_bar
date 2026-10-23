@@ -26,16 +26,28 @@ Item {
   property bool chargeLimitRead: false
   property bool chargeLimitSupported: false
   property bool chargeLimitMonitoring: false
+  property bool chargeLimitReading: false
+  property bool chargeLimitSetting: false
+  property bool chargeLimitError: false
+  property bool chargeLimitSetConfirmed: false
+  property int _expectedChargeLimit: -1
+  property bool _verifyingChargeLimit: false
 
   function refreshChargeLimit() {
     if (!getLimitProc.running) {
       root.chargeLimitRead = false
+      root.chargeLimitReading = true
       getLimitProc.running = true
     }
   }
 
   function setLimit(pct) {
-    if (!root.chargeLimitSupported || setLimitProc.running) return
+    if (!root.chargeLimitSupported || getLimitProc.running || setLimitProc.running) return
+    root.chargeLimitSetting = true
+    root.chargeLimitError = false
+    root.chargeLimitSetConfirmed = false
+    root._expectedChargeLimit = Math.max(20, Math.min(100, pct))
+    root._verifyingChargeLimit = false
     setLimitProc.command = ["asusctl", "battery", "limit", String(Math.max(20, Math.min(100, pct)))]
     setLimitProc.running = true
   }
@@ -57,8 +69,26 @@ Item {
           if (!isNaN(v) && v >= 20 && v <= 100) {
             root.chargeLimit = v
             root.chargeLimitRead = true
+            if (root._verifyingChargeLimit) {
+              root._verifyingChargeLimit = false
+              root.chargeLimitSetting = false
+              if (v === root._expectedChargeLimit) {
+                root.chargeLimitError = false
+                root.chargeLimitSetConfirmed = true
+              } else {
+                root.chargeLimitError = true
+              }
+            }
           }
         }
+      }
+    }
+    onExited: (exitCode, exitStatus) => {
+      root.chargeLimitReading = false
+      if (root._verifyingChargeLimit && !root.chargeLimitRead) {
+        root._verifyingChargeLimit = false
+        root.chargeLimitSetting = false
+        root.chargeLimitError = true
       }
     }
   }
@@ -67,7 +97,16 @@ Item {
     id: setLimitProc
     command: ["true"]
     running: false
-    onExited: () => { root.refreshChargeLimit() }
+    onExited: (exitCode, exitStatus) => {
+      if (exitCode !== 0 || exitStatus !== 0) {
+        root.chargeLimitSetting = false
+        root.chargeLimitError = true
+        root._verifyingChargeLimit = false
+      } else {
+        root._verifyingChargeLimit = true
+        root.refreshChargeLimit()
+      }
+    }
   }
 
   function pickBattery() {

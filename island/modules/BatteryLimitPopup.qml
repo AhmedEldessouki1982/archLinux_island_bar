@@ -8,28 +8,34 @@ import "../config"
 PanelWindow {
   id: root
   visible: false
-  color: "transparent"
+  color: Theme.transparent
   exclusionMode: ExclusionMode.Ignore
   aboveWindows: true
+  focusable: true
 
   property var batteryService: null
-  property int popupW: 260
+  property var anchorItem: null
+  property int popupW: Theme.chargePopupWidth
 
   WlrLayershell.layer: WlrLayer.Overlay
-
   anchors.top: true
   anchors.left: true
   anchors.right: true
   anchors.bottom: true
 
   Timer {
-    id: autoCloseTimer
-    interval: 6000
+    id: successCloseTimer
+    interval: 400
+    repeat: false
     onTriggered: root.close()
   }
 
-  onVisibleChanged: {
-    if (root.visible) autoCloseTimer.restart()
+  Connections {
+    target: root.batteryService
+    function onChargeLimitSetConfirmedChanged() {
+      if (root.batteryService && root.batteryService.chargeLimitSetConfirmed)
+        successCloseTimer.restart()
+    }
   }
 
   MouseArea {
@@ -40,142 +46,146 @@ PanelWindow {
   Item {
     id: container
     width: root.popupW
-    height: 12 + 20 + 8 + 46 * 3 + 8 * 2 + 12
-    anchors.top: parent.top
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.topMargin: 44
-    opacity: 0
-
-    Behavior on opacity {
-      NumberAnimation { duration: Theme.animDurationNormal; easing: Easing.OutQuad }
-    }
+    height: root.containerHeight
+    opacity: 1
+    x: 0
+    y: 0
 
     Rectangle {
-      id: card
       anchors.fill: parent
-      radius: 12
-      color: Theme.background
-      border.width: 1
-      border.color: Theme.selection
+      radius: Theme.cardRadius
+      color: Theme.cardFill
+      border.width: Theme.cardBorderWidth
+      border.color: Theme.cardBorderColor
     }
 
     ColumnLayout {
       anchors.fill: parent
-      anchors.leftMargin: 12
-      anchors.rightMargin: 12
-      anchors.topMargin: 12
-      anchors.bottomMargin: 12
-      spacing: 8
+      anchors.margins: Theme.chargePopupPad
+      spacing: Theme.chargePopupGap
 
       RowLayout {
         Layout.fillWidth: true
-        spacing: 6
+        spacing: Theme.gapSmall
 
         Txt {
-          Layout.preferredWidth: Theme.chargeLimitLabelWidth
-          Layout.maximumWidth: Theme.chargeLimitLabelWidth
+          Layout.fillWidth: true
           text: root.batteryService && root.batteryService.chargeLimitRead
             ? "CHARGE LIMIT" : "LIMIT N/A"
-          color: Theme.comment
           variant: "caption"
-          Layout.alignment: Qt.AlignVCenter
-          elide: Text.ElideNone
+          elide: Text.ElideRight
         }
-
-        Item { Layout.fillWidth: true }
-
         Txt {
           Layout.preferredWidth: Theme.chargeLimitValueWidth
-          Layout.maximumWidth: Theme.chargeLimitValueWidth
+          horizontalAlignment: Text.AlignRight
           text: root.batteryService && root.batteryService.chargeLimitRead
-            ? Format.percent(root.batteryService.chargeLimit) : ""
-          color: Theme.chargeLimitActive
-          variant: "value"
-          Layout.alignment: Qt.AlignVCenter
-          elide: Text.ElideNone
+            ? Format.percent(root.batteryService.chargeLimit)
+            : (root.batteryService && root.batteryService.chargeLimitReading ? "wait" : "")
+          color: root.batteryService && root.batteryService.chargeLimitRead
+            ? Theme.chargeLimitActive : Theme.comment
+          variant: root.batteryService && root.batteryService.chargeLimitRead ? "value" : "body"
+          elide: Text.ElideRight
         }
       }
 
       Repeater {
         model: root.batteryService && root.batteryService.chargeLimitSupported
           && root.batteryService.chargeLimitRead ? [
-          { pct: 60, title: "Max Protection", sub: "Limit charging to 60%" },
-          { pct: 80, title: "Balanced Protection", sub: "Limit charging to 80%" },
-          { pct: 100, title: "Fully Charged", sub: "Allow charging to 100%" }
+          { pct: 60, detail: "Longest battery life" },
+          { pct: 80, detail: "Balanced" },
+          { pct: 100, detail: "Full capacity" }
         ] : []
 
         delegate: Rectangle {
+          id: option
           required property var modelData
           Layout.fillWidth: true
-          Layout.preferredHeight: 46
-          radius: 8
-          color: root.cardColorFor(root.isActive(modelData.pct))
-          border.width: 1
-          border.color: root.isActive(modelData.pct) ? Theme.accent : root.cardBorderColor()
-          antialiasing: true
+          Layout.preferredHeight: Theme.chargePopupRowHeight
+          radius: Theme.chipRadius
+          color: root.isActive(modelData.pct) ? Theme.chargeLimitActiveTint
+            : (rowMouse.containsMouse ? Theme.cardHoverFill : Theme.cardFill)
+          border.width: Theme.cardBorderWidth
+          border.color: root.isActive(modelData.pct) ? Theme.chargeLimitActive : Theme.cardBorderColor
 
           MouseArea {
+            id: rowMouse
             anchors.fill: parent
+            hoverEnabled: true
+            enabled: root.batteryService && !root.batteryService.chargeLimitReading
+              && !root.batteryService.chargeLimitSetting
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-              if (root.batteryService) root.batteryService.setLimit(modelData.pct)
-              root.close()
+              if (root.batteryService) root.batteryService.setLimit(option.modelData.pct)
             }
           }
 
           RowLayout {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
-            spacing: 10
+            anchors.fill: parent
+            anchors.leftMargin: Theme.cardPadX
+            anchors.rightMargin: Theme.cardPadX
+            spacing: Theme.gapSmall
 
             Rectangle {
-              width: 14
-              height: 14
-              radius: 7
-              border.width: 2
-              border.color: root.isActive(modelData.pct) ? Theme.accent : Theme.comment
-              color: "transparent"
-              Layout.alignment: Qt.AlignVCenter
-
+              Layout.preferredWidth: Theme.chargeRadioSize
+              Layout.preferredHeight: Theme.chargeRadioSize
+              radius: Theme.chargeRadioSize / 2
+              color: Theme.transparent
+              border.width: Theme.cardBorderWidth
+              border.color: root.isActive(option.modelData.pct)
+                ? Theme.chargeLimitActive : Theme.comment
               Rectangle {
-                width: 6
-                height: 6
-                radius: 3
                 anchors.centerIn: parent
-                visible: root.isActive(modelData.pct)
-                color: Theme.accent
+                width: Theme.chargeRadioDot
+                height: Theme.chargeRadioDot
+                radius: Theme.chargeRadioDot / 2
+                visible: root.isActive(option.modelData.pct)
+                color: Theme.chargeLimitActive
               }
             }
 
-            ColumnLayout {
+            Txt {
+              Layout.preferredWidth: Theme.chargeLimitValueWidth
+              text: Format.percent(option.modelData.pct)
+              color: root.isActive(option.modelData.pct)
+                ? Theme.chargeLimitActive : Theme.foreground
+              variant: "value"
+              elide: Text.ElideNone
+            }
+
+            Txt {
               Layout.fillWidth: true
-              spacing: 1
-
-              Txt {
-                Layout.fillWidth: true
-                Layout.maximumWidth: parent.width
-                text: modelData.title
-                color: root.isActive(modelData.pct) ? Theme.accent : Theme.foreground
-                variant: "value"
-                elide: Text.ElideNone
-              }
-
-              Txt {
-                Layout.fillWidth: true
-                Layout.maximumWidth: parent.width
-                text: modelData.sub
-                color: Theme.comment
-                variant: "caption"
-                elide: Text.ElideNone
-              }
+              text: option.modelData.detail
+              variant: "caption"
+              elide: Text.ElideRight
             }
           }
         }
       }
+
+      Txt {
+        visible: root.batteryService && root.batteryService.chargeLimitError
+        Layout.fillWidth: true
+        text: "Could not set limit"
+        color: Theme.red
+        variant: "caption"
+        elide: Text.ElideNone
+      }
     }
+  }
+
+  readonly property int optionCount: root.batteryService && root.batteryService.chargeLimitSupported
+    && root.batteryService.chargeLimitRead ? 3 : 0
+  readonly property int contentRowCount: 1 + root.optionCount
+    + (root.batteryService && root.batteryService.chargeLimitError ? 1 : 0)
+  readonly property int containerHeight: Theme.chargePopupPad * 2 + Theme.fontSizeValue
+    + root.optionCount * Theme.chargePopupRowHeight
+    + (root.batteryService && root.batteryService.chargeLimitError ? Theme.fontSizeCaption : 0)
+    + Math.max(0, root.contentRowCount - 1) * Theme.chargePopupGap
+
+  Shortcut {
+    sequence: "Escape"
+    enabled: root.visible
+    onActivated: root.close()
   }
 
   function isActive(pct) {
@@ -183,22 +193,21 @@ PanelWindow {
       && root.batteryService.chargeLimit === pct
   }
 
-  function cardColorFor(active) {
-    return active ? Theme.activeTint : Theme.cardFill
-  }
-
-  function cardBorderColor() {
-    return Theme.cardBorderColor
-  }
-
-  function open() {
+  function open(anchor) {
+    root.anchorItem = anchor || null
+    if (root.batteryService) root.batteryService.refreshChargeLimit()
     root.visible = true
-    container.opacity = 0
-    container.opacity = 1
+    if (root.anchorItem) {
+      var point = root.anchorItem.mapToGlobal(Qt.point(0, root.anchorItem.height))
+      container.x = Math.max(Theme.chargePopupPad,
+        Math.min(point.x + root.anchorItem.width - root.popupW,
+          (root.screen ? root.screen.width : root.width) - root.popupW - Theme.chargePopupPad))
+      container.y = point.y + Theme.chargePopupOffset
+    }
   }
 
   function close() {
-    container.opacity = 0
+    successCloseTimer.stop()
     root.visible = false
   }
 }
