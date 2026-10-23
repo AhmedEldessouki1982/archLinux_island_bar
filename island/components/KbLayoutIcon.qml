@@ -18,8 +18,8 @@ Item {
     return root.keymap.length >= 2 ? root.keymap.substring(0, 2).toUpperCase() : ""
   }
 
-  width: Math.max(flagText.implicitWidth, Theme.pillIcon) + 4
-  height: Theme.pillIcon
+  width: Math.max(flagText.implicitWidth, 16) + 4
+  height: 22
 
   Txt {
     id: flagText
@@ -28,9 +28,6 @@ Item {
     anchors.centerIn: parent
     text: root.glyph
     variant: "body"
-    font.pixelSize: Theme.iconFontSize
-    horizontalAlignment: Text.AlignHCenter
-    verticalAlignment: Text.AlignVCenter
     elide: Text.ElideNone
   }
 

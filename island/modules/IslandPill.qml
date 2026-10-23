@@ -455,9 +455,6 @@ Item {
               text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
               color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
               variant: "body"
-              font.pixelSize: Theme.iconFontSize
-              verticalAlignment: Text.AlignVCenter
-              horizontalAlignment: Text.AlignHCenter
               elide: Text.ElideNone
             }
 
@@ -493,7 +490,6 @@ Item {
           KbLayoutIcon {
             width: Theme.pillIcon
             height: Theme.pillIcon
-            Layout.alignment: Qt.AlignVCenter
           }
         }
       }
@@ -529,15 +525,11 @@ Item {
           text: Math.round(_batteryService.capacity) + "%"
           color: Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
           variant: "body"
-          font.pixelSize: Theme.iconFontSize
-          verticalAlignment: Text.AlignVCenter
           elide: Text.ElideNone
         }
 
-        // enlarge text slightly on hover for better legibility/center feel
-        scale: batteryButton.containsMouse ? 1.08 : 1.0
-        Behavior on scale {
-          NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
+        onClicked: {
+          if (root.batteryLimitWindow) root.batteryLimitWindow.open(batteryButton)
         }
       }
     }

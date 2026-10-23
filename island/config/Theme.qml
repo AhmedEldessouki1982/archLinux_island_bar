@@ -232,8 +232,8 @@ QtObject {
   readonly property int latencyColWidth: 44
 
   // Icon sizes used by the island pill.
-  property int iconSize: 18
-  property int iconFontSize: 17
+  property int iconSize: 16
+  property int iconFontSize: 15
   property real iconLineWidth: 1.5
 
   // ===========================================================================
