@@ -455,6 +455,9 @@ Item {
               text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
               color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
               variant: "body"
+              font.pixelSize: Theme.iconFontSize
+              verticalAlignment: Text.AlignVCenter
+              horizontalAlignment: Text.AlignHCenter
               elide: Text.ElideNone
             }
 
@@ -490,6 +493,7 @@ Item {
           KbLayoutIcon {
             width: Theme.pillIcon
             height: Theme.pillIcon
+            Layout.alignment: Qt.AlignVCenter
           }
         }
       }
