@@ -260,6 +260,9 @@ Rectangle {
           color: Theme.foreground
           font.family: Theme.fontFamily
           font.pixelSize: Theme.fontSizeCaption
+          font.weight: Theme.fontWeightCaption
+          font.letterSpacing: Theme.letterSpacingCaption
+          font.capitalization: Font.AllUppercase
           echoMode: TextInput.Normal
           Txt {
             anchors.fill: parent

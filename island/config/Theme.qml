@@ -38,8 +38,12 @@ QtObject {
   // Contrast against cardFill: 4.98:1 (WCAG AA needs 4.5:1).
   readonly property color label: "#a49bee"
 
-  // Dimmed text (unavailable values, idle states).
-  readonly property color comment: label
+  // Dimmed text (unavailable values, idle states). This is deliberately a
+  // darker step of the same lavender so secondary text stays behind a label
+  // instead of reading as one: 3.61:1 on cardFill, 4.18:1 on background.
+  // Only values that are absent or inactive use it — never information the
+  // reader needs right now.
+  readonly property color comment: "#8b85bb"
 
   // Slider track / inactive chip fill.
   property color selection: "#44475a"
@@ -122,9 +126,8 @@ QtObject {
   readonly property int fontSizeHero: 24
   readonly property int fontWeightHero: 700
 
-  // Legacy aliases, still used by the island pill and its popups.
-  readonly property int fontSizeLabel: 10
-  readonly property int fontSizeTitle: 15
+  // Every text in the shell draws from the four steps above through the Txt
+  // primitive. There is no fifth size.
 
   // ===========================================================================
   // Component sizes

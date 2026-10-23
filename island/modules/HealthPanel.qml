@@ -455,7 +455,8 @@ Item {
       var dayKey = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
       if (dayKey !== root.calendarDayKey) root.rebuildCalendar()
       root.cpuHistory = root.pushSample(root.cpuHistory, root.cpuLoad)
-      root.gpuHistory = root.pushSample(root.gpuHistory, root.gpuLoad)
+      var gpuVal = (root.thermalService && root.thermalService.gpuSuspended) ? 0 : root.gpuLoad
+      root.gpuHistory = root.pushSample(root.gpuHistory, gpuVal)
     }
   }
   function start() {
@@ -1133,9 +1134,10 @@ Item {
               width: parent.width
               height: Theme.sparklineHeight
               samples: root.gpuHistory
-              color: Theme.graphColor(root.gpuLoad)
+              color: (root.thermalService && root.thermalService.gpuSuspended)
+                ? Theme.comment : Theme.graphColor(root.gpuLoad)
               maxValue: 100
-              active: root.active
+              active: root.active && !(root.thermalService && root.thermalService.gpuSuspended)
             }
           }
         }
@@ -1563,12 +1565,19 @@ Item {
                 : "LIMIT N/A"
             }
 
-            Repeater {
-              model: root.hasPresetChargeLimit() ? [60, 80, 100] : []
-              delegate: LimitChip {
-                required property int modelData
-                limit: modelData
-                height: Theme.chipHeight
+            Row {
+              visible: root.hasPresetChargeLimit()
+              width: parent.width
+              height: Theme.chipHeight
+              spacing: Theme.gapSmall
+              Repeater {
+                model: root.hasPresetChargeLimit() ? [60, 80, 100] : []
+                delegate: LimitChip {
+                  required property int modelData
+                  limit: modelData
+                  height: Theme.chipHeight
+                  width: Math.floor((parent.width - 2 * Theme.gapSmall) / 3)
+                }
               }
             }
           }
@@ -1987,20 +1996,25 @@ Item {
       ? root.batteryService.chargeLimitRead
         && root.batteryService.chargeLimit === limitChip.limit : false
 
-    width: chipLabel.width + 2 * Theme.chipPadX
+    width: (parent && parent.width ? (parent.width - 2 * Theme.gapSmall) / 3 : chipLabel.width + 2 * Theme.chipPadX)
+    height: Theme.chipHeight
     radius: Theme.chipRadius
     color: limitChip.isActive ? Theme.chargeLimitActiveTint : Theme.cardFill
-    border.width: limitChip.isActive ? Theme.cardBorderWidth : 0
-    border.color: Theme.chargeLimitActive
+    border.width: Theme.cardBorderWidth
+    border.color: limitChip.isActive ? Theme.chargeLimitActive : Theme.cardBorderColor
     antialiasing: true
+    clip: true
 
     Caption {
       id: chipLabel
-      width: implicitWidth
       anchors.centerIn: parent
+      width: parent.width - 2 * Theme.chipPadX
+      horizontalAlignment: Text.AlignHCenter
+      verticalAlignment: Text.AlignVCenter
       text: Format.percent(limitChip.limit)
       color: limitChip.isActive ? Theme.chargeLimitActive : Theme.label
       elide: Text.ElideNone
+      clip: true
     }
 
     MouseArea {

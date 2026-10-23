@@ -321,12 +321,30 @@ Item {
           spacing: Theme.pillWorkspaceGap
 
           Repeater {
-            model: 10
+            model: {
+              var ids = [1, 2, 3, 4, 5, 6]
+              var values = Hyprland.workspaces.values
+              for (var i = 0; i < values.length; i++) {
+                var wid = values[i].id
+                if (wid > 6) ids.push(wid)
+              }
+              // ensure unique and sorted
+              var seen = {}
+              var out = []
+              for (var j = 0; j < ids.length; j++) {
+                if (!seen[ids[j]]) {
+                  seen[ids[j]] = true
+                  out.push(ids[j])
+                }
+              }
+              out.sort(function(a,b){ return a-b })
+              return out
+            }
 
             Item {
               id: workspaceItem
-              required property int index
-              readonly property int workspaceId: index + 1
+              required property var modelData
+              readonly property int workspaceId: modelData
               readonly property var workspaceObject: {
                 var values = Hyprland.workspaces.values
                 for (var i = 0; i < values.length; i++)
@@ -351,8 +369,7 @@ Item {
                 text: String(workspaceItem.workspaceId)
                 color: workspaceItem.isCurrent ? Theme.accent
                   : workspaceItem.occupied ? Theme.foreground : Theme.comment
-                font.weight: workspaceItem.isCurrent ? Theme.fontWeightValue : Theme.fontWeightBody
-                variant: "body"
+                variant: workspaceItem.isCurrent ? "value" : "body"
                 elide: Text.ElideNone
               }
 
