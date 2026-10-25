@@ -1243,6 +1243,9 @@ Item {
                   verticalAlignment: Text.AlignBottom
                   text: "RAM"
                 }
+                // The percentage is the alarm signal, so it leads the card and
+                // takes the memory ramp: yellow from 60%, orange from 78%, red
+                // from 90% (Theme.memoryColor, shared with the bar below).
                 Value {
                   id: ramValue
                   width: parent.width
@@ -1250,6 +1253,15 @@ Item {
                   horizontalAlignment: Text.AlignRight
                   verticalAlignment: Text.AlignVCenter
                   color: root.ramReady ? Theme.memoryColor(root.ramPercent) : Theme.comment
+                  text: root.ramReady ? Format.percent(root.ramPercent) : "--"
+                  elide: Text.ElideNone
+                }
+                Caption {
+                  width: parent.width
+                  height: root.mCaptionH
+                  horizontalAlignment: Text.AlignRight
+                  verticalAlignment: Text.AlignVCenter
+                  color: root.ramReady ? Theme.label : Theme.comment
                   text: Format.usedTotal(root.ramUsed, root.ramTotal)
                   elide: Text.ElideNone
                 }
