@@ -414,7 +414,7 @@ Item {
       // --- actions zone: health + notifications ---
       Item {
         Layout.alignment: Qt.AlignVCenter
-        height: Theme.pillIcon
+        height: Theme.pillActionIcon
         width: actionsRow.implicitWidth
         Layout.preferredWidth: actionsRow.implicitWidth
 
@@ -424,15 +424,15 @@ Item {
           spacing: Theme.pillActionGap
 
           RegWarningIcon {
-            width: Theme.pillIcon
-            height: Theme.pillIcon
+            width: Theme.pillActionIcon
+            height: Theme.pillActionIcon
             Layout.alignment: Qt.AlignVCenter
           }
 
           HealthIcon {
             id: healthIcon
-            width: Theme.pillIcon
-            height: Theme.pillIcon
+            width: Theme.pillActionIcon
+            height: Theme.pillActionIcon
             iconColor: Theme.foreground
             Layout.alignment: Qt.AlignVCenter
 
@@ -443,8 +443,8 @@ Item {
           }
 
           Item {
-            width: Theme.pillIcon
-            height: Theme.pillIcon
+            width: Theme.pillActionIcon
+            height: Theme.pillActionIcon
             Layout.alignment: Qt.AlignVCenter
 
             Txt {
@@ -454,6 +454,7 @@ Item {
               text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
               color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
               variant: "value"
+              font.pixelSize: Theme.pillActionIcon
               elide: Text.ElideNone
             }
 
@@ -487,8 +488,8 @@ Item {
           }
 
           KbLayoutIcon {
-            width: Theme.pillIcon
-            height: Theme.pillIcon
+            width: Theme.pillActionIcon
+            height: Theme.pillActionIcon
           }
         }
       }
@@ -684,11 +685,12 @@ Item {
 
 component RegWarningIcon: Txt {
     id: regWarn
-    width: Theme.pillIcon
-    height: Theme.pillIcon
+    width: Theme.pillActionIcon
+    height: Theme.pillActionIcon
     text: "󰀦"
     color: Theme.yellow
     variant: "value"
+    font.pixelSize: Theme.pillActionIcon
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
     Layout.alignment: Qt.AlignVCenter

@@ -5,8 +5,8 @@ import "../config"
 Txt {
   id: root
   antialiasing: true
-  width: Theme.pillIcon
-  height: Theme.pillIcon
+  width: Theme.pillActionIcon
+  height: Theme.pillActionIcon
   elide: Text.ElideNone
 
   property color iconColor: Theme.foreground
@@ -14,6 +14,7 @@ Txt {
   text: "󰋑"
   color: root.iconColor
   variant: "value"
+  font.pixelSize: Theme.pillActionIcon
   horizontalAlignment: Text.AlignHCenter
   verticalAlignment: Text.AlignVCenter
 }

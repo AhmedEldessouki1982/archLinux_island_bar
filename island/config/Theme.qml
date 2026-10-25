@@ -175,6 +175,7 @@ QtObject {
   readonly property int pillActionGap: 10
   readonly property int pillHeight: 32
   readonly property int pillIcon: 16
+  readonly property int pillActionIcon: 19
   readonly property int pillPaddingLeft: 12
   readonly property int pillPaddingRight: 12
   readonly property int pillWorkspaceCell: 20
