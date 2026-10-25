@@ -191,7 +191,7 @@ Item {
         Layout.maximumWidth: Theme.pillDateWidth
         text: Qt.formatDateTime(root.currentDateTime, "dd MMM yyyy")
         color: Theme.foreground
-        variant: "body"
+        variant: "value"
         Layout.alignment: Qt.AlignVCenter
         elide: Text.ElideNone
       }
