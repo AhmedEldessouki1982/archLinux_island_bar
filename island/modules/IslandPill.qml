@@ -162,7 +162,12 @@ Item {
       }
 
       EQBars {
+        // Visible whenever audio is playing, but never animated at rest: the
+        // bars only live in the collapsed pill, and the collapsed pill is the
+        // idle state. `animated` can only become true while the pill is open,
+        // where these bars are not drawn, so the 160 ms timer never runs.
         active: _audioService.active
+        animated: _audioService.active && _psm.isExpanded
         Layout.alignment: Qt.AlignVCenter
       }
 
@@ -186,23 +191,16 @@ Item {
       Txt {
         id: timeText
         Layout.maximumWidth: Theme.pillTimeWidth
-        text: Qt.formatDateTime(root.currentDateTime, "HH:mm")
+        text: Qt.formatDateTime(clock.date, "HH:mm")
         color: Theme.accent
         variant: "body"
         Layout.alignment: Qt.AlignVCenter
         elide: Text.ElideNone
-
-        Timer {
-          interval: 30000
-          running: true
-          repeat: true
-          onTriggered: root.currentDateTime = new Date()
-        }
       }
 
       Txt {
         Layout.maximumWidth: Theme.pillDateWidth
-        text: Qt.formatDateTime(root.currentDateTime, "dd MMM yyyy")
+        text: Qt.formatDateTime(clock.date, "dd MMM yyyy")
         color: Theme.foreground
         variant: "body"
         Layout.alignment: Qt.AlignVCenter
@@ -710,7 +708,13 @@ component RegWarningIcon: Txt {
     elide: Text.ElideNone
   }
 
-  property date currentDateTime: new Date()
+  // Minute-precision clock. The pill only ever shows "HH:mm", so a per-second
+  // or 30-second polling timer was pure idle cost: SystemClock wakes exactly
+  // once per minute and updates `date` itself.
+  SystemClock {
+    id: clock
+    precision: SystemClock.Minutes
+  }
 
   AudioService {
     id: _audioService
