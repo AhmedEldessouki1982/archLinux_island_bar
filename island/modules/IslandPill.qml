@@ -421,7 +421,7 @@ Item {
         RowLayout {
           id: actionsRow
           anchors.centerIn: parent
-          spacing: Theme.pillInnerGap
+          spacing: Theme.pillActionGap
 
           RegWarningIcon {
             width: Theme.pillIcon

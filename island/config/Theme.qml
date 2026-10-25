@@ -172,6 +172,7 @@ QtObject {
   readonly property int chipHeight: 26
   readonly property int pillGap: 12
   readonly property int pillInnerGap: 8
+  readonly property int pillActionGap: 10
   readonly property int pillHeight: 32
   readonly property int pillIcon: 16
   readonly property int pillPaddingLeft: 12
