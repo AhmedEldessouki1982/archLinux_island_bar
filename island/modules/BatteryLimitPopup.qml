@@ -83,7 +83,7 @@ PanelWindow {
             : (root.batteryService && root.batteryService.chargeLimitReading ? "wait" : "")
           color: root.batteryService && root.batteryService.chargeLimitRead
             ? Theme.chargeLimitActive : Theme.comment
-          variant: root.batteryService && root.batteryService.chargeLimitRead ? "value" : "body"
+          variant: "body"
           elide: Text.ElideRight
         }
       }
@@ -148,7 +148,7 @@ PanelWindow {
               text: Format.percent(option.modelData.pct)
               color: root.isActive(option.modelData.pct)
                 ? Theme.chargeLimitActive : Theme.foreground
-              variant: "value"
+              variant: "body"
               elide: Text.ElideNone
             }
 
@@ -177,7 +177,7 @@ PanelWindow {
     && root.batteryService.chargeLimitRead ? 3 : 0
   readonly property int contentRowCount: 1 + root.optionCount
     + (root.batteryService && root.batteryService.chargeLimitError ? 1 : 0)
-  readonly property int containerHeight: Theme.chargePopupPad * 2 + Theme.fontSizeValue
+  readonly property int containerHeight: Theme.chargePopupPad * 2 + Theme.fontSizeBody
     + root.optionCount * Theme.chargePopupRowHeight
     + (root.batteryService && root.batteryService.chargeLimitError ? Theme.fontSizeCaption : 0)
     + Math.max(0, root.contentRowCount - 1) * Theme.chargePopupGap

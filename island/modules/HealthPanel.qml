@@ -2017,7 +2017,7 @@ Item {
     antialiasing: true
     clip: true
 
-    Caption {
+    Txt {
       id: chipLabel
       anchors.centerIn: parent
       width: parent.width - 2 * Theme.chipPadX
@@ -2025,6 +2025,7 @@ Item {
       verticalAlignment: Text.AlignVCenter
       text: Format.percent(limitChip.limit)
       color: limitChip.isActive ? Theme.chargeLimitActive : Theme.label
+      variant: "body"
       elide: Text.ElideNone
       clip: true
     }
