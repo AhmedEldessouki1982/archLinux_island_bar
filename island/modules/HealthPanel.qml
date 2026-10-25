@@ -45,6 +45,8 @@ Item {
   property bool ramReady: false
   property real gpuTemp: 0
   property real gpuLoad: 0
+  // GPU utilisation as the panel prints it: zero when the dGPU is suspended.
+  property real gpuLoadNow: 0
   property real cpuFanSpeed: 0
   property real gpuFanSpeed: 0
   property real netRxRate: 0
@@ -114,6 +116,8 @@ Item {
       root.gpuFanSpeed = Qt.binding(() => root.thermalService.gpuFanSpeed)
       root.gpuTemp = Qt.binding(() => root.thermalService.gpuTemp)
       root.gpuLoad = Qt.binding(() => root.thermalService.gpuLoad)
+      root.gpuLoadNow = Qt.binding(() => root.thermalService.gpuReading
+        ? root.thermalService.gpuLoadOut : 0)
     }
   }
   onGpuModeServiceChanged: {
@@ -204,9 +208,21 @@ Item {
   // Navigation state is independent of the clock and reset only when opened.
   property int viewYear: new Date().getFullYear()
   property int viewMonth: new Date().getMonth()
-  property string clockText: ""
   property string calendarDayKey: ""
   property var weeks: []
+
+  // The panel prints a "HH:mm" clock, so it wakes once a minute instead of the
+  // per-second timer this used to carry. Midnight rolls the calendar over.
+  SystemClock {
+    id: clock
+    precision: SystemClock.Minutes
+  }
+  readonly property date now: clock.date
+  onNowChanged: {
+    if (!root.active) return
+    var key = root.now.getFullYear() + "-" + root.now.getMonth() + "-" + root.now.getDate()
+    if (key !== root.calendarDayKey) root.rebuildCalendar()
+  }
 
   readonly property string monthTitle: Qt.formatDate(new Date(root.viewYear, root.viewMonth, 1), "MMMM yyyy")
 
@@ -221,28 +237,36 @@ Item {
   readonly property real clockGap: Math.max(0,
     Math.floor((root.h7 - 2 * Theme.cardPadY - root.clockContentH) / 3))
 
+  // Six weeks of real days: the leading and trailing cells carry the adjacent
+  // months, dimmed. Blank cells used to leave the last row empty in a five week
+  // month, which pushed the whole clock block 12px up inside its card; a full
+  // six week grid keeps the block optically centred and the height constant.
   function rebuildCalendar() {
     var first = new Date(root.viewYear, root.viewMonth, 1)
-    var last = new Date(root.viewYear, root.viewMonth + 1, 0)
+    var daysInMonth = new Date(root.viewYear, root.viewMonth + 1, 0).getDate()
+    var daysInPrevMonth = new Date(root.viewYear, root.viewMonth, 0).getDate()
     var startOffset = first.getDay()
-    var daysInMonth = last.getDate()
     var today = new Date()
     root.calendarDayKey = today.getFullYear() + "-" + today.getMonth() + "-" + today.getDate()
     var isCurrentMonth = today.getFullYear() === root.viewYear && today.getMonth() === root.viewMonth
+
     var cells = []
-    for (var i = 0; i < startOffset; i++) cells.push({ label: "", isToday: false, isPast: true })
+    for (var p = startOffset - 1; p >= 0; p--)
+      cells.push({ label: String(daysInPrevMonth - p), isToday: false, isPast: true, outside: true })
     for (var d = 1; d <= daysInMonth; d++) {
-      var isToday = isCurrentMonth && today.getDate() === d
-      var isPast = isCurrentMonth && d < today.getDate()
-      cells.push({ label: String(d), isToday: isToday, isPast: isPast })
+      cells.push({
+        label: String(d),
+        isToday: isCurrentMonth && today.getDate() === d,
+        isPast: isCurrentMonth && d < today.getDate(),
+        outside: false
+      })
     }
-    while (cells.length % 7 !== 0) cells.push({ label: "", isToday: false, isPast: true })
+    var nextDay = 1
+    while (cells.length < 42)
+      cells.push({ label: String(nextDay++), isToday: false, isPast: false, outside: true })
+
     var w = []
-    for (var k = 0; k < cells.length; k += 7) w.push(cells.slice(k, k + 7))
-    // Always six rows: the calendar never changes height when the month does.
-    var blank = []
-    for (var b = 0; b < 7; b++) blank.push({ label: "", isToday: false, isPast: true })
-    while (w.length < 6) w.push(blank.slice())
+    for (var k = 0; k < 42; k += 7) w.push(cells.slice(k, k + 7))
     root.weeks = w
   }
 
@@ -258,7 +282,7 @@ Item {
   }
 
   // ===========================================================================
-  // Processes — three rows merging the cpu and the memory top list
+  // Processes — the top CPU and memory lists merged into the rows that fit
   // ===========================================================================
 
   readonly property var procRows: {
@@ -268,12 +292,12 @@ Item {
     var rows = []
     var cpu = svc.cpuTop || []
     var mem = svc.memoryTop || []
-    for (var i = 0; i < cpu.length && i < 3; i++) {
+    for (var i = 0; i < cpu.length; i++) {
       var c = cpu[i]
       seen[c.pid] = c
       rows.push(c)
     }
-    for (var j = 0; j < mem.length && j < 3; j++) {
+    for (var j = 0; j < mem.length; j++) {
       var m = mem[j]
       if (seen[m.pid]) continue
       rows.push(m)
@@ -281,9 +305,20 @@ Item {
     rows.sort(function (a, b) {
       return Math.max(b.cpu, b.memory) - Math.max(a.cpu, a.memory)
     })
-    return rows.slice(0, 4)
+    return rows.slice(0, root.procRowCount)
   }
-  readonly property int procRowCount: 4
+  // The card is four units tall. How many rows it holds is measured from the
+  // real line height, not assumed: a fixed four left a 40px hole at the bottom.
+  readonly property real procBodyH: root.h4 - 2 * Theme.cardPadY
+    - root.mCaptionH - Theme.gapMedium - root.mCaptionH - Theme.gapSmall
+  readonly property int procRowCount: Math.max(1,
+    Math.floor((root.procBodyH + Theme.gapTight) / (root.mBodyH + Theme.gapTight)))
+  // Whatever height the rows do not use becomes the space between them, so the
+  // list ends on the card's bottom padding instead of stopping short.
+  readonly property real procRowGap: root.procRowCount > 1
+    ? Math.max(0, Math.floor((root.procBodyH - root.procRowCount * root.mBodyH)
+      / (root.procRowCount - 1)))
+    : 0
   readonly property real procNameW: root.colAW - 2 * Theme.cardPadX
     - Theme.procCpuColWidth - Theme.procRamColWidth
 
@@ -456,21 +491,17 @@ Item {
     }
   }
 
-  Timer {
-    interval: 1000
-    running: root.active
-    repeat: true
-    onTriggered: {
-      var d = new Date()
-      root.clockText = Qt.formatDateTime(d, "HH:mm")
-      var dayKey = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
-      if (dayKey !== root.calendarDayKey) root.rebuildCalendar()
+  // The graphs advance on the service read (2 s), not on a timer of their own.
+  // The old 1 s timer pushed the same CPU value twice between two reads and
+  // forced a repaint of both sparklines for no new information.
+  onCpuLoadChanged: {
+    if (root.active && root.cpuReady)
       root.cpuHistory = root.pushSample(root.cpuHistory, root.cpuLoad)
-      var gpuVal = (root.thermalService && root.thermalService.gpuReading)
-        ? root.thermalService.gpuLoadOut : 0
-      root.gpuHistory = root.pushSample(root.gpuHistory, gpuVal)
-    }
   }
+  onGpuLoadNowChanged: {
+    if (root.active) root.gpuHistory = root.pushSample(root.gpuHistory, root.gpuLoadNow)
+  }
+
   function start() {
     root.cpuHistory = Array(root.historyMax - 1).fill(0)
     root.gpuHistory = Array(root.historyMax - 1).fill(0)
@@ -482,7 +513,6 @@ Item {
     if (root.updateService) root.updateService.start()
     if (root.storageService) root.storageService.start()
     if (root.weatherService) root.weatherService.active = true
-    root.clockText = Qt.formatDateTime(new Date(), "HH:mm")
     var today = new Date()
     root.viewYear = today.getFullYear()
     root.viewMonth = today.getMonth()
@@ -537,7 +567,7 @@ Item {
           Hero {
             width: parent.width
             height: root.mHeroH
-            text: root.clockText
+            text: Qt.formatDateTime(root.now, "HH:mm")
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideNone
@@ -662,7 +692,8 @@ Item {
                         width: parent.width
                         text: dayCell.modelData.label
                         color: dayCell.modelData.isToday ? Theme.background
-                          : (dayCell.modelData.isPast ? Theme.comment : Theme.foreground)
+                          : ((dayCell.modelData.isPast || dayCell.modelData.outside)
+                            ? Theme.comment : Theme.foreground)
                         // Today is the only emphasised cell; `variant` selects a
                         // size, so the weight is set on the font directly.
                         font.weight: dayCell.modelData.isToday
@@ -740,7 +771,7 @@ Item {
               anchors.top: procHeader.bottom
               anchors.topMargin: Theme.gapSmall
               width: parent.width
-              spacing: 0
+              spacing: root.procRowGap
 
               Repeater {
                 model: root.procRows
@@ -750,7 +781,6 @@ Item {
                   required property int index
                   width: procBody.width
                   height: root.mBodyH
-                    + (procRow.index < root.procRowCount - 1 ? Theme.gapTight : 0)
 
                   Row {
                     width: parent.width
@@ -1054,9 +1084,11 @@ Item {
           entranceIndex: 4
 
           Column {
-            width: parent.width - 2 * Theme.cardPadXDense
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.fill: parent
+            anchors.leftMargin: Theme.cardPadXDense
+            anchors.rightMargin: Theme.cardPadXDense
+            anchors.topMargin: Theme.cardPadYDense
+            anchors.bottomMargin: Theme.cardPadYDense
             spacing: Theme.gapTight
 
             Caption {
@@ -1090,11 +1122,12 @@ Item {
             }
             LineGraph {
               width: parent.width
-              height: Theme.sparklineHeight
+              // The graph takes whatever the two text lines leave behind, so
+              // the card never overflows and nothing sits on the border.
+              height: parent.height - root.mCaptionH - root.mValueH - 2 * Theme.gapTight
               samples: root.cpuHistory
               color: root.cpuReady ? Theme.graphColor(root.cpuLoad) : Theme.comment
               maxValue: 100
-              active: root.active
             }
           }
         }
@@ -1105,9 +1138,11 @@ Item {
           entranceIndex: 5
 
           Column {
-            width: parent.width - 2 * Theme.cardPadXDense
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.fill: parent
+            anchors.leftMargin: Theme.cardPadXDense
+            anchors.rightMargin: Theme.cardPadXDense
+            anchors.topMargin: Theme.cardPadYDense
+            anchors.bottomMargin: Theme.cardPadYDense
             spacing: Theme.gapTight
 
             Caption {
@@ -1150,13 +1185,12 @@ Item {
             }
             LineGraph {
               width: parent.width
-              height: Theme.sparklineHeight
+              height: parent.height - root.mCaptionH - root.mValueH - 2 * Theme.gapTight
               samples: root.gpuHistory
               color: (root.thermalService && !root.thermalService.gpuReading)
                 ? Theme.comment : Theme.graphColor(root.thermalService
                     ? root.thermalService.gpuLoadOut : 0)
               maxValue: 100
-              active: root.active && !!(root.thermalService && root.thermalService.gpuReading)
             }
           }
         }
@@ -1684,7 +1718,7 @@ Item {
                 height: root.mCaptionH
                 spacing: Theme.gapTight
                 Caption {
-                  width: parent.width - root.mCaptionH
+                  width: parent.width - 2 * Theme.gapTight
                   height: parent.height
                   verticalAlignment: Text.AlignVCenter
                   text: "GPU MODE"

@@ -30,7 +30,10 @@ QtObject {
   property color green: "#50fa7b"
   property color yellow: "#f1fa8c"
   property color orange: "#ffb86c"
-  property color red: "#ff5555"
+  // Dracula's red is #ff5555, which measures 3.91:1 on a card and 4.28:1 on the
+  // charge-limit tint: too low for text. Lifted one step so every place red is
+  // printed — weather city, critical values, charge limit — clears 4.5:1.
+  property color red: "#ff7a7a"
   readonly property color weatherCity: root.red
   readonly property color chargeLimitActive: root.red
 
@@ -38,12 +41,12 @@ QtObject {
   // Contrast against cardFill: 4.98:1 (WCAG AA needs 4.5:1).
   readonly property color label: "#a49bee"
 
-  // Dimmed text (unavailable values, idle states). This is deliberately a
-  // darker step of the same lavender so secondary text stays behind a label
-  // instead of reading as one: 3.61:1 on cardFill, 4.18:1 on background.
+  // Dimmed text (unavailable values, idle states, days outside the shown
+  // month). One step darker than the label lavender, but held at the WCAG AA
+  // floor rather than below it: 4.54:1 on cardFill, 5.26:1 on background.
   // Only values that are absent or inactive use it — never information the
   // reader needs right now.
-  readonly property color comment: "#8b85bb"
+  readonly property color comment: "#9d97cf"
 
   // Slider track / inactive chip fill.
   property color selection: "#44475a"
@@ -137,11 +140,11 @@ QtObject {
   readonly property int ringDiameter: 64
   readonly property int ringThickness: 5
 
-  // Sparkline inside the CPU and GPU cards.
+  // Sparkline inside the CPU and GPU cards. A new sample is taken on every
+  // service read (2 s), so the graph holds the last two minutes.
   readonly property int sparklineHeight: 36
   readonly property color graphLow: root.accent
   readonly property int graphSampleCount: 60
-  readonly property int graphSampleInterval: 1000
   readonly property int graphBorderWidth: 1
   readonly property int graphInset: 2
   readonly property real graphLineWidth: 1.5
