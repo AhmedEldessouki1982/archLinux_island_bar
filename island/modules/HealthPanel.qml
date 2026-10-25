@@ -388,6 +388,9 @@ Item {
 
   readonly property int batteryFillSegments: Math.round(
     Math.max(0, Math.min(100, root.batteryCapacity)) / 100 * Theme.batteryBarSegments)
+  // The presets live in Config, not in the panel: the popup and the chips read
+  // the same three values, so they cannot disagree about what a preset is.
+  readonly property var chargeLimitPresets: Config.chargeLimitPresets
   readonly property string batteryStateText: root.batteryCharging ? "Charging"
     : (root.batteryOnAc ? "AC" : "Discharging")
   readonly property string batteryStatusText: root.hasBattery
@@ -430,6 +433,8 @@ Item {
   readonly property bool asusRowVisible: root.profileToolAvailable || root.gpuToolAvailable
   readonly property bool chargeLimitSupported: root.batteryService
     ? root.batteryService.chargeLimitSupported : false
+  readonly property bool chargeLimitRead: root.batteryService
+    ? root.batteryService.chargeLimitRead : false
 
   readonly property string profileText: root.powerProfile.length > 0
     ? root.powerProfile : "--"
@@ -485,11 +490,6 @@ Item {
     return a
   }
 
-  function hasPresetChargeLimit() {
-    return root.batteryService && root.batteryService.chargeLimitRead
-      && [60, 80, 100].indexOf(root.batteryService.chargeLimit) >= 0
-  }
-
   width: root.contentWidth
   height: root.contentHeight
   opacity: root.active ? 1 : 0
@@ -525,6 +525,10 @@ Item {
     if (root.updateService) root.updateService.start()
     if (root.storageService) root.storageService.start()
     if (root.weatherService) root.weatherService.active = true
+    // The EC's charge threshold changes outside the shell (BIOS, another
+    // tool), and the chips must not show yesterday's answer. One read per
+    // panel open; the service re-reads after every write.
+    if (root.batteryService) root.batteryService.refreshChargeLimit()
     var today = new Date()
     root.viewYear = today.getFullYear()
     root.viewMonth = today.getMonth()
@@ -1625,29 +1629,34 @@ Item {
             height: Theme.chipHeight
             spacing: Theme.gapSmall
             Caption {
-              visible: !root.hasPresetChargeLimit()
+              // Only a failed/absent read falls back to text. The three presets
+              // stay clickable even when the EC reports a value outside them —
+              // otherwise a machine left on 60% would lose its controls.
+              visible: !root.chargeLimitRead
               width: parent.width
               height: parent.height
               verticalAlignment: Text.AlignVCenter
-              color: root.batteryService && root.batteryService.chargeLimitRead
-                ? Theme.label : Theme.comment
-              text: root.batteryService && root.batteryService.chargeLimitRead
-                ? "LIMIT " + Format.percent(root.batteryService.chargeLimit)
-                : "LIMIT N/A"
+              color: root.batteryService && root.batteryService.chargeLimitReading
+                ? Theme.comment : Theme.label
+              text: root.batteryService && root.batteryService.chargeLimitReading
+                ? "LIMIT WAIT" : "LIMIT N/A"
             }
 
             Row {
-              visible: root.hasPresetChargeLimit()
+              visible: root.chargeLimitRead
               width: parent.width
               height: Theme.chipHeight
               spacing: Theme.gapSmall
               Repeater {
-                model: root.hasPresetChargeLimit() ? [60, 80, 100] : []
+                model: root.chargeLimitRead
+                  ? root.chargeLimitPresets.map(function (p) { return p.pct }) : []
                 delegate: LimitChip {
                   required property int modelData
                   limit: modelData
                   height: Theme.chipHeight
-                  width: Math.floor((parent.width - 2 * Theme.gapSmall) / 3)
+                  width: Math.floor((parent.width
+                    - (root.chargeLimitPresets.length - 1) * Theme.gapSmall)
+                    / root.chargeLimitPresets.length)
                 }
               }
             }
@@ -2071,7 +2080,7 @@ Item {
   // A charge limit chip: active one is outlined and tinted, the rest is flat.
   component LimitChip: Rectangle {
     id: limitChip
-    property int limit: 60
+    property int limit: 0
     readonly property bool isActive: root.batteryService
       ? root.batteryService.chargeLimitRead
         && root.batteryService.chargeLimit === limitChip.limit : false

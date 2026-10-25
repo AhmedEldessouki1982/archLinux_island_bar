@@ -90,11 +90,7 @@ PanelWindow {
 
       Repeater {
         model: root.batteryService && root.batteryService.chargeLimitSupported
-          && root.batteryService.chargeLimitRead ? [
-          { pct: 60, detail: "Longest battery life" },
-          { pct: 80, detail: "Balanced" },
-          { pct: 100, detail: "Full capacity" }
-        ] : []
+          && root.batteryService.chargeLimitRead ? Config.chargeLimitPresets : []
 
         delegate: Rectangle {
           id: option
@@ -174,7 +170,7 @@ PanelWindow {
   }
 
   readonly property int optionCount: root.batteryService && root.batteryService.chargeLimitSupported
-    && root.batteryService.chargeLimitRead ? 3 : 0
+    && root.batteryService.chargeLimitRead ? Config.chargeLimitPresets.length : 0
   readonly property int contentRowCount: 1 + root.optionCount
     + (root.batteryService && root.batteryService.chargeLimitError ? 1 : 0)
   readonly property int containerHeight: Theme.chargePopupPad * 2 + Theme.fontSizeBody

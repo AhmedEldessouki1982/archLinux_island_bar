@@ -21,4 +21,15 @@ QtObject {
   // exists wins; if none do, the first available output is used, so a machine
   // with different output names still gets a working bar.
   property var preferredScreens: ["eDP-1", "eDP-2"]
+
+  // Battery charge-limit presets, in display order. `pct` is the value written
+  // to `asusctl battery limit` (20-100); `detail` is the line printed beside it
+  // in the popup. The chips stay clickable when the EC reports a limit outside
+  // this list (a machine left on 60%, say): none is marked selected, so the UI
+  // never claims a preset that is not actually set.
+  property var chargeLimitPresets: [
+    { "pct": 58, "detail": "Longest battery life" },
+    { "pct": 78, "detail": "Balanced" },
+    { "pct": 100, "detail": "Full capacity" }
+  ]
 }

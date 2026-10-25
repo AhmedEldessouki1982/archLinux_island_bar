@@ -9,7 +9,7 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Morphing pill** — three states in one bar: a narrow idle pill, a hover-expanded layout, and a compact centered meter for transient feedback (volume / brightness / keyboard-lock OSD).
 - **Volume + brightness control** — scroll to adjust, click to mute / toggle; each shows a compact centered meter that pops up on bind, triggered over Hyprland IPC from your hardware keys.
 - **Honest brightness scale** — the percentage on screen is exactly what `brightnessctl` reports, from 1% to 100%. There is no hidden remap: a backlight at 100% of its range reads 100%.
-- **Battery charge-limit popup** — click the battery icon for **60%**, **80%**, or **100%** presets via `asusctl battery limit`; the active preset is read back from the system and marked red. Without `asusd` the row is not drawn at all.
+- **Battery charge-limit popup** — click the battery icon for **58%**, **78%**, or **100%** presets via `asusctl battery limit`; the selected preset is read back from the system and marked in Dracula yellow. Without `asusd` the row is not drawn at all.
 - **Workspaces** — one `WorkspaceItem` component drives both states: the idle pill shows only the active workspace, the expanded pill shows **1–10** in fixed 22px slots with a single accent pill that **slides** between them (150 ms). Occupied slots carry a dot, empty slots stay dim, hover lightens the fill, and clicking an empty slot focuses it.
 - **Caps / Num lock OSD** — a short-lived, centered popup that appears when either lock key changes.
 - **Headphone jack detection** — the volume icon reflects the active `wpctl` sink port.
@@ -142,6 +142,12 @@ property var diskMounts: [                 // ring gauges, in display order
   { "mount": "/mnt/data", "label": "DATA" }
 ]
 property var preferredScreens: ["eDP-1"]   // first name that exists wins
+
+property var chargeLimitPresets: [         // battery popup + panel chips
+  { "pct": 58, "detail": "Longest battery life" },
+  { "pct": 78, "detail": "Balanced" },
+  { "pct": 100, "detail": "Full capacity" }
+]
 ```
 
 Unknown mounts are dropped, and an unknown output name falls through to the first screen the compositor reports.
@@ -190,7 +196,7 @@ island/
 ├── config/
 │   ├── qmldir             # QML module definition (three singletons)
 │   ├── Theme.qml          # Dracula palette + type scale + 36px grid, single source of truth
-│   ├── Config.qml         # Personal settings: disk mounts, preferred output
+│   ├── Config.qml         # Personal settings: disk mounts, output, charge presets
 │   └── Format.qml         # Number / unit formatting
 ├── components/
 │   ├── AudioDeviceMenu.qml # Output / input device picker for the controls card
@@ -227,7 +233,7 @@ island/
 │   └── WeatherService.qml # ipwho.is geolocation + open-meteo forecast
 └── modules/
     ├── IslandPill.qml     # The pill — idle / hover / meter states + IPC
-    ├── BatteryLimitPopup.qml # Charge-threshold radio presets (60/80/100%)
+    ├── BatteryLimitPopup.qml # Charge-threshold radio presets (from Config: 58/78/100%)
     ├── FloatingHealth.qml # Overlay window hosting the consolidated panel
     ├── HealthPanel.qml    # Bento panel: clock+procs / controls+weather / power+storage
     ├── NotificationLayer.qml # Banner stack w/ expiry

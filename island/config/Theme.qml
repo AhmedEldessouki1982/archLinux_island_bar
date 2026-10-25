@@ -25,17 +25,20 @@ QtObject {
   property color foreground: "#f8f8f2"
 
   // Purple marks an active/selected state and fills sliders;
-  // green/yellow/orange/red mark a threshold or a warning. Nothing else.
+  // green/yellow/orange/red mark a threshold or a warning. The one exception is
+  // the battery charge limit, which is yellow in its selected state: it is a
+  // battery-health setting, not a generic toggle, and yellow is the palette's
+  // "this is a deliberate limit" signal.
   property color accent: "#bd93f9"
   property color green: "#50fa7b"
   property color yellow: "#f1fa8c"
   property color orange: "#ffb86c"
   // Dracula's red is #ff5555, which measures 3.91:1 on a card and 4.28:1 on the
   // charge-limit tint: too low for text. Lifted one step so every place red is
-  // printed — weather city, critical values, charge limit — clears 4.5:1.
+  // printed — weather city, critical values — clears 4.5:1.
   property color red: "#ff7a7a"
   readonly property color weatherCity: root.red
-  readonly property color chargeLimitActive: root.red
+  readonly property color chargeLimitActive: root.yellow
 
   // One muted lavender for every card label in the health panel.
   // Contrast against cardFill: 4.98:1 (WCAG AA needs 4.5:1).
@@ -56,7 +59,9 @@ QtObject {
   readonly property color cardBorderColor: "#3d4258"
   readonly property color cardHoverFill: "#3a3e52"
   readonly property color activeTint: "#383548"
-  readonly property color chargeLimitActiveTint: "#4b313a"
+  // Dark olive that reads as "yellow selected" behind the yellow text; yellow
+  // measures 10.1:1 on it and the label lavender 4.56:1, so both clear AA.
+  readonly property color chargeLimitActiveTint: "#3f3b26"
   readonly property color transparent: "transparent"
 
   // ===========================================================================
@@ -230,7 +235,6 @@ QtObject {
   readonly property int pillDateWidth: 92
   readonly property int pillIpMaxWidth: 140
   readonly property int pillMeterMaxWidth: 80
-  readonly property int chargeLimitLabelWidth: 92
   readonly property int chargeLimitValueWidth: 48
   readonly property int chargePopupWidth: 286
   readonly property int chargePopupRowHeight: 44
