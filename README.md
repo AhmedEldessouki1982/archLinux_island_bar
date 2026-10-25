@@ -37,8 +37,8 @@ The payoff is a bar that genuinely sleeps. Measured on the development machine (
 
 | State | Before the idle pass | Now |
 |---|---|---|
-| Idle, panel closed | 7.7% CPU, ~0.5 child spawns/s | **0.000% CPU, 0 spawns/s** |
-| Health panel open | 20.5% CPU | **1.9% CPU** |
+| Idle, panel closed | 7.7% CPU, ~0.5 child spawns/s | **≈0.02% CPU, 0 spawns/s** |
+| Health panel open | 20.5% CPU | **≈1.8% CPU** |
 
 The idle number came from two things: an equalizer repainting 160 ms forever because a sink node existed, and a 30 s clock `Timer` that kept the shell awake. Both are gone — the EQ bars are gated on real playback *and* expansion, and the clock is a `SystemClock` on the minute. The health panel itself contains **zero** `Timer`s: its graphs advance when a service publishes a new sample, and its clock ticks from the same signal every other card uses.
 
@@ -225,6 +225,8 @@ Then reload the shell and confirm the log is clean — Quickshell separates log 
 ```bash
 tr '\r' '\n' < /run/user/1000/quickshell/by-id/*/log.qslog | grep -aiE 'warning|error'
 ```
+
+Screenshots taken at each step of the idle / workspace / tray / panel pass — before and after, with the measured geometry they were checked against — are in [`docs/screenshots/`](docs/screenshots/).
 
 ---
 
