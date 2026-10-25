@@ -179,9 +179,15 @@ QtObject {
   readonly property int pillActionSlot: 24
   readonly property int pillPaddingLeft: 12
   readonly property int pillPaddingRight: 12
-  readonly property int pillWorkspaceCell: 20
-  readonly property int pillWorkspaceHeight: 20
-  readonly property int pillWorkspaceGap: 2
+  // Workspace slots. One size everywhere: 22px cell, 4px pitch gap, so the
+  // collapsed pill and the expanded strip cannot drift apart.
+  readonly property int wsSlot: 22
+  readonly property int wsGap: 4
+  readonly property int wsRadius: 11
+  readonly property int wsDotSize: 3
+  // Slot 10 carries two digits in a 22px cell; condensing the tracking is the
+  // only way both digits stay inside the pill without shrinking the type.
+  readonly property real wsCondensedTracking: -0.6
   readonly property int pillMinWidth: 150
   readonly property int pillTitleMaxWidth: 300
   readonly property int pillDividerWidth: 1
@@ -207,7 +213,6 @@ QtObject {
   readonly property int networkGlyphWidth: 16
   readonly property int weatherSunColWidth: 50
   readonly property int monthArrowHitSize: 16
-  readonly property int pillWorkspaceWidth: 24
   readonly property int pillTimeWidth: 44
   readonly property int pillDateWidth: 92
   readonly property int pillBatteryWidth: 42

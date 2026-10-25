@@ -25,12 +25,6 @@ Item {
     : _psm.isExpanded ? Math.max(Theme.pillMinWidth,
         expandedLayout.implicitWidth)
     : idleLayout.implicitWidth
-  readonly property bool hdmiConnected: {
-    var monitors = Hyprland.monitors.values
-    for (var i = 0; i < monitors.length; i++)
-      if (monitors[i].name === "HDMI-A-1") return true
-    return false
-  }
 
   // Body width (excluding the two ears). Rounded to an even number so the
   // total shape width is even and centring lands on a whole pixel.
@@ -171,21 +165,10 @@ Item {
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Txt {
-        Layout.preferredWidth: Theme.pillWorkspaceCell
-        Layout.preferredHeight: Theme.pillWorkspaceHeight
-        Layout.maximumWidth: Theme.pillWorkspaceWidth
-        text: {
-          var id = Hyprland.focusedWorkspace?.id ?? 0
-          var slot = ((id - 1) % 10) + 1
-          return id > 0 ? (slot === 10 ? "0" : String(slot)) : ""
-        }
-        color: Theme.accent
-        variant: "body"
+      WorkspaceItem {
+        workspaceId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
+        visible: workspaceId > 0
         Layout.alignment: Qt.AlignVCenter
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideNone
       }
 
       Txt {
@@ -321,75 +304,46 @@ Item {
 
       Item {
         id: workspaceArea
+        readonly property int pitch: Theme.wsSlot + Theme.wsGap
+        // Slot index (0..9) of the focused workspace, or -1 when focus is on a
+        // workspace outside 1..10. The shared highlight only exists for 1..10.
+        readonly property int activeIndex: {
+          var id = Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
+          return id >= 1 && id <= 10 ? id - 1 : -1
+        }
         Layout.preferredWidth: workspaceRow.implicitWidth
-        Layout.preferredHeight: Theme.pillWorkspaceHeight
+        Layout.preferredHeight: Theme.wsSlot
         Layout.alignment: Qt.AlignVCenter
 
-        RowLayout {
+        // One accent pill for the whole strip instead of one per slot: this is
+        // the only way the highlight can slide between slots. 150 ms, one
+        // shot — nothing is running while the workspace stays put.
+        Rectangle {
+          width: Theme.wsSlot
+          height: Theme.wsSlot
+          radius: Theme.wsRadius
+          color: Theme.accent
+          visible: workspaceArea.activeIndex >= 0
+          x: Math.max(0, workspaceArea.activeIndex) * workspaceArea.pitch
+
+          Behavior on x {
+            NumberAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutCubic }
+          }
+        }
+
+        Row {
           id: workspaceRow
-          anchors.centerIn: parent
-          spacing: Theme.pillWorkspaceGap
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: Theme.wsGap
 
           Repeater {
-            model: {
-              var ids = [1, 2, 3, 4, 5, 6]
-              if (root.hdmiConnected)
-                ids.push(7, 8, 9, 10)
-              return ids
-            }
+            model: 10
 
-            Item {
-              id: workspaceItem
-              required property var modelData
-              readonly property int workspaceId: modelData
-              readonly property var workspaceObject: {
-                var values = Hyprland.workspaces.values
-                for (var i = 0; i < values.length; i++)
-                  if (values[i].id === workspaceId) return values[i]
-                return null
-              }
-              readonly property bool occupied: workspaceObject && workspaceObject.toplevels
-                ? workspaceObject.toplevels.values.length > 0 : false
-              readonly property bool isCurrent: Hyprland.focusedWorkspace?.id === workspaceId
-              readonly property int slotNumber: ((workspaceId - 1) % 10) + 1
-
-              Rectangle {
-                anchors.fill: parent
-                radius: width / 2
-                color: Theme.accent
-                visible: workspaceItem.isCurrent
-              }
-
-              Layout.preferredWidth: Theme.pillWorkspaceCell
-              Layout.minimumWidth: Theme.pillWorkspaceCell
-              Layout.maximumWidth: Theme.pillWorkspaceCell
-              Layout.preferredHeight: Theme.pillWorkspaceHeight
-              Layout.alignment: Qt.AlignVCenter
-
-              Txt {
-                id: txt
-                anchors.centerIn: parent
-                width: parent.width
-                height: parent.height
-                text: workspaceItem.slotNumber === 10 ? "0" : String(workspaceItem.slotNumber)
-                color: workspaceItem.isCurrent ? Theme.background
-                  : workspaceItem.occupied ? Theme.foreground : Theme.comment
-                variant: workspaceItem.isCurrent ? "value" : "body"
-                opacity: workspaceItem.isCurrent || workspaceItem.occupied ? 1 : 0.5
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideNone
-              }
-
-              MouseArea {
-                anchors.fill: parent
-                hoverEnabled: false
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (workspaceItem.workspaceObject)
-                    workspaceItem.workspaceObject.activate()
-                }
-              }
+            WorkspaceItem {
+              required property int index
+              workspaceId: index + 1
+              activeFill: false
             }
           }
         }
