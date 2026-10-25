@@ -12,7 +12,7 @@ Item {
   id: root
 
   // --- state delegated to PillStateMachine ---
-  property int pillHeight: 35
+  property int pillHeight: Theme.pillHeight
   readonly property int pillEarRadius: Theme.pillEarRadius
   property alias inputRegionItem: pill
 
