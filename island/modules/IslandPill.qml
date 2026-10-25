@@ -175,7 +175,7 @@ Item {
         Layout.maximumWidth: Theme.pillTimeWidth
         text: Qt.formatDateTime(root.currentDateTime, "HH:mm")
         color: Theme.accent
-        variant: "value"
+        variant: "caption"
         Layout.alignment: Qt.AlignVCenter
         elide: Text.ElideNone
 
@@ -191,7 +191,7 @@ Item {
         Layout.maximumWidth: Theme.pillDateWidth
         text: Qt.formatDateTime(root.currentDateTime, "dd MMM yyyy")
         color: Theme.foreground
-        variant: "value"
+        variant: "caption"
         Layout.alignment: Qt.AlignVCenter
         elide: Text.ElideNone
       }
