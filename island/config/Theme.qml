@@ -257,6 +257,8 @@ QtObject {
   // Thresholds
   // ===========================================================================
 
+  // Every band is inclusive at its lower edge: a value exactly equal to a
+  // threshold takes the next colour up (except battery, which reads downward).
   readonly property int loadWarning: 40
   readonly property int loadHigh: 75
   readonly property int loadCritical: 90
@@ -277,14 +279,6 @@ QtObject {
   readonly property int diskWarning: 70
   readonly property int diskHigh: 85
   readonly property int diskCritical: 93
-
-  // Green for healthy, then yellow / orange / red.
-  function ascendingColor(value, warning, high, critical) {
-    if (value >= critical) return root.red
-    if (value >= high) return root.orange
-    if (value >= warning) return root.yellow
-    return root.green
-  }
 
   // The same ramp, but a healthy value stays in the foreground colour: text
   // only turns into an accent when there is something to report.
@@ -316,27 +310,30 @@ QtObject {
     return root.stateColor(value, root.latencyWarning, root.latencyHigh, root.latencyCritical)
   }
 
+  // Battery reads downward: red at or below 10, orange to 20, yellow to 35.
+  // Being plugged in does not mask any of that — a phone on a weak charger at
+  // 8% is still an alarm — it only turns the healthy bands green.
   function batteryColor(value, charging) {
-    if (charging) return root.green
     if (value <= root.batteryCritical) return root.red
     if (value <= root.batteryLow) return root.orange
     if (value <= root.batteryWarning) return root.yellow
-    return root.foreground
+    return charging ? root.green : root.foreground
   }
 
   function diskColor(value) {
     if (value < 0) return root.comment
-    // spec: green < 70, yellow 70-85, orange 85-93, red > 93
-    if (value > root.diskCritical) return root.red
-    if (value > root.diskHigh) return root.orange
+    // green < 70, yellow 70-85, orange 85-93, red >= 93
+    if (value >= root.diskCritical) return root.red
+    if (value >= root.diskHigh) return root.orange
     if (value >= root.diskWarning) return root.yellow
     return root.green
   }
 
-  // Storage meters follow the same rule as every other value in the panel: a
-  // healthy filesystem is plain foreground, and only a filling one turns into
-  // an accent. The ring, its label and its numbers all read from this one
-  // function so a cell can never disagree with itself.
+  // Storage meters read green when healthy: a ring is a status instrument, so
+  // "nothing to report" is itself information, unlike the numeric text values
+  // above which stay foreground until they cross a band. The ring, its label
+  // and its numbers all read from this one function so a cell can never
+  // disagree with itself.
   function storageColor(value) {
     if (value < 0) return root.comment
     return root.diskColor(value)

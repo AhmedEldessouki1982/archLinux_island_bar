@@ -46,6 +46,32 @@ None of that is a substitute for benchmarking on your own hardware — it's simp
 
 ---
 
+## Warning levels
+
+One ramp, defined once in `island/config/Theme.qml`. Every card, glyph and ring
+reads it, so a value cannot be one colour in the pill and another in the panel.
+Bands are inclusive at the lower edge: 75% load is already orange, not still
+yellow.
+
+| Metric | Yellow | Orange | Red | Healthy |
+|---|---|---|---|---|
+| CPU / GPU load | ≥ 40% | ≥ 75% | ≥ 90% | foreground |
+| CPU / GPU temp | ≥ 60 °C | ≥ 75 °C | ≥ 88 °C | foreground |
+| Memory | ≥ 60% | ≥ 78% | ≥ 90% | foreground |
+| Latency (`ping 8.8.8.8`) | ≥ 30 ms | ≥ 80 ms | ≥ 150 ms | foreground |
+| Disk use (ring) | ≥ 70% | ≥ 85% | ≥ 93% | green |
+| Battery | ≤ 35% | ≤ 20% | ≤ 10% | green while charging, else foreground |
+
+Battery is the one metric that reads downward, and being plugged in does not
+mask a low level: 8% is red whether or not a charger is attached — charging
+only turns the *healthy* bands green. Text values stay in the foreground colour
+until they leave the healthy band; disk rings read green when healthy, because
+a ring is a status instrument rather than a number. Unreadable values render as
+a dimmed `--`, never as 0, and the card that needs the missing tool is not drawn
+at all.
+
+---
+
 ## Requirements
 
 | Dependency | Purpose |

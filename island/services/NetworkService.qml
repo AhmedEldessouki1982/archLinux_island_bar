@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../config"
 
 Item {
   id: root
@@ -64,12 +63,6 @@ Item {
     ssidProc.command = ["env", "LC_ALL=C", "iwctl", "station", root.iface, "show"]
     ssidProc.running = true
   }
-
-  readonly property string qualityStatus: root.latencyMs < 0 ? "Unknown"
-    : root.latencyMs < Theme.latencyWarning ? "Good"
-    : root.latencyMs < Theme.latencyHigh ? "Fair"
-    : root.latencyMs < Theme.latencyCritical ? "Poor" : "Critical"
-  readonly property color qualityColor: Theme.latencyColor(root.latencyMs)
 
   function refreshIp() {
     if (!routeProcess.running) routeProcess.running = true
