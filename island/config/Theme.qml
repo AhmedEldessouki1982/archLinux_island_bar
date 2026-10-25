@@ -173,11 +173,12 @@ QtObject {
   readonly property int pillGap: 12
   readonly property int pillInnerGap: 8
   readonly property int pillIcon: 16
+  readonly property int pillPaddingLeft: 12
+  readonly property int pillPaddingRight: 12
   readonly property int pillWorkspaceCell: 20
   readonly property int pillWorkspaceHeight: 20
   readonly property int pillWorkspaceGap: 2
   readonly property int pillMinWidth: 150
-  readonly property int pillMaxWidth: 920
   readonly property int pillTitleMaxWidth: 300
   readonly property int pillDividerWidth: 1
   readonly property color pillDivider: "#50566b"

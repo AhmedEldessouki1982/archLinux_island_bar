@@ -18,20 +18,19 @@ Item {
 
   // --- drop-shape geometry -------------------------------------------------
   // Horizontal padding inside the body, on top of the ear radius which is
-  // part of the silhouette. Content therefore starts at ear + pillPad from
+  // part of the silhouette. Content therefore starts at ear + padding from
   // the shape's outer edge and is identical on both sides.
-  readonly property int pillPad: 12
   readonly property real _pillContentWidth: _psm.meterMode !== ""
     ? _psm.meterPillWidth
     : _psm.isExpanded ? Math.max(Theme.pillMinWidth,
-        Math.min(Theme.pillMaxWidth, expandedLayout.implicitWidth))
+        expandedLayout.implicitWidth)
     : idleLayout.implicitWidth
 
   // Body width (excluding the two ears). Rounded to an even number so the
   // total shape width is even and centring lands on a whole pixel.
   property real pillBodyWidth: {
-    var w = Math.round(_pillContentWidth) + 2 * pillPad
-    return w - (w % 2)
+    var w = Math.ceil(_pillContentWidth + Theme.pillPaddingLeft + Theme.pillPaddingRight)
+    return w + (w % 2)
   }
 
   // A resize only animates while it is happening (one-shot, 180 ms); at rest
@@ -145,9 +144,9 @@ Item {
       id: idleLayout
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
-      anchors.leftMargin: Theme.pillEarRadius + root.pillPad
+      anchors.leftMargin: Theme.pillEarRadius + Theme.pillPaddingLeft
       anchors.right: parent.right
-      anchors.rightMargin: Theme.pillEarRadius + root.pillPad
+      anchors.rightMargin: Theme.pillEarRadius + Theme.pillPaddingRight
       spacing: Theme.pillGap
       opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
@@ -271,9 +270,9 @@ Item {
       id: expandedLayout
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
-      anchors.leftMargin: Theme.pillEarRadius + root.pillPad
+      anchors.leftMargin: Theme.pillEarRadius + Theme.pillPaddingLeft
       anchors.right: parent.right
-      anchors.rightMargin: Theme.pillEarRadius + root.pillPad
+      anchors.rightMargin: Theme.pillEarRadius + Theme.pillPaddingRight
       spacing: 0
       opacity: _psm.isExpanded ? 1 : 0
       clip: true
@@ -418,6 +417,7 @@ Item {
         Layout.alignment: Qt.AlignVCenter
         height: Theme.pillIcon
         width: actionsRow.implicitWidth
+        Layout.preferredWidth: actionsRow.implicitWidth
 
         RowLayout {
           id: actionsRow
@@ -454,7 +454,7 @@ Item {
               height: parent.height
               text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
               color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
-              variant: "body"
+              variant: "value"
               elide: Text.ElideNone
             }
 
@@ -503,7 +503,8 @@ Item {
       MouseArea {
         id: batteryButton
         Layout.alignment: Qt.AlignVCenter
-        width: Theme.pillIcon + Theme.pillInnerGap + batteryPercent.implicitWidth
+        implicitWidth: Theme.pillIcon + Theme.pillInnerGap + batteryPercent.implicitWidth
+        Layout.preferredWidth: implicitWidth
         height: Theme.pillIcon
         cursorShape: Qt.PointingHandCursor
 
@@ -539,9 +540,9 @@ Item {
       height: parent.height
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
-      anchors.leftMargin: Theme.pillEarRadius + root.pillPad
+      anchors.leftMargin: Theme.pillEarRadius + Theme.pillPaddingLeft
       anchors.right: parent.right
-      anchors.rightMargin: Theme.pillEarRadius + root.pillPad
+      anchors.rightMargin: Theme.pillEarRadius + Theme.pillPaddingRight
       opacity: _psm.meterMode !== "" ? 1 : 0
       visible: _psm.meterMode !== ""
       clip: true
@@ -684,11 +685,11 @@ Item {
 
 component RegWarningIcon: Txt {
     id: regWarn
-    width: Theme.iconSize
-    height: Theme.iconSize
+    width: Theme.pillIcon
+    height: Theme.pillIcon
     text: "󰀦"
     color: Theme.yellow
-    variant: "body"
+    variant: "value"
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
     Layout.alignment: Qt.AlignVCenter

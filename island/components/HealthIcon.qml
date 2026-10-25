@@ -5,15 +5,15 @@ import "../config"
 Txt {
   id: root
   antialiasing: true
-  width: Theme.iconSize
-  height: Theme.iconSize
+  width: Theme.pillIcon
+  height: Theme.pillIcon
   elide: Text.ElideNone
 
   property color iconColor: Theme.foreground
 
   text: "󰋑"
   color: root.iconColor
-  variant: "body"
+  variant: "value"
   horizontalAlignment: Text.AlignHCenter
   verticalAlignment: Text.AlignVCenter
 }
