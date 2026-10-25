@@ -22,14 +22,16 @@ Item {
   // the shape's outer edge and is identical on both sides.
   readonly property real _pillContentWidth: _psm.meterMode !== ""
     ? _psm.meterPillWidth
-    : _psm.isExpanded ? Math.max(Theme.pillMinWidth,
-        expandedLayout.implicitWidth)
+    : _psm.isExpanded ? expandedLayout.implicitWidth
     : idleLayout.implicitWidth
 
-  // Body width (excluding the two ears). Rounded to an even number so the
-  // total shape width is even and centring lands on a whole pixel.
+  // Body width (excluding the two ears). The pill is content-driven between a
+  // floor and a ceiling; at the ceiling the title elides instead of pushing
+  // the pill wider. The result is rounded UP to an even number: rounding down
+  // would shave up to 2px off the last slot and clip its text.
   property real pillBodyWidth: {
     var w = Math.ceil(_pillContentWidth + Theme.pillPaddingLeft + Theme.pillPaddingRight)
+    w = Math.max(Theme.pillMinWidth, Math.min(Theme.pillMaxWidth, w))
     return w + (w % 2)
   }
 
@@ -47,14 +49,26 @@ Item {
   property var notificationLayer: null
   property var notificationCenter: null
 
+  // The window whose title the pill shows. `focusedToplevel` is the live
+  // Hyprland handle (kept current by focus events); `seededWindow` is the raw
+  // `hyprctl -j activewindow` object captured once at startup, used only
+  // until the first focus event arrives. It is stored raw instead of being
+  // matched against Hyprland.toplevels because that list may still be empty
+  // when the query returns.
+  property var focusedToplevel: Hyprland.activeToplevel
+  property var seededWindow: null
+  readonly property var titleWindow: root.focusedToplevel || root.seededWindow
+
   width: parent.width
   height: root.pillHeight
 
-  function friendlyAppName(toplevel) {
-    if (!toplevel) return ""
-    var ipc = toplevel.lastIpcObject || ({})
+  function friendlyAppName(win) {
+    if (!win) return ""
+    // Accepts either a Hyprland toplevel (lastIpcObject) or a raw hyprctl
+    // client object with class/title at the top level.
+    var ipc = win.lastIpcObject || win
     var raw = String(ipc["class"] || ipc.initialClass || "").trim()
-    var title = String(ipc.title || toplevel.title || "").trim()
+    var title = String(ipc.title || win.title || "").trim()
     if (raw.toLowerCase() === "app") raw = ""
     if (!raw) return title && title.toUpperCase() !== "APP" ? title : ""
     raw = raw.replace(/\\/g, "/")
@@ -147,7 +161,7 @@ Item {
       anchors.leftMargin: Theme.pillEarRadius + Theme.pillPaddingLeft
       anchors.right: parent.right
       anchors.rightMargin: Theme.pillEarRadius + Theme.pillPaddingRight
-      spacing: Theme.pillGap
+      spacing: Theme.pillGroupGap
       opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
 
@@ -194,69 +208,24 @@ Item {
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Txt {
-        Layout.maximumWidth: Theme.fontSizeBody
-        text: "|"
-        color: Theme.selection
-        variant: "body"
-        Layout.alignment: Qt.AlignVCenter
-        visible: SystemTray.items.length > 0
-        elide: Text.ElideNone
+      PillDivider {
+        visible: idleTray.visible
       }
 
-      Repeater {
-        model: SystemTray.items
+      PillTray {
+        id: idleTray
+      }
 
-        Item {
-          id: trayItem
-          width: Theme.trayIconSize
-          height: Theme.trayIconSize
-          Layout.alignment: Qt.AlignVCenter
+      PillDivider {
+        visible: idleTray.visible && idleBattery.visible
+      }
 
-          required property var modelData
-
-          QsMenuAnchor {
-            id: trayMenu
-            anchor.item: trayItem
-            menu: trayItem.modelData.menu
-          }
-
-          Image {
-            anchors.centerIn: parent
-            source: modelData.icon
-            width: Theme.trayIconSize
-            height: Theme.trayIconSize
-            fillMode: Image.PreserveAspectFit
-            sourceSize.width: Theme.trayIconSize
-            sourceSize.height: Theme.trayIconSize
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: function(mouse) {
-              if (mouse.button === Qt.RightButton) {
-                if (modelData.hasMenu)
-                  trayMenu.open()
-              } else {
-                modelData.activate()
-              }
-            }
-          }
+      PillBattery {
+        id: idleBattery
+        service: root.batteryService
+        onClicked: {
+          if (root.batteryLimitWindow) root.batteryLimitWindow.open(idleBattery)
         }
-      }
-
-      VDiv {}
-
-      Txt {
-        Layout.maximumWidth: Theme.pillBatteryWidth
-        text: Math.round(_batteryService.capacity) + "%"
-        color: !_psm.readyForDisplay ? Theme.foreground
-          : Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
-        variant: "body"
-        Layout.alignment: Qt.AlignVCenter
-        elide: Text.ElideNone
       }
     }
 
@@ -267,7 +236,7 @@ Item {
       anchors.leftMargin: Theme.pillEarRadius + Theme.pillPaddingLeft
       anchors.right: parent.right
       anchors.rightMargin: Theme.pillEarRadius + Theme.pillPaddingRight
-      spacing: 0
+      spacing: Theme.pillGroupGap
       opacity: _psm.isExpanded ? 1 : 0
       clip: true
 
@@ -276,11 +245,11 @@ Item {
       }
 
       RowLayout {
-        spacing: Theme.pillInnerGap
+        spacing: Theme.pillSlotGap
         Layout.alignment: Qt.AlignVCenter
         NetworkIcon {
-          width: Theme.pillIcon
-          height: Theme.pillIcon
+          width: Theme.pillGlyph
+          height: Theme.pillGlyph
           color: Theme.accent
           connected: networkService.connected
           type: networkService.type
@@ -296,11 +265,7 @@ Item {
         }
       }
 
-      Item {
-        Layout.preferredWidth: Theme.pillGap
-        Layout.preferredHeight: Theme.pillIcon
-        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
-      }
+      PillDivider {}
 
       Item {
         id: workspaceArea
@@ -349,15 +314,11 @@ Item {
         }
       }
 
-      Item {
-        Layout.preferredWidth: Theme.pillGap
-        Layout.preferredHeight: Theme.pillIcon
-        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
-      }
+      PillDivider {}
 
       Txt {
         id: appTitle
-        text: root.friendlyAppName(Hyprland.activeToplevel)
+        text: root.friendlyAppName(root.titleWindow)
         color: Theme.foreground
         variant: "body"
         elide: Text.ElideRight
@@ -369,34 +330,31 @@ Item {
         Layout.alignment: Qt.AlignVCenter
       }
 
-      Item {
-        Layout.preferredWidth: Theme.pillGap
-        Layout.preferredHeight: Theme.pillIcon
-        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
-      }
+      PillDivider {}
 
       // --- actions zone: health + notifications ---
       Item {
         Layout.alignment: Qt.AlignVCenter
-        height: Theme.pillActionSlot
-        width: actionsRow.implicitWidth
+        implicitWidth: actionsRow.implicitWidth
+        implicitHeight: Theme.pillSlot
         Layout.preferredWidth: actionsRow.implicitWidth
+        Layout.preferredHeight: Theme.pillSlot
 
         RowLayout {
           id: actionsRow
           anchors.centerIn: parent
-          spacing: Theme.pillActionGap
+          spacing: Theme.pillSlotGap
 
           RegWarningIcon {
-            width: Theme.pillActionSlot
-            height: Theme.pillActionSlot
+            width: Theme.pillSlot
+            height: Theme.pillSlot
             Layout.alignment: Qt.AlignVCenter
           }
 
           HealthIcon {
             id: healthIcon
-            width: Theme.pillActionSlot
-            height: Theme.pillActionSlot
+            width: Theme.pillSlot
+            height: Theme.pillSlot
             iconColor: Theme.foreground
             Layout.alignment: Qt.AlignVCenter
 
@@ -407,39 +365,44 @@ Item {
           }
 
           Item {
-            width: Theme.pillActionSlot
-            height: Theme.pillActionSlot
+            implicitWidth: Theme.pillSlot
+            implicitHeight: Theme.pillSlot
+            Layout.preferredWidth: Theme.pillSlot
+            Layout.preferredHeight: Theme.pillSlot
             Layout.alignment: Qt.AlignVCenter
 
             Txt {
-              anchors.centerIn: parent
-              width: parent.width
-              height: parent.height
+              anchors.fill: parent
               text: root.notificationLayer && root.notificationLayer.dnd ? "\uF1F7" : "\uF0F3"
               color: root.notificationLayer && root.notificationLayer.dnd ? Theme.comment : Theme.foreground
               variant: "value"
-              font.pixelSize: Theme.pillActionIcon
+              font.pixelSize: Theme.pillGlyph
+              // A Text is top-aligned by default; the slot it fills is taller
+              // than the glyph, so centre it or the icon sits high in the row.
+              horizontalAlignment: Text.AlignHCenter
+              verticalAlignment: Text.AlignVCenter
               elide: Text.ElideNone
             }
 
             Rectangle {
               anchors.right: parent.right
               anchors.top: parent.top
-              width: 13
-              height: 13
-              radius: 6.5
+              width: Theme.toggleBadgeSize
+              height: Theme.toggleBadgeSize
+              radius: Theme.toggleBadgeSize / 2
               color: Theme.red
               border.width: 1
               border.color: Theme.background
               visible: root.notificationLayer && !root.notificationLayer.dnd && root.notificationLayer.notificationCount > 0
 
               Txt {
-                anchors.centerIn: parent
-                width: parent.width
-                height: parent.height
+                anchors.fill: parent
                 text: root.notificationLayer ? Math.min(root.notificationLayer.notificationCount, 9) : ""
                 color: Theme.foreground
-                variant: "body"
+                variant: "caption"
+                font.letterSpacing: 0
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideNone
               }
             }
@@ -452,49 +415,29 @@ Item {
           }
 
           KbLayoutIcon {
-            width: Theme.pillActionSlot
-            height: Theme.pillActionSlot
+            width: Theme.pillSlot
+            height: Theme.pillSlot
           }
         }
       }
 
-      Item {
-        Layout.preferredWidth: Theme.pillGap
-        Layout.preferredHeight: Theme.pillIcon
-        Rectangle { anchors.centerIn: parent; width: Theme.pillDividerWidth; height: parent.height; color: Theme.pillDivider }
+      PillDivider {
+        visible: expandedTray.visible
       }
 
-      MouseArea {
-        id: batteryButton
-        Layout.alignment: Qt.AlignVCenter
-        implicitWidth: Theme.pillIcon + Theme.pillInnerGap + batteryPercent.implicitWidth
-        Layout.preferredWidth: implicitWidth
-        height: Theme.pillIcon
-        cursorShape: Qt.PointingHandCursor
+      PillTray {
+        id: expandedTray
+      }
 
-        BatteryIcon {
-          anchors.left: parent.left
-          anchors.verticalCenter: parent.verticalCenter
-          width: Theme.pillIcon
-          height: Theme.pillIcon
-          percent: _batteryService.capacity
-          charging: _batteryService.charging
-          showPercent: false
-        }
+      PillDivider {
+        visible: expandedTray.visible && expandedBattery.visible
+      }
 
-        Txt {
-          id: batteryPercent
-          anchors.left: parent.left
-          anchors.leftMargin: Theme.pillIcon + Theme.pillInnerGap
-          anchors.verticalCenter: parent.verticalCenter
-          text: Math.round(_batteryService.capacity) + "%"
-          color: Theme.batteryColor(_batteryService.capacity, _batteryService.charging)
-          variant: "body"
-          elide: Text.ElideNone
-        }
-
+      PillBattery {
+        id: expandedBattery
+        service: root.batteryService
         onClicked: {
-          if (root.batteryLimitWindow) root.batteryLimitWindow.open(batteryButton)
+          if (root.batteryLimitWindow) root.batteryLimitWindow.open(expandedBattery)
         }
       }
     }
@@ -639,22 +582,16 @@ Item {
 
   }
 
-  component VDiv: Rectangle {
-    width: 1
-    height: 16
-    color: Theme.comment
-    opacity: 0.4
-    Layout.alignment: Qt.AlignVCenter
-  }
-
-component RegWarningIcon: Txt {
+  component RegWarningIcon: Txt {
     id: regWarn
-    width: Theme.pillActionSlot
-    height: Theme.pillActionSlot
+    width: Theme.pillSlot
+    height: Theme.pillSlot
+    Layout.preferredWidth: Theme.pillSlot
+    Layout.preferredHeight: Theme.pillSlot
     text: "󰀦"
     color: Theme.yellow
     variant: "value"
-    font.pixelSize: Theme.pillActionIcon
+    font.pixelSize: Theme.pillGlyph
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
     Layout.alignment: Qt.AlignVCenter
@@ -696,6 +633,35 @@ component RegWarningIcon: Txt {
 
   Component.onCompleted: {
     root.sharedBrightnessService = brightnessService
+  }
+
+  // Hyprland.activeToplevel is populated by a focus *event*, so after the shell
+  // restarts with a window already focused it stays null and the title is blank
+  // until the next window switch. Seed it once from the compositor, then let
+  // the event keep it current; there is no polling.
+  Connections {
+    target: Hyprland
+    function onActiveToplevelChanged() {
+      // The event is authoritative: drop the startup seed even when nothing
+      // is focused, otherwise a closed window's title would stick.
+      root.seededWindow = null
+      root.focusedToplevel = Hyprland.activeToplevel
+    }
+  }
+
+  Process {
+    id: seedActiveToplevel
+    command: ["hyprctl", "-j", "activewindow"]
+    running: true
+    stdout: StdioCollector {
+      onStreamFinished: {
+        if (root.focusedToplevel) return
+        try {
+          var win = JSON.parse(this.text)
+          if (win && win.address) root.seededWindow = win
+        } catch (e) {}
+      }
+    }
   }
 }
 

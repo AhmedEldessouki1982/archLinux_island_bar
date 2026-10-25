@@ -170,13 +170,19 @@ QtObject {
   readonly property int chipRadius: 6
   readonly property int chipPadX: 6
   readonly property int chipHeight: 26
-  readonly property int pillGap: 12
-  readonly property int pillInnerGap: 8
-  readonly property int pillActionGap: 10
+
+  // --- island pill ----------------------------------------------------------
+  // One 24px slot for every glyph and every hit area in the pill, and one
+  // 16px glyph size: tray icons, action icons and the battery therefore sit on
+  // the same optical line whether the pill is collapsed or open, and no zone
+  // can invent a size of its own.
   readonly property int pillHeight: 32
-  readonly property int pillIcon: 16
-  readonly property int pillActionIcon: 19
-  readonly property int pillActionSlot: 24
+  readonly property int pillSlot: 24
+  readonly property int pillGlyph: 16
+  // Between two slots of the same group (two tray icons, icon and value).
+  readonly property int pillSlotGap: 8
+  // Between two groups: 12px of air, a 1px rule, another 12px of air.
+  readonly property int pillGroupGap: 12
   readonly property int pillPaddingLeft: 12
   readonly property int pillPaddingRight: 12
   // Workspace slots. One size everywhere: 22px cell, 4px pitch gap, so the
@@ -188,11 +194,15 @@ QtObject {
   // Slot 10 carries two digits in a 22px cell; condensing the tracking is the
   // only way both digits stay inside the pill without shrinking the type.
   readonly property real wsCondensedTracking: -0.6
+  // The collapsed pill is content-driven, but a run of tray icons and a long
+  // app title must not push it off the screen: it is clamped to this band and
+  // the title absorbs the difference by eliding.
   readonly property int pillMinWidth: 150
+  readonly property int pillMaxWidth: 760
   readonly property int pillTitleMaxWidth: 300
   readonly property int pillDividerWidth: 1
+  readonly property int pillDividerHeight: 16
   readonly property color pillDivider: "#50566b"
-  readonly property int trayIconSize: 18
   readonly property int toggleBadgeSize: 12
 
   // Calendar: a day cell is a square highlight behind the number.
@@ -215,7 +225,6 @@ QtObject {
   readonly property int monthArrowHitSize: 16
   readonly property int pillTimeWidth: 44
   readonly property int pillDateWidth: 92
-  readonly property int pillBatteryWidth: 42
   readonly property int pillIpMaxWidth: 140
   readonly property int pillMeterMaxWidth: 80
   readonly property int chargeLimitLabelWidth: 92
@@ -240,11 +249,6 @@ QtObject {
 
   // Right aligned latency column in the network card ("999ms").
   readonly property int latencyColWidth: 44
-
-  // Icon sizes used by the island pill.
-  property int iconSize: 16
-  property int iconFontSize: 15
-  property real iconLineWidth: 1.5
 
   // ===========================================================================
   // Thresholds

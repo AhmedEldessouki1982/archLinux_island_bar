@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
+import QtQuick.Layouts
 import "."
 import "../config"
 
@@ -18,17 +19,22 @@ Item {
     return root.keymap.length >= 2 ? root.keymap.substring(0, 2).toUpperCase() : ""
   }
 
-  width: Theme.pillActionSlot
-  height: Theme.pillActionSlot
+  width: Theme.pillSlot
+  height: Theme.pillSlot
+  Layout.preferredWidth: Theme.pillSlot
+  Layout.preferredHeight: Theme.pillSlot
+  implicitWidth: Theme.pillSlot
+  implicitHeight: Theme.pillSlot
 
   Txt {
     id: flagText
-    width: parent.width
-    height: parent.height
-    anchors.centerIn: parent
+    anchors.fill: parent
     text: root.glyph
     variant: "value"
-    font.pixelSize: Theme.pillActionIcon
+    font.pixelSize: Theme.pillGlyph
+    // Text is top-aligned by default and the slot is taller than the glyph.
+    horizontalAlignment: Text.AlignHCenter
+    verticalAlignment: Text.AlignVCenter
     elide: Text.ElideNone
   }
 
