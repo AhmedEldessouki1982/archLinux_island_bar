@@ -157,7 +157,6 @@ Item {
 
       EQBars {
         active: _audioService.active
-        animate: _psm.isExpanded || (root.healthWindow && root.healthWindow.visible)
         Layout.alignment: Qt.AlignVCenter
       }
 
