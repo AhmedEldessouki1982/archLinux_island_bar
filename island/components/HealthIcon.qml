@@ -5,8 +5,8 @@ import "../config"
 Txt {
   id: root
   antialiasing: true
-  width: Theme.pillActionIcon
-  height: Theme.pillActionIcon
+  width: Theme.pillActionSlot
+  height: Theme.pillActionSlot
   elide: Text.ElideNone
 
   property color iconColor: Theme.foreground

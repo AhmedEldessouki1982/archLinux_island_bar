@@ -161,11 +161,15 @@ Item {
       }
 
       Txt {
+        Layout.preferredWidth: Theme.pillWorkspaceCell
+        Layout.preferredHeight: Theme.pillWorkspaceHeight
         Layout.maximumWidth: Theme.pillWorkspaceWidth
         text: Hyprland.focusedWorkspace?.id ?? ""
         color: Theme.accent
         variant: "body"
         Layout.alignment: Qt.AlignVCenter
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         elide: Text.ElideNone
       }
 
@@ -368,6 +372,8 @@ Item {
                 color: workspaceItem.isCurrent ? Theme.accent
                   : workspaceItem.occupied ? Theme.foreground : Theme.comment
                 variant: workspaceItem.isCurrent ? "value" : "body"
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideNone
               }
 
@@ -414,7 +420,7 @@ Item {
       // --- actions zone: health + notifications ---
       Item {
         Layout.alignment: Qt.AlignVCenter
-        height: Theme.pillActionIcon
+        height: Theme.pillActionSlot
         width: actionsRow.implicitWidth
         Layout.preferredWidth: actionsRow.implicitWidth
 
@@ -424,15 +430,15 @@ Item {
           spacing: Theme.pillActionGap
 
           RegWarningIcon {
-            width: Theme.pillActionIcon
-            height: Theme.pillActionIcon
+            width: Theme.pillActionSlot
+            height: Theme.pillActionSlot
             Layout.alignment: Qt.AlignVCenter
           }
 
           HealthIcon {
             id: healthIcon
-            width: Theme.pillActionIcon
-            height: Theme.pillActionIcon
+            width: Theme.pillActionSlot
+            height: Theme.pillActionSlot
             iconColor: Theme.foreground
             Layout.alignment: Qt.AlignVCenter
 
@@ -443,8 +449,8 @@ Item {
           }
 
           Item {
-            width: Theme.pillActionIcon
-            height: Theme.pillActionIcon
+            width: Theme.pillActionSlot
+            height: Theme.pillActionSlot
             Layout.alignment: Qt.AlignVCenter
 
             Txt {
@@ -488,8 +494,8 @@ Item {
           }
 
           KbLayoutIcon {
-            width: Theme.pillActionIcon
-            height: Theme.pillActionIcon
+            width: Theme.pillActionSlot
+            height: Theme.pillActionSlot
           }
         }
       }
@@ -685,8 +691,8 @@ Item {
 
 component RegWarningIcon: Txt {
     id: regWarn
-    width: Theme.pillActionIcon
-    height: Theme.pillActionIcon
+    width: Theme.pillActionSlot
+    height: Theme.pillActionSlot
     text: "󰀦"
     color: Theme.yellow
     variant: "value"
