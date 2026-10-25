@@ -36,11 +36,13 @@ Item {
   // ===========================================================================
 
   property real cpuLoad: 0
+  property bool cpuReady: false
   property real cpuTemp: 0
   property int cpuCount: 1
   property real ramUsed: 0
   property real ramTotal: 0
   property real ramPercent: 0
+  property bool ramReady: false
   property real gpuTemp: 0
   property real gpuLoad: 0
   property real cpuFanSpeed: 0
@@ -48,6 +50,7 @@ Item {
   property real netRxRate: 0
   property real netTxRate: 0
   property real netLatency: -1
+  property bool netConnected: false
   property string wifiSsid: ""
   property int batteryCapacity: 0
   property real batteryPower: 0
@@ -94,9 +97,11 @@ Item {
     if (root.systemStatsService) {
       root.cpuCount = Qt.binding(() => root.systemStatsService.cpuCount)
       root.cpuLoad = Qt.binding(() => root.systemStatsService.cpuLoad)
+      root.cpuReady = Qt.binding(() => root.systemStatsService.cpuReady)
       root.ramUsed = Qt.binding(() => root.systemStatsService.ramUsed)
       root.ramTotal = Qt.binding(() => root.systemStatsService.ramTotal)
       root.ramPercent = Qt.binding(() => root.systemStatsService.ramPercent)
+      root.ramReady = Qt.binding(() => root.systemStatsService.ramReady)
       root.kernelVersion = Qt.binding(() => root.systemStatsService.kernelVersion)
       root.userName = Qt.binding(() => root.systemStatsService.userName)
       root.hostName = Qt.binding(() => root.systemStatsService.hostName)
@@ -123,6 +128,7 @@ Item {
       root.netRxRate = Qt.binding(() => root.networkService.rxRate)
       root.netTxRate = Qt.binding(() => root.networkService.txRate)
       root.netLatency = Qt.binding(() => root.networkService.latencyMs)
+      root.netConnected = Qt.binding(() => root.networkService.connected)
       root.wifiSsid = Qt.binding(() => root.networkService.ssid)
     }
   }
@@ -287,6 +293,11 @@ Item {
 
   readonly property string conditionText: root.weatherService && root.weatherService.weatherCode >= 0
     ? root.weatherStatus(root.weatherService.weatherCode) : "--"
+  // The city is whatever the geolocation service resolved, never a fixture.
+  readonly property string weatherCityText: {
+    var city = root.weatherService ? String(root.weatherService.city) : ""
+    return city.length > 0 ? city.toUpperCase() : "--"
+  }
   readonly property bool weatherHasSun: root.weatherService
     && root.weatherService.sunriseText.length > 0 && root.weatherService.sunsetText.length > 0
   readonly property real weatherInnerW: root.colBW - 2 * Theme.cardPadX
@@ -652,7 +663,9 @@ Item {
                         text: dayCell.modelData.label
                         color: dayCell.modelData.isToday ? Theme.background
                           : (dayCell.modelData.isPast ? Theme.comment : Theme.foreground)
-                        variant: "body"
+                        // Today is the only emphasised cell; `variant` selects a
+                        // size, so the weight is set on the font directly.
+                        font.weight: dayCell.modelData.isToday
                           ? Theme.fontWeightValue : Theme.fontWeightBody
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideNone
@@ -1060,8 +1073,8 @@ Item {
                 width: Theme.metricValueWidth
                 height: parent.height
                 verticalAlignment: Text.AlignVCenter
-                color: Theme.loadColor(root.cpuLoad)
-                text: Format.percent(root.cpuLoad)
+                color: root.cpuReady ? Theme.loadColor(root.cpuLoad) : Theme.comment
+                text: root.cpuReady ? Format.percent(root.cpuLoad) : "--"
               }
               Item {
                 width: Theme.gapSmall
@@ -1071,15 +1084,15 @@ Item {
                 width: parent.width - Theme.metricValueWidth - Theme.gapSmall
                 height: parent.height
                 verticalAlignment: Text.AlignBottom
-                color: Theme.temperatureColor(root.cpuTemp)
-                text: Format.temp(root.cpuTemp)
+                color: root.cpuTemp > 0 ? Theme.temperatureColor(root.cpuTemp) : Theme.comment
+                text: root.cpuTemp > 0 ? Format.temp(root.cpuTemp) : "--"
               }
             }
             LineGraph {
               width: parent.width
               height: Theme.sparklineHeight
               samples: root.cpuHistory
-              color: Theme.graphColor(root.cpuLoad)
+              color: root.cpuReady ? Theme.graphColor(root.cpuLoad) : Theme.comment
               maxValue: 100
               active: root.active
             }
@@ -1186,7 +1199,7 @@ Item {
                   height: root.mValueH
                   horizontalAlignment: Text.AlignRight
                   verticalAlignment: Text.AlignVCenter
-                  color: Theme.memoryColor(root.ramPercent)
+                  color: root.ramReady ? Theme.memoryColor(root.ramPercent) : Theme.comment
                   text: Format.usedTotal(root.ramUsed, root.ramTotal)
                   elide: Text.ElideNone
                 }
@@ -1293,7 +1306,8 @@ Item {
               width: parent.width - Theme.networkGlyphWidth - Theme.gapSmall
               height: parent.height
               verticalAlignment: Text.AlignVCenter
-              text: Format.rate(root.netRxRate)
+              color: root.netConnected ? Theme.foreground : Theme.comment
+              text: root.netConnected ? Format.rate(root.netRxRate) : "--"
             }
           }
           Row {
@@ -1311,7 +1325,8 @@ Item {
               width: parent.width - Theme.networkGlyphWidth - Theme.gapSmall
               height: parent.height
               verticalAlignment: Text.AlignVCenter
-              text: Format.rate(root.netTxRate)
+              color: root.netConnected ? Theme.foreground : Theme.comment
+              text: root.netConnected ? Format.rate(root.netTxRate) : "--"
             }
           }
           Row {
@@ -1374,7 +1389,7 @@ Item {
                 width: parent.width
                 height: root.mCaptionH
                 verticalAlignment: Text.AlignVCenter
-                text: "CAIRO"
+                text: root.weatherCityText
                 color: Theme.weatherCity
               }
               Value {

@@ -6,12 +6,15 @@ Item {
   id: root
   visible: false
 
+  // True percentage of the backlight range. The panel used to rescale this
+  // against a hardcoded 95% "real max", so a backlight at 95% of max was shown
+  // as 100% and 100% was unreachable. Both numbers now mean the same thing:
+  // what `brightnessctl` reports.
   property real percent: 95
-  property int realMaxPercent: 95
   property bool fastPoll: false
   property bool monitoring: false
   property int _pendingPercent: -1
-  readonly property real displayPercent: Math.max(1, Math.min(100, Math.round(root.percent / root.realMaxPercent * 100)))
+  readonly property real displayPercent: Math.max(1, Math.min(100, Math.round(root.percent)))
 
   signal externalChangeDetected()
 
@@ -20,8 +23,7 @@ Item {
   }
 
   function setPercent(v) {
-    var realTarget = Math.round(v / 100 * root.realMaxPercent)
-    var p = Math.max(1, Math.min(root.realMaxPercent, realTarget))
+    var p = Math.max(1, Math.min(100, Math.round(v)))
     root.percent = p
     if (setProc.running) {
       root._pendingPercent = p
