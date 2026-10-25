@@ -164,7 +164,11 @@ Item {
         Layout.preferredWidth: Theme.pillWorkspaceCell
         Layout.preferredHeight: Theme.pillWorkspaceHeight
         Layout.maximumWidth: Theme.pillWorkspaceWidth
-        text: Hyprland.focusedWorkspace?.id ?? ""
+        text: {
+          var id = Hyprland.focusedWorkspace?.id ?? 0
+          var slot = ((id - 1) % 10) + 1
+          return id > 0 ? (slot === 10 ? "0" : String(slot)) : ""
+        }
         color: Theme.accent
         variant: "body"
         Layout.alignment: Qt.AlignVCenter
@@ -324,11 +328,16 @@ Item {
 
           Repeater {
             model: {
-              var ids = [1, 2, 3, 4, 5, 6]
+              var focusedId = Hyprland.focusedWorkspace?.id ?? 1
+              var base = Math.floor((focusedId - 1) / 10) * 10
+              var ids = []
+              for (var slot = 1; slot <= 10; slot++) ids.push(base + slot)
               var values = Hyprland.workspaces.values
               for (var i = 0; i < values.length; i++) {
                 var wid = values[i].id
-                if (wid > 6) ids.push(wid)
+                if (Math.floor((wid - 1) / 10) === Math.floor((focusedId - 1) / 10)
+                    && ids.indexOf(wid) === -1)
+                  ids.push(wid)
               }
               // ensure unique and sorted
               var seen = {}
@@ -356,6 +365,14 @@ Item {
               readonly property bool occupied: workspaceObject && workspaceObject.toplevels
                 ? workspaceObject.toplevels.values.length > 0 : false
               readonly property bool isCurrent: Hyprland.focusedWorkspace?.id === workspaceId
+              readonly property int slotNumber: ((workspaceId - 1) % 10) + 1
+
+              Rectangle {
+                anchors.fill: parent
+                radius: width / 2
+                color: Theme.accent
+                visible: workspaceItem.isCurrent
+              }
 
               Layout.preferredWidth: Theme.pillWorkspaceCell
               Layout.minimumWidth: Theme.pillWorkspaceCell
@@ -368,10 +385,11 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width
                 height: parent.height
-                text: String(workspaceItem.workspaceId)
-                color: workspaceItem.isCurrent ? Theme.accent
+                text: workspaceItem.slotNumber === 10 ? "0" : String(workspaceItem.slotNumber)
+                color: workspaceItem.isCurrent ? Theme.background
                   : workspaceItem.occupied ? Theme.foreground : Theme.comment
                 variant: workspaceItem.isCurrent ? "value" : "body"
+                opacity: workspaceItem.isCurrent || workspaceItem.occupied ? 1 : 0.5
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideNone
