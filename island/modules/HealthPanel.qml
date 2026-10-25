@@ -419,6 +419,18 @@ Item {
     var rel = root.kernelVersion.split("-")[0]
     return rel.length > 0 ? host + " \u00b7 " + rel : host
   }
+  // The two ASUS cards are only meaningful where their tool is installed.
+  // GpuModeService answers that once at startup; here it decides whether the
+  // row exists at all, so a non-ASUS machine sees a shorter right column
+  // rather than two cards stuck on "--".
+  readonly property bool profileToolAvailable: root.gpuModeService
+    ? root.gpuModeService.asusctlAvailable : false
+  readonly property bool gpuToolAvailable: root.gpuModeService
+    ? root.gpuModeService.supergfxctlAvailable : false
+  readonly property bool asusRowVisible: root.profileToolAvailable || root.gpuToolAvailable
+  readonly property bool chargeLimitSupported: root.batteryService
+    ? root.batteryService.chargeLimitSupported : false
+
   readonly property string profileText: root.powerProfile.length > 0
     ? root.powerProfile : "--"
   readonly property string gpuModeText: root.gpuMode.length > 0
@@ -1600,11 +1612,15 @@ Item {
           }
 
           Item {
+            // No asusd means no threshold to show or set, so the spacer and the
+            // whole limit row go away instead of printing a placeholder.
+            visible: root.chargeLimitSupported
             width: parent.width
             height: Theme.gapSmall
           }
 
           Row {
+            visible: root.chargeLimitSupported
             width: parent.width
             height: Theme.chipHeight
             spacing: Theme.gapSmall
@@ -1639,14 +1655,16 @@ Item {
         }
       }
 
-      // --- profile | gpu mode (1u) -------------------------------------------
+      // --- profile | gpu mode (1u, ASUS only) --------------------------------
       Row {
         width: colC.width
         height: root.h1
         spacing: root.gut
+        visible: root.asusRowVisible
 
         Card {
-          width: root.halfCW
+          visible: root.profileToolAvailable
+          width: root.gpuToolAvailable ? root.halfCW : colC.width
           height: parent.height
           entranceIndex: 12
 
@@ -1688,7 +1706,8 @@ Item {
         }
 
         Card {
-          width: root.halfCW
+          visible: root.gpuToolAvailable
+          width: root.profileToolAvailable ? root.halfCW : colC.width
           height: parent.height
           entranceIndex: 13
 
@@ -1745,10 +1764,10 @@ Item {
         }
       }
 
-      // --- storage (4u) ------------------------------------------------------
+      // --- storage (4u, or 5u when the ASUS row is hidden) --------------------
       Card {
         width: colC.width
-        height: root.h4
+        height: root.asusRowVisible ? root.h4 : root.h4 + root.h1 + root.gut
         entranceIndex: 14
 
         Item {

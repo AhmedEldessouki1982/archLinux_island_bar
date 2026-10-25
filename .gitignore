@@ -1,0 +1,13 @@
+# Editor / language-server artefacts
+.qmlls.ini
+*.qmlc
+*.jsc
+
+# Backups of hand-edited QML
+*.bak
+*~
+
+# Agent caches and local fabric state
+.pi/
+.agents/
+.codex/

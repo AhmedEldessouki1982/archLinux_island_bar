@@ -8,31 +8,39 @@ A single morphing pill that expands on hover into a full status cluster, built w
 
 - **Morphing pill** — three states in one bar: a narrow idle pill, a hover-expanded layout, and a compact centered meter for transient feedback (volume / brightness / keyboard-lock OSD).
 - **Volume + brightness control** — scroll to adjust, click to mute / toggle; each shows a compact centered meter that pops up on bind, triggered over Hyprland IPC from your hardware keys.
-- **Brightness remap & cap** — the on-screen `1–100%` scale is remapped onto the real backlight range, which is capped at **95%** (`realMaxPercent`) to protect the panel; the hardware keys route through this capped IPC so they can never blow past the limit.
-- **Battery charge-limit popup** — click the battery icon for **60%**, **80%**, or **100%** presets via `asusctl battery limit`; the active preset is read back from the system and marked red.
+- **Honest brightness scale** — the percentage on screen is exactly what `brightnessctl` reports, from 1% to 100%. There is no hidden remap: a backlight at 100% of its range reads 100%.
+- **Battery charge-limit popup** — click the battery icon for **60%**, **80%**, or **100%** presets via `asusctl battery limit`; the active preset is read back from the system and marked red. Without `asusd` the row is not drawn at all.
+- **Workspaces** — one `WorkspaceItem` component drives both states: the idle pill shows only the active workspace, the expanded pill shows **1–10** in fixed 22px slots with a single accent pill that **slides** between them (150 ms). Occupied slots carry a dot, empty slots stay dim, hover lightens the fill, and clicking an empty slot focuses it.
 - **Caps / Num lock OSD** — a short-lived, centered popup that appears when either lock key changes.
 - **Headphone jack detection** — the volume icon reflects the active `wpctl` sink port.
-- **EQ visualizer** — hand-drawn animated bars that appear while audio plays.
-- **iwd network identity** — the health panel shows the connected SSID with latency and transfer rates, while the expanded pill keeps its compact IP address readout.
+- **EQ visualizer** — hand-drawn bars that animate **only while audio is actually playing and the pill is expanded**; collapsed, they hold still so the idle bar can reach 0% CPU.
+- **Network identity** — the health panel shows the connected SSID with latency and transfer rates, while the expanded pill keeps its compact IP address readout.
 - **Notifications** — banner + center, with deadline-based expiry for transient notifications and true pinning for persistent ones.
-- **Calendar** — independent month navigation and a six-week grid keep the current-day marker accurate without snapping the view back.
+- **Calendar** — independent month navigation and a six-week grid (adjacent-month days dimmed) keep the current-day marker accurate without snapping the view back.
 - **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 15 s idle and resets its timer while you interact with it.
-- **Bento health panel** — fixed 196 / 232 / 196px columns on a 36px unit grid with 8px gutters. Each column is exactly ten units tall, so all three end on the same baseline without stretched cards. The left column carries the clock/calendar and top processes; the middle carries quick toggles, audio/brightness, smooth CPU/GPU load graphs, RAM/fan, network and weather; the right carries identity, battery power, profile/GPU mode, two storage rings and updates/uptime.
-- **Quick-toggle status** — the Bluetooth chip shows the number of connected devices; empty workspace slots fade in without changing the pill's size.
-- **Shared panel typography and toggle glyphs** — four monospace sizes and one high-contrast lavender label color are shared across cards; the DND, keep-awake and Bluetooth chips use stateful Canvas glyphs and full-name tooltips.
-- **Storage card** — two fixed 64px ring gauges for `/` and `/home`, with a mount label and consistent `used / total` units.
-- **Live weather card** — the health panel shows current location (geo via `ipwho.is`) and temperature + conditions (via `open-meteo`), refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The card also shows the day/night state and the sunrise / sunset times.
-- **Native Quickshell integration** — battery/charging read straight from the built-in **UPower** service (event-driven, zero polling); active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
-- **Dracula throughout** — one singleton theme, a single palette, no hard-coded colors.
+- **Bento health panel** — fixed 196 / 232 / 196px columns on a 36px unit grid with 8px gutters. Each column is exactly **11 units** (476px) tall, so all three end on the same baseline without stretched cards; the whole body is **640×476** inside a **716×500** window. The left column carries the clock/calendar and top processes; the middle carries quick toggles, audio/brightness, smooth CPU/GPU load graphs, RAM/fan, network and weather; the right carries identity, battery power, profile/GPU mode, two storage rings and updates/uptime.
+- **Quick-toggle status** — the Bluetooth chip shows the number of connected devices; the tray is one 24px slot grid in both pill states.
+- **Shared panel typography and toggle glyphs** — four monospace sizes (10 / 12 / 15 / 24) and one high-contrast lavender label colour are shared across cards; the DND, keep-awake and Bluetooth chips use stateful Canvas glyphs and full-name tooltips.
+- **Storage card** — two 64px ring gauges for the mounts listed in `config/Config.qml` (ROOT and DATA by default). A mount the system does not actually report is dropped, never drawn as 0%.
+- **Live weather card** — current location (geo via `ipwho.is`) and temperature + conditions (via `open-meteo`), refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The card also shows the day/night state and the sunrise / sunset times.
+- **Native Quickshell integration** — battery/charging straight from the built-in **UPower** service (event-driven, zero polling) and the clock from **SystemClock**; active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
+- **Dracula throughout** — one singleton theme, a single palette, no hard-coded colours and no literal font sizes outside it.
 - **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
 
 ---
 
 ## Why this isn't just another rice
 
-Quickshell ships native services (UPower, and a hostile Pipewire module), but Quickshell **0.3.0**'s Pipewire audio/volume read-back is broken — `PwNodeAudio.volume`/`mute` read 0 and `PwLink.state` is stuck. So the services here are event-driven where the native module is reliable, and fall back to a polled CLI (`wpctl`, `brightnessctl`, `asusctl`) where it isn't, with temporary speed-ups only while an OSD is on screen.
+Quickshell ships native services (UPower, and a hostile Pipewire module), but Quickshell **0.3.x**'s Pipewire audio/volume read-back is broken — `PwNodeAudio.volume`/`mute` read 0 and `PwLink.state` is stuck. So the services here are event-driven where the native module is reliable, and fall back to a polled CLI (`wpctl`, `brightnessctl`, `asusctl`, `df`, `hyprctl`) where it isn't — and only while the panel or an OSD is actually on screen.
 
-The payoff is **idle CPU around 0.1%** instead of the slow battery drain from an infinite `SequentialAnimation` repaint loop or an aggressive polling loop. The OSD meter layers also react instantly because they're a low-cost repaint triggered over IPC, not a 2-second poll. The charge-limit poll (10 s) and weather refresh (30 min) are deliberately slow to keep the idle cost near zero.
+The payoff is a bar that genuinely sleeps. Measured on the development machine (Ryzen 9 5900HS, 1920×1080 @ 120Hz, Hyprland 0.56, Quickshell 0.3.2):
+
+| State | Before the idle pass | Now |
+|---|---|---|
+| Idle, panel closed | 7.7% CPU, ~0.5 child spawns/s | **0.000% CPU, 0 spawns/s** |
+| Health panel open | 20.5% CPU | **1.9% CPU** |
+
+The idle number came from two things: an equalizer repainting 160 ms forever because a sink node existed, and a 30 s clock `Timer` that kept the shell awake. Both are gone — the EQ bars are gated on real playback *and* expansion, and the clock is a `SystemClock` on the minute. The health panel itself contains **zero** `Timer`s: its graphs advance when a service publishes a new sample, and its clock ticks from the same signal every other card uses.
 
 None of that is a substitute for benchmarking on your own hardware — it's simply what the implementation was tuned for, and the reasoning is written into the service sources.
 
@@ -50,12 +58,14 @@ None of that is a substitute for benchmarking on your own hardware — it's simp
 | `brightnessctl` | Backlight control |
 | `upower` | Battery/charging events (for the native UPower service) |
 | `curl` | Weather geolocation + forecast fetches |
+| `iproute2`, `procps-ng`, `coreutils` | Address, `top`, `df`/`ping` readouts |
+| `pacman-contrib` (`checkupdates`) | Pending-update count (cached for 1 h) |
 | _optional_ `asusctl` | Battery charge-limit popup (`asusd` daemon) + power-profile readout |
 | _optional_ `supergfxctl` | ASUS GPU mode/status readout |
 | _optional_ `nvidia-utils` | GPU load/temp via `nvidia-smi` |
 | _optional_ `lm_sensors` | CPU/GPU temperature fallback |
 
-> The battery charge-limit popup needs the `asusd` system daemon running (it owns the write path, so `asusctl battery limit` works without sudo). Without ASUS hardware, the popup's rows simply never match a limit and everything else stays functional.
+> The battery charge-limit popup needs the `asusd` system daemon running (it owns the write path, so `asusctl battery limit` works without sudo). Without ASUS hardware the PROFILE / GPU MODE cards and the charge-limit row are **hidden**, and the storage card grows to keep the right column ending on the same baseline.
 
 ### 0. Install Quickshell
 
@@ -96,6 +106,20 @@ ln -sf ~/projects/quickshell ~/.config/quickshell
 | `supergfxctl` | ASUS GPU mode switching |
 | `lm_sensors` / `nvidia-utils` | temperature / NVIDIA GPU stats |
 
+### 3. Personal settings
+
+`island/config/Config.qml` is yours to edit; nothing there is design:
+
+```qml
+property var diskMounts: [                 // ring gauges, in display order
+  { "mount": "/", "label": "ROOT" },
+  { "mount": "/mnt/data", "label": "DATA" }
+]
+property var preferredScreens: ["eDP-1"]   // first name that exists wins
+```
+
+Unknown mounts are dropped, and an unknown output name falls through to the first screen the compositor reports.
+
 ---
 
 ## Usage
@@ -122,41 +146,53 @@ Bind your volume/brightness keys to the island IPC:
 quickshell -c island ipc call island triggerMeter volume     # pop the volume OSD
 quickshell -c island ipc call island triggerMeter brightness # pop the brightness OSD
 quickshell -c island ipc call island toggleHealth            # toggle the health panel
-quickshell -c island ipc call island adjustBrightness 5      # +5% on the capped scale
-quickshell -c island ipc call island adjustBrightness -5     # -5% on the capped scale
+quickshell -c island ipc call island adjustBrightness 5      # +5%
+quickshell -c island ipc call island adjustBrightness -5     # -5%
 ```
 
-`adjustBrightness` clamps at 1% and the 95% real-backlight cap, so the hardware keys can never push the panel past its limit.
+`adjustBrightness` clamps at 1% and 100%, matching the real backlight range.
 
 ---
 
 ## Project structure
 
 ```
+scripts/check.sh           # offline gate: qmllint + design-rule greps
+AGENTS.md                  # rules and environment traps for contributors
 island/
 ├── shell.qml              # Entry — PanelWindow + every floating layer + pill
 ├── config/
-│   ├── qmldir             # QML module definition (Theme singleton)
-│   └── Theme.qml          # Dracula palette + font/type scale, single source of truth
+│   ├── qmldir             # QML module definition (three singletons)
+│   ├── Theme.qml          # Dracula palette + type scale + 36px grid, single source of truth
+│   ├── Config.qml         # Personal settings: disk mounts, preferred output
+│   └── Format.qml         # Number / unit formatting
 ├── components/
 │   ├── AudioDeviceMenu.qml # Output / input device picker for the controls card
 │   ├── BatteryIcon.qml    # Canvas-drawn battery
 │   ├── DropShape.qml      # Shared flat silhouette (pill + health panel)
-│   ├── EQBars.qml         # Animated equalizer bars
+│   ├── EQBars.qml         # Equalizer bars, gated on playback + expansion
+│   ├── GlyphIcon.qml      # Icon-font glyph wrapper
 │   ├── HealthIcon.qml     # Health panel toggle icon
 │   ├── KbLayoutIcon.qml   # Keyboard layout glyph
+│   ├── LineGraph.qml      # Dense CPU/GPU history inset
 │   ├── NetworkIcon.qml    # WiFi / ethernet / disconnected
 │   ├── NotificationCard.qml # Notification banner content
+│   ├── PillBattery.qml    # Battery slot (glyph + percentage)
+│   ├── PillDivider.qml    # 1px group divider inside the pill
 │   ├── PillStateMachine.qml # Idle / hover / meter state machine
+│   ├── PillTray.qml       # StatusNotifier slot row
 │   ├── RingGauge.qml      # Flat ring gauge (storage disks, power)
-│   └── WeatherGlyph.qml   # Canvas-drawn WMO weather-condition icon
+│   ├── ToggleChip.qml     # DND / keep-awake / Bluetooth chip
+│   ├── Txt.qml            # The only text item: caption / body / value / hero
+│   ├── WeatherGlyph.qml   # Canvas-drawn WMO weather-condition icon
+│   └── WorkspaceItem.qml  # One workspace slot, identical in both pill states
 ├── services/
 │   ├── AudioService.qml   # Pipewire stream detect; volume/mute via wpctl
 │   ├── BatteryService.qml # Native UPower + asusctl charge-limit read/set
-│   ├── BrightnessService.qml # Backlight via brightnessctl, 0–95% remap
-│   ├── GpuModeService.qml # Hybrid / integrated GPU mode switch
+│   ├── BrightnessService.qml # Backlight via brightnessctl, true 1–100%
+│   ├── GpuModeService.qml # Hybrid / integrated GPU mode switch + tool detection
 │   ├── LockService.qml    # Caps/Num-OSD (LED sysfs)
-│   ├── NetworkService.qml # Network readout
+│   ├── NetworkService.qml # Address, SSID, latency, transfer rates
 │   ├── ProcessStatsService.qml # Top CPU / RAM processes
 │   ├── StorageService.qml # Per-mount usage (df), sampled while open
 │   ├── SystemStatsService.qml # CPU / RAM / uptime / load averages
@@ -165,7 +201,7 @@ island/
 │   └── WeatherService.qml # ipwho.is geolocation + open-meteo forecast
 └── modules/
     ├── IslandPill.qml     # The pill — idle / hover / meter states + IPC
-    ├── BatteryLimitPopup.qml # Charge-threshold radio presets (58/79/100%)
+    ├── BatteryLimitPopup.qml # Charge-threshold radio presets (60/80/100%)
     ├── FloatingHealth.qml # Overlay window hosting the consolidated panel
     ├── HealthPanel.qml    # Bento panel: clock+procs / controls+weather / power+storage
     ├── NotificationLayer.qml # Banner stack w/ expiry
@@ -174,17 +210,36 @@ island/
 
 ---
 
+## Checks
+
+`scripts/check.sh` runs without a compositor and is the gate before any commit:
+
+```bash
+scripts/check.sh
+```
+
+It fails on QML errors, on a hex colour or numeric `pixelSize` outside `config/Theme.qml`, on a raw `Text {}` outside `components/Txt.qml`, on `Animation.Infinite` or any shadow/effect API, on a `Timer` inside the health panel, and on personal settings leaking back into `Theme.qml`.
+
+Then reload the shell and confirm the log is clean — Quickshell separates log records with `\r`, so convert it first:
+
+```bash
+tr '\r' '\n' < /run/user/1000/quickshell/by-id/*/log.qslog | grep -aiE 'warning|error'
+```
+
+---
+
 ## Known limitations & tested-on
 
-- **ASUS**-only extras (`asusctl`, `supergfxctl`, and the fan readback) are gated: without that hardware they simply stay empty — nothing breaks.
+- **ASUS**-only extras are gated on the binaries, not on hope: `asusctl` and `supergfxctl` are probed once at startup, and the PROFILE / GPU MODE cards plus the charge-limit row are hidden when the matching tool is absent. A single surviving card takes the full column width.
 - **Weather** needs network access; `ipwho.is` and `open-meteo.com` are called at 30-min intervals. On failure the last-known-good reading is kept, and a failed geo lookup short-circuits so the card doesn't spin on stale coordinates.
 - **WiFi identity** is read from the active iwd station with `iwctl`; Island never starts, enables, or reconfigures a network controller.
+- **GPU load** comes from amdgpu's `gpu_busy_percent`, which on some APUs flickers between 0 and 100 between reads. The card shows what the kernel reports; it does not smooth the source away.
 - **Quickshell 0.3.x quirks** are worked around, not hidden:
   - Pipewire audio read/write is bypassed via `wpctl` (see the opening comment in `BatteryService`/`AudioService`);
   - standard action glyphs use the configured icon font alongside the custom canvas icons;
   - the volume/brightness meter temporarily blooms the poll rate (150 ms) only while its OSD is on screen, then returns to the normal slow poll;
-- **Tested on**: Hyprland 0.56, Quickshell 0.3.1 (Qt6), Arch `extra`; screen selector defaults to `eDP-1` then `eDP-2`, then the first output.
+- **Tested on**: Hyprland 0.56.2, Quickshell 0.3.2 (Qt6), Arch `extra`; the output is chosen from `Config.preferredScreens`, then the first output.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). © Ahmed Eldessouki.

@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Io
 import "../config"
 
-// Disk usage for the mount points whitelisted in Theme.diskMounts.
+// Disk usage for the mount points listed in Config.diskMounts.
 //
 // One `df` per sample, and sampling only happens while the panel is open: once
 // on start, then every 30s. Overlapping runs are impossible because a sample is
@@ -39,13 +39,13 @@ Item {
 
   function mountArguments() {
     var out = []
-    var mounts = Theme.diskMounts || []
+    var mounts = Config.diskMounts || []
     for (var i = 0; i < mounts.length; i++) out.push(mounts[i].mount)
     return out
   }
 
   function labelFor(mount) {
-    var mounts = Theme.diskMounts || []
+    var mounts = Config.diskMounts || []
     for (var i = 0; i < mounts.length; i++) {
       if (mounts[i].mount === mount) return mounts[i].label
     }

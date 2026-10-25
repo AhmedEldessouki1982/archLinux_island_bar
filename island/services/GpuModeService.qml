@@ -15,13 +15,28 @@ Item {
   property var availableProfiles: []
   property bool profileChanging: false
 
+  // asusctl and supergfxctl are optional. The panel hides the ASUS cards when
+  // the matching tool is missing, so a machine without them never shows an
+  // empty GPU MODE card or a PROFILE chip that cannot do anything.
+  property bool asusctlAvailable: false
+  property bool supergfxctlAvailable: false
+  property bool toolsChecked: false
+
   function start() {
-    if (!gfxModeProc.running) gfxModeProc.running = true
-    if (!pwrProfileProc.running) pwrProfileProc.running = true
+    if (!root.toolsChecked) {
+      if (!toolsProc.running) toolsProc.running = true
+      return
+    }
+    root.startReaders()
+  }
+
+  function startReaders() {
+    if (root.supergfxctlAvailable && !gfxModeProc.running) gfxModeProc.running = true
+    if (root.asusctlAvailable && !pwrProfileProc.running) pwrProfileProc.running = true
   }
 
   function cyclePowerProfile() {
-    if (root.profileChanging || pwrProfileProc.running) return
+    if (!root.asusctlAvailable || root.profileChanging || pwrProfileProc.running) return
     var profiles = root.availableProfiles.length > 0
       ? root.availableProfiles : ["Quiet", "Balanced", "Performance"]
     var current = profiles.indexOf(root.powerProfile)
@@ -31,7 +46,8 @@ Item {
   }
 
   function setGpuMode(mode) {
-    if (root.gpuModeChanging || !mode || root.availableGpuModes.indexOf(mode) < 0)
+    if (!root.supergfxctlAvailable || root.gpuModeChanging || !mode
+        || root.availableGpuModes.indexOf(mode) < 0)
       return
     root.gpuModeChanging = true
     setGpuModeProc.command = ["supergfxctl", "-m", mode]
@@ -40,6 +56,28 @@ Item {
 
   function stop() {
     // one-shot; no timer to stop
+  }
+
+  // One `command -v` per tool, once per shell lifetime. Both tools print their
+  // state, so the panel never has to guess whether a blank value means "off",
+  // "loading" or "not installed".
+  Process {
+    id: toolsProc
+    command: ["sh", "-c", "command -v supergfxctl >/dev/null 2>&1 && echo S:1 || echo S:0; command -v asusctl >/dev/null 2>&1 && echo A:1 || echo A:0"]
+    running: false
+    stdout: SplitParser {
+      onRead: data => {
+        var line = String(data).trim()
+        if (line === "S:1") root.supergfxctlAvailable = true
+        else if (line === "S:0") root.supergfxctlAvailable = false
+        else if (line === "A:1") root.asusctlAvailable = true
+        else if (line === "A:0") root.asusctlAvailable = false
+      }
+    }
+    onExited: {
+      root.toolsChecked = true
+      root.startReaders()
+    }
   }
 
   Process {

@@ -342,12 +342,8 @@ QtObject {
     return root.diskColor(value)
   }
 
-  // Filesystems shown as ring gauges in display order.
-  property var diskMounts: [
-    { "mount": "/", "label": "ROOT" },
-    { "mount": "/home", "label": "HOME" },
-    { "mount": "/mnt/data", "label": "DATA" }
-  ]
+  // Which filesystems the storage card shows is a personal setting, not a
+  // design token: see Config.diskMounts.
 
   // ===========================================================================
   // Motion and shape

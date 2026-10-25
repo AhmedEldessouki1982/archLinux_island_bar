@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import QtQuick
 import "./modules"
+import "./config"
 
 PanelWindow {
   id: root
@@ -25,13 +26,16 @@ PanelWindow {
     radius: islandPill.pillEarRadius
   }
 
+  // Output preference comes from Config, so the bar is not tied to one
+  // machine's connector names. Unknown names fall through to the next
+  // preference, then to whatever output exists.
   screen: {
     var screens = Quickshell.screens
-    for (var i = 0; i < screens.length; i++) {
-      if (screens[i].name === "eDP-1") return screens[i]
-    }
-    for (var i = 0; i < screens.length; i++) {
-      if (screens[i].name === "eDP-2") return screens[i]
+    var prefs = Config.preferredScreens || []
+    for (var p = 0; p < prefs.length; p++) {
+      for (var i = 0; i < screens.length; i++) {
+        if (screens[i].name === prefs[p]) return screens[i]
+      }
     }
     return screens.length > 0 ? screens[0] : null
   }

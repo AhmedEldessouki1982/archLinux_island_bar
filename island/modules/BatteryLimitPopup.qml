@@ -193,9 +193,40 @@ PanelWindow {
       && root.batteryService.chargeLimit === pct
   }
 
+  // A click asks for the threshold list, but whether the machine has one is
+  // only known once the read comes back. `pendingOpen` holds the request for
+  // that one read: without asusd/asusctl the popup simply never appears,
+  // instead of showing a frame with no options in it.
+  property bool pendingOpen: false
+
+  onPendingOpenChanged: if (root.pendingOpen) root.resolvePending()
+
+  function resolvePending() {
+    if (!root.pendingOpen) return
+    if (!root.batteryService) {
+      root.pendingOpen = false
+      return
+    }
+    if (root.batteryService.chargeLimitReading) return
+    root.pendingOpen = false
+    if (root.batteryService.chargeLimitSupported) root.show()
+  }
+
+  Connections {
+    target: root.batteryService
+    function onChargeLimitReadingChanged() { root.resolvePending() }
+    function onChargeLimitSupportedChanged() { root.resolvePending() }
+  }
+
   function open(anchor) {
+    if (!root.batteryService) return
     root.anchorItem = anchor || null
-    if (root.batteryService) root.batteryService.refreshChargeLimit()
+    root.batteryService.refreshChargeLimit()
+    if (root.batteryService.chargeLimitSupported) root.show()
+    else root.pendingOpen = true
+  }
+
+  function show() {
     root.visible = true
     if (root.anchorItem) {
       var point = root.anchorItem.mapToGlobal(Qt.point(0, root.anchorItem.height))
@@ -208,6 +239,7 @@ PanelWindow {
 
   function close() {
     successCloseTimer.stop()
+    root.pendingOpen = false
     root.visible = false
   }
 }
