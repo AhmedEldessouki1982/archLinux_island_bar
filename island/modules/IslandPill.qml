@@ -25,6 +25,12 @@ Item {
     : _psm.isExpanded ? Math.max(Theme.pillMinWidth,
         expandedLayout.implicitWidth)
     : idleLayout.implicitWidth
+  readonly property bool hdmiConnected: {
+    var monitors = Hyprland.monitors.values
+    for (var i = 0; i < monitors.length; i++)
+      if (monitors[i].name === "HDMI-A-1") return true
+    return false
+  }
 
   // Body width (excluding the two ears). Rounded to an even number so the
   // total shape width is even and centring lands on a whole pixel.
@@ -328,28 +334,10 @@ Item {
 
           Repeater {
             model: {
-              var focusedId = Hyprland.focusedWorkspace?.id ?? 1
-              var base = Math.floor((focusedId - 1) / 10) * 10
-              var ids = []
-              for (var slot = 1; slot <= 10; slot++) ids.push(base + slot)
-              var values = Hyprland.workspaces.values
-              for (var i = 0; i < values.length; i++) {
-                var wid = values[i].id
-                if (Math.floor((wid - 1) / 10) === Math.floor((focusedId - 1) / 10)
-                    && ids.indexOf(wid) === -1)
-                  ids.push(wid)
-              }
-              // ensure unique and sorted
-              var seen = {}
-              var out = []
-              for (var j = 0; j < ids.length; j++) {
-                if (!seen[ids[j]]) {
-                  seen[ids[j]] = true
-                  out.push(ids[j])
-                }
-              }
-              out.sort(function(a,b){ return a-b })
-              return out
+              var ids = [1, 2, 3, 4, 5, 6]
+              if (root.hdmiConnected)
+                ids.push(7, 8, 9, 10)
+              return ids
             }
 
             Item {
