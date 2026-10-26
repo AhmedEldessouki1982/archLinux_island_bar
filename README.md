@@ -78,6 +78,19 @@ Three rules keep it honest:
   That is the wallpaper's fault, not the border's, and it is why opaque is the
   default. No glass/blur mode exists: it would need a blur effect, which this
   repo bans.
+- **The reserved strip grows with the housing, never shrinks.**
+  `Config.displayCutouts` maps an output name to a hardware cutout height. The
+  bar reserves `38 + cutout` - its own strip, pushed down by the housing;
+  reserving only the cutout would let the pill cover the first tiled window -
+  and moves the pill down by the cutout itself. The drop's ears then flip from
+  concave to convex (`DropShape.concaveTop`), because a surface that no longer
+  hangs off the screen edge needs a top border too. Banners sit 8px under the
+  strip and follow it for free: on Hyprland a top-anchored layer surface is
+  positioned *below* the reserved area, which is why the old 46px margin
+  actually placed banners at y=84 rather than y=46. An empty map, the default,
+  changes nothing: 38px strip, pill at y=0, first window at y=43. Verified with
+  a synthetic 44px cutout: strip 82px, bar window 104px, first window at y=87,
+  pill filling 44-76, convex corners, banner at y=90.
 
 ---
 
@@ -179,6 +192,7 @@ property var diskMounts: [                 // ring gauges, in display order
 property var preferredScreens: ["eDP-1"]   // first name that exists wins
 property bool followHyprlandRounding: true // drop radii follow decoration:rounding
 property string pillSurface: "opaque"      // or "clear" - dark wallpapers only
+property var displayCutouts: ({})          // output name -> cutout px, e.g. { "eDP-1": 44 }
 
 property var chargeLimitPresets: [         // battery popup + panel chips
   { "pct": 58, "detail": "Longest battery life" },

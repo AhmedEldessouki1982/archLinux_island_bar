@@ -14,6 +14,12 @@ Item {
   // --- state delegated to PillStateMachine ---
   property int pillHeight: Theme.pillHeight
   readonly property int pillEarRadius: Theme.pillEarRadius
+
+  // Pixels reserved for a display cutout on this output (0 on a normal panel).
+  // The bar window's height and exclusive zone follow the same number, so the
+  // pill sits below the camera housing instead of under it - and its ears flip
+  // from concave to convex because it is no longer hanging off the screen edge.
+  property int topInset: 0
   property alias inputRegionItem: pill
 
   // --- drop-shape geometry -------------------------------------------------
@@ -118,7 +124,7 @@ Item {
 
   Item {
     id: pill
-    y: 0
+    y: root.topInset
     width: pillShape.width
     height: root.pillHeight
     // Integer x keeps both edges on whole pixels; pillBodyWidth is forced
@@ -133,6 +139,7 @@ Item {
       bodyHeight: root.pillHeight
       earRadius: Theme.pillEarRadius
       bottomRadius: Theme.pillBottomRadius
+      concaveTop: root.topInset === 0
       fillColor: Config.pillSurface === "clear" ? "transparent" : Theme.background
       borderColor: Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder
       borderWidth: 1

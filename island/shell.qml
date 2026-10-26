@@ -14,9 +14,25 @@ PanelWindow {
   color: "transparent"
   exclusionMode: ExclusionMode.Normal
   aboveWindows: true
-  implicitHeight: 60
-  exclusiveZone: 38
   property bool idleInhibitEnabled: false
+
+  // Display cutout on the output this bar landed on (0 on an ordinary panel).
+  // Everything vertical derives from it: the window has to be tall enough to
+  // hold the pill below the housing, the reserved strip follows the housing,
+  // and the pill is pushed down by exactly that much.
+  readonly property int cutout: {
+    var map = Config.displayCutouts || {}
+    var name = root.screen ? root.screen.name : ""
+    var v = Number(map[name])
+    return isFinite(v) && v > 0 ? Math.round(v) : 0
+  }
+  // The strip is the bar's own 38px (pill + 6px clearance) pushed down by the
+  // housing, not max(38, cutout): reserving only the cutout would let the pill
+  // overlap the first tiled window by the pill's own height.
+  readonly property int reservedHeight: Theme.barReservedHeight + root.cutout
+
+  implicitHeight: root.cutout + 60
+  exclusiveZone: root.reservedHeight
 
   // Only the visible pill should receive pointer input. Without this mask the
   // transparent remainder of this full-width layer blocks application menus.
@@ -102,6 +118,7 @@ PanelWindow {
   NotificationLayer {
     id: notificationLayer
     screen: root.screen
+    topOffset: 8
   }
 
   NotificationCenter {
@@ -115,6 +132,7 @@ PanelWindow {
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
     anchors.topMargin: 0
+    topInset: root.cutout
     healthWindow: floatingHealth
     batteryLimitWindow: batteryLimitPopup
     notificationLayer: notificationLayer

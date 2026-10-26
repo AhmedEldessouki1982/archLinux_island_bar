@@ -19,8 +19,15 @@ PanelWindow {
 
   WlrLayershell.layer: WlrLayer.Overlay
   anchors.top: true
-  margins.top: 46
+  // Air beneath the bar's reserved strip. Measured on Hyprland: a top-anchored
+  // layer surface is placed *below* the strip this bar reserves, so the margin
+  // is the gap under it, not the distance from the screen edge - which is why
+  // this is 8 and not 46 (that value placed banners at y=84, not 46). Because
+  // the strip itself carries the display cutout, banners clear the housing with
+  // no extra arithmetic here.
+  margins.top: root.topOffset
 
+  property int topOffset: 8
   property bool dnd: false
   property int maxVisibleBanners: 3
   property int normalTimeoutMs: 6000

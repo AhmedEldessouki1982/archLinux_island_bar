@@ -180,6 +180,10 @@ QtObject {
   readonly property int chipHeight: 26
 
   // --- island pill ----------------------------------------------------------
+  // Screen strip the bar reserves. The pill is 32px tall and hangs off the top
+  // edge; the 6px under it is the clearance from the first tiled window, and a
+  // display cutout (Config.displayCutouts) can push the whole strip deeper.
+  readonly property int barReservedHeight: 38
   // One 24px slot for every glyph and every hit area in the pill, and one
   // 16px glyph size: tray icons, action icons and the battery therefore sit on
   // the same optical line whether the pill is collapsed or open, and no zone
