@@ -22,6 +22,13 @@ QtObject {
   // with different output names still gets a working bar.
   property var preferredScreens: ["eDP-1", "eDP-2"]
 
+  // Derive the drop's corner radii from Hyprland's `decoration:rounding`, so
+  // the island keeps its silhouette but sits in sympathy with the windows on
+  // the same screen. The bridge is a floor, not a copy: square windows (the
+  // default here) leave the shape exactly as Theme.qml designs it, and only a
+  // rounder compositor pulls it outwards. Set false to pin the tokens.
+  property bool followHyprlandRounding: true
+
   // Battery charge-limit presets, in display order. `pct` is the value written
   // to `asusctl battery limit` (20-100); `detail` is the line printed beside it
   // in the popup. The chips stay clickable when the EC reports a limit outside

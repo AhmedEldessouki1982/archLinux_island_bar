@@ -3,6 +3,7 @@ import Quickshell.Wayland
 import QtQuick
 import "./modules"
 import "./config"
+import "./services"
 
 PanelWindow {
   id: root
@@ -45,6 +46,45 @@ PanelWindow {
   IdleInhibitor {
     window: root
     enabled: root.idleInhibitEnabled
+  }
+
+  // The compositor's corner rounding, read once at startup. Assignments below
+  // only exist while the flag is on and the read succeeded, so a machine
+  // without hyprctl keeps the tokens exactly as Theme.qml declares them.
+  HyprStyleService {
+    id: hyprStyle
+  }
+
+  Binding {
+    target: Theme
+    property: "pillEarRadius"
+    when: Config.followHyprlandRounding && hyprStyle.known
+    value: Math.max(14, Math.min(Theme.pillHeight / 2, hyprStyle.rounding + 4))
+    restoreMode: Binding.RestoreNone
+  }
+
+  Binding {
+    target: Theme
+    property: "pillBottomRadius"
+    when: Config.followHyprlandRounding && hyprStyle.known
+    value: Math.max(14, Math.min(Theme.pillHeight / 2, hyprStyle.rounding + 4))
+    restoreMode: Binding.RestoreNone
+  }
+
+  Binding {
+    target: Theme
+    property: "panelEarRadius"
+    when: Config.followHyprlandRounding && hyprStyle.known
+    value: Math.max(26, Math.min(44, hyprStyle.rounding * 2 + 6))
+    restoreMode: Binding.RestoreNone
+  }
+
+  Binding {
+    target: Theme
+    property: "panelBottomRadius"
+    when: Config.followHyprlandRounding && hyprStyle.known
+    value: Math.max(26, Math.min(44, hyprStyle.rounding * 2 + 6))
+    restoreMode: Binding.RestoreNone
   }
 
   FloatingHealth {
