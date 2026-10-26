@@ -14,7 +14,6 @@ PanelWindow {
   focusable: true
 
   property var batteryService: null
-  property var anchorItem: null
   property int popupW: Theme.chargePopupWidth
 
   WlrLayershell.layer: WlrLayer.Overlay
@@ -48,8 +47,12 @@ PanelWindow {
     width: root.popupW
     height: root.containerHeight
     opacity: 1
-    x: 0
-    y: 0
+    // Centred on the screen, re-derived whenever the card grows or shrinks.
+    // The charge-limit card starts short and gains its option rows when the
+    // service read lands, so a position computed once at `show()` would leave
+    // it hanging below the centre line.
+    x: Math.round(((root.screen ? root.screen.width : root.width) - root.popupW) / 2)
+    y: Math.round(((root.screen ? root.screen.height : root.height) - root.containerHeight) / 2)
 
     Rectangle {
       anchors.fill: parent
@@ -214,9 +217,8 @@ PanelWindow {
     function onChargeLimitSupportedChanged() { root.resolvePending() }
   }
 
-  function open(anchor) {
+  function open() {
     if (!root.batteryService) return
-    root.anchorItem = anchor || null
     root.batteryService.refreshChargeLimit()
     if (root.batteryService.chargeLimitSupported) root.show()
     else root.pendingOpen = true
@@ -224,13 +226,6 @@ PanelWindow {
 
   function show() {
     root.visible = true
-    if (root.anchorItem) {
-      var point = root.anchorItem.mapToGlobal(Qt.point(0, root.anchorItem.height))
-      container.x = Math.max(Theme.chargePopupPad,
-        Math.min(point.x + root.anchorItem.width - root.popupW,
-          (root.screen ? root.screen.width : root.width) - root.popupW - Theme.chargePopupPad))
-      container.y = point.y + Theme.chargePopupOffset
-    }
   }
 
   function close() {

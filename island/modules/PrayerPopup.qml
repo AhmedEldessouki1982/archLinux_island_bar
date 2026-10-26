@@ -23,7 +23,6 @@ PanelWindow {
   focusable: true
 
   property var service: null
-  property var anchorItem: null
   property int popupW: Theme.prayerPopupWidth
   // The instant "next" is measured against. Pinned when the popup opens so the
   // highlight cannot move while it is being read.
@@ -45,8 +44,11 @@ PanelWindow {
     width: root.popupW
     height: root.containerHeight
     opacity: 1
-    x: 0
-    y: 0
+    // Centred on the screen like the charge-limit popup, and bound rather than
+    // set once so a timetable that arrives while the popup is open still ends
+    // up on the centre line.
+    x: Math.round(((root.screen ? root.screen.width : root.width) - root.popupW) / 2)
+    y: Math.round(((root.screen ? root.screen.height : root.height) - root.containerHeight) / 2)
 
     Rectangle {
       anchors.fill: parent
@@ -182,17 +184,9 @@ PanelWindow {
     onActivated: root.close()
   }
 
-  function open(anchor) {
-    root.anchorItem = anchor || null
+  function open() {
     root.nowMs = Date.now()
     root.visible = true
-    if (root.anchorItem) {
-      var point = root.anchorItem.mapToGlobal(Qt.point(0, root.anchorItem.height))
-      container.x = Math.max(Theme.chargePopupPad,
-        Math.min(point.x + root.anchorItem.width - root.popupW,
-          (root.screen ? root.screen.width : root.width) - root.popupW - Theme.chargePopupPad))
-      container.y = point.y + Theme.chargePopupOffset
-    }
   }
 
   function close() {

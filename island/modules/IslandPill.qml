@@ -267,7 +267,7 @@ Item {
           id: idleBattery
           service: root.batteryService
           onClicked: {
-            if (root.batteryLimitWindow) root.batteryLimitWindow.open(idleBattery)
+            if (root.batteryLimitWindow) root.batteryLimitWindow.open()
           }
         }
       }
@@ -459,7 +459,6 @@ Item {
           }
 
           Item {
-            id: prayerIcon
             // Hidden with the feature: no alarms configured means no timetable
             // to show either. The times themselves may still be in flight, and
             // the popup says so rather than inventing them.
@@ -481,7 +480,7 @@ Item {
             MouseArea {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
-              onClicked: if (root.prayerWindow) root.prayerWindow.open(prayerIcon)
+              onClicked: if (root.prayerWindow) root.prayerWindow.open()
             }
           }
 
@@ -508,7 +507,7 @@ Item {
         id: expandedBattery
         service: root.batteryService
         onClicked: {
-          if (root.batteryLimitWindow) root.batteryLimitWindow.open(expandedBattery)
+          if (root.batteryLimitWindow) root.batteryLimitWindow.open()
         }
       }
     }
