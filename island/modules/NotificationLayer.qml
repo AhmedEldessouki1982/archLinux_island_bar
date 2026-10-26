@@ -49,8 +49,13 @@ PanelWindow {
 
   Component.onDestruction: root.tearingDown = true
 
+  // Do Not Disturb silences ordinary notifications; it does not silence a
+  // critical one. Urgency 2 is what an application uses to say "this is the
+  // thing you asked to be interrupted by" - a prayer alarm, a failing battery -
+  // and a banner that never appears because DND was left on is worse than no
+  // banner at all. Everything else keeps obeying DND exactly as before.
   function shouldShowBanner(urgency) {
-    return !root.dnd
+    return !root.dnd || urgency >= 2
   }
 
   function newHistoryKey() {
