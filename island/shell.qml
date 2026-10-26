@@ -113,12 +113,14 @@ PanelWindow {
   BatteryLimitPopup {
     id: batteryLimitPopup
     screen: root.screen
+    topInset: root.cutout
   }
 
   PrayerPopup {
     id: prayerPopup
     screen: root.screen
     service: prayerService
+    topInset: root.cutout
   }
 
   NotificationLayer {

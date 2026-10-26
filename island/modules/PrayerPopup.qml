@@ -24,6 +24,9 @@ PanelWindow {
 
   property var service: null
   property int popupW: Theme.prayerPopupWidth
+  // Display cutout on this output; shell.qml passes the same value it gives the
+  // pill, so the card keeps its gap below the island however far down it sits.
+  property int topInset: 0
   // The instant "next" is measured against. Pinned when the popup opens so the
   // highlight cannot move while it is being read.
   property double nowMs: 0
@@ -44,11 +47,10 @@ PanelWindow {
     width: root.popupW
     height: root.containerHeight
     opacity: 1
-    // Centred on the screen like the charge-limit popup, and bound rather than
-    // set once so a timetable that arrives while the popup is open still ends
-    // up on the centre line.
+    // Same placement as the charge-limit card: horizontally centred, top edge a
+    // fixed gap below the island. Its own height therefore never moves it.
     x: Math.round(((root.screen ? root.screen.width : root.width) - root.popupW) / 2)
-    y: Math.round(((root.screen ? root.screen.height : root.height) - root.containerHeight) / 2)
+    y: root.topInset + Theme.pillHeight + Theme.popupTopGap
 
     Rectangle {
       anchors.fill: parent

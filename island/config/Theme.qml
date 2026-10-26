@@ -246,6 +246,9 @@ QtObject {
   readonly property int chargePopupRowHeight: 44
   readonly property int chargePopupGap: 8
   readonly property int chargePopupPad: 12
+  // Gap between the pill and a popup card: both dialogs are horizontally
+  // centred but stay near the island, so the eye does not have to travel.
+  readonly property int popupTopGap: 5
   readonly property int chargeRadioSize: 14
   readonly property int chargeRadioDot: 6
   // Prayer popup: the charge-limit frame - same card, radius, padding, border -

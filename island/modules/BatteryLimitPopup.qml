@@ -15,6 +15,9 @@ PanelWindow {
 
   property var batteryService: null
   property int popupW: Theme.chargePopupWidth
+  // Display cutout on this output; shell.qml passes the same value it gives the
+  // pill, so the card keeps its gap below the island however far down it sits.
+  property int topInset: 0
 
   WlrLayershell.layer: WlrLayer.Overlay
   anchors.top: true
@@ -47,12 +50,12 @@ PanelWindow {
     width: root.popupW
     height: root.containerHeight
     opacity: 1
-    // Centred on the screen, re-derived whenever the card grows or shrinks.
-    // The charge-limit card starts short and gains its option rows when the
-    // service read lands, so a position computed once at `show()` would leave
-    // it hanging below the centre line.
+    // Horizontally centred, but pinned a fixed gap below the island rather
+    // than the screen: the card belongs to the pill, and the eye is already
+    // there. The top edge does not depend on the card's height, so the option
+    // rows arriving late grow the card downward instead of moving it.
     x: Math.round(((root.screen ? root.screen.width : root.width) - root.popupW) / 2)
-    y: Math.round(((root.screen ? root.screen.height : root.height) - root.containerHeight) / 2)
+    y: root.topInset + Theme.pillHeight + Theme.popupTopGap
 
     Rectangle {
       anchors.fill: parent
