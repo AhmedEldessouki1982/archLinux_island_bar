@@ -26,9 +26,9 @@ PanelWindow {
     var v = Number(map[name])
     return isFinite(v) && v > 0 ? Math.round(v) : 0
   }
-  // The strip is the bar's own 38px (pill + 6px clearance) pushed down by the
-  // housing, not max(38, cutout): reserving only the cutout would let the pill
-  // overlap the first tiled window by the pill's own height.
+  // The strip is the bar's own reserved height pushed down by the housing, not
+  // max(reserved, cutout): reserving only the cutout would let the pill overlap
+  // the first tiled window by the pill's own height.
   readonly property int reservedHeight: Theme.barReservedHeight + root.cutout
 
   implicitHeight: root.cutout + 60

@@ -80,17 +80,21 @@ Three rules keep it honest:
   repo bans.
 - **The reserved strip grows with the housing, never shrinks.**
   `Config.displayCutouts` maps an output name to a hardware cutout height. The
-  bar reserves `38 + cutout` - its own strip, pushed down by the housing;
+  bar reserves `36 + cutout` - its own strip, pushed down by the housing;
   reserving only the cutout would let the pill cover the first tiled window -
-  and moves the pill down by the cutout itself. The drop's ears then flip from
-  concave to convex (`DropShape.concaveTop`), because a surface that no longer
-  hangs off the screen edge needs a top border too. Banners sit 8px under the
-  strip and follow it for free: on Hyprland a top-anchored layer surface is
-  positioned *below* the reserved area, which is why the old 46px margin
-  actually placed banners at y=84 rather than y=46. An empty map, the default,
-  changes nothing: 38px strip, pill at y=0, first window at y=43. Verified with
-  a synthetic 44px cutout: strip 82px, bar window 104px, first window at y=87,
-  pill filling 44-76, convex corners, banner at y=90.
+  and moves the pill down by the cutout itself. That 36 is the 32px pill plus
+  4px of clearance, so a tiled window sits almost as close below the pill as
+  `general:gaps_out` sets it from the side walls; the window's own `border_size`
+  is the rest of the visible gap. The drop's ears then flip from concave to
+  convex (`DropShape.concaveTop`), because a surface that no longer hangs off
+  the screen edge needs a top border too. Banners sit 8px under the strip and
+  follow it for free: on Hyprland a top-anchored layer surface is positioned
+  *below* the reserved area, which is why the old 46px margin actually placed
+  banners at y=84 rather than y=46. An empty map, the default, changes nothing:
+  36px strip, pill at y=0, first window frame at y=39 and its content at y=41
+  (`gaps_out 3`, `border_size 2`). Verified with a synthetic 44px cutout: strip
+  80px, bar window 104px, first window at y=85, pill filling rows 45-74, convex
+  corners, banner at y=88.
 
 ---
 

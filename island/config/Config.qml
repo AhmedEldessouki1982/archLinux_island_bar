@@ -38,9 +38,10 @@ QtObject {
 
   // Display cutouts, in pixels, keyed by output name:
   //   property var displayCutouts: ({ "eDP-1": 44 })
-  // The pill moves down by the cutout and the bar's 38px strip moves with it,
-  // so the pill cannot sit under a camera housing and nothing is drawn over
-  // the first tiled window. An unlisted output keeps the plain 38px strip.
+  // The pill moves down by the cutout and the bar's own strip (Theme
+  // .barReservedHeight) moves with it, so the pill cannot sit under a camera
+  // housing and nothing is drawn over the first tiled window. An unlisted
+  // output keeps the plain strip.
   property var displayCutouts: ({})
 
   // Battery charge-limit presets, in display order. `pct` is the value written
