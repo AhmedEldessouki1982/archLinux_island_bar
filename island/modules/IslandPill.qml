@@ -23,7 +23,7 @@ Item {
   readonly property real _pillContentWidth: _psm.meterMode !== ""
     ? _psm.meterPillWidth
     : _psm.isExpanded ? expandedLayout.implicitWidth
-    : idleLayout.implicitWidth
+    : idleLayout.contentWidth
 
   // Body width (excluding the two ears). The pill is content-driven between a
   // floor and a ceiling; at the ceiling the title elides instead of pushing
@@ -154,77 +154,112 @@ Item {
       onHoveredChanged: _psm.setPointerInside(hovered)
     }
 
-    RowLayout {
+    // The idle pill is three zones, not one row. The clock group is pinned to
+    // the body's centre and the two clusters hug the inner edges, so the clock
+    // cannot be pushed off centre by a tray icon appearing or by the EQ bars
+    // starting. A single content-sized row put it at (left - right) / 2 from
+    // the centre: about 25px with an idle tray, up to ~75px with three icons.
+    Item {
       id: idleLayout
       anchors.verticalCenter: parent.verticalCenter
       anchors.left: parent.left
       anchors.leftMargin: Theme.pillEarRadius + Theme.pillPaddingLeft
       anchors.right: parent.right
       anchors.rightMargin: Theme.pillEarRadius + Theme.pillPaddingRight
-      spacing: Theme.pillGroupGap
+      height: Theme.pillSlot
       opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
+
+      // Each side must hold its own cluster *plus* half of the clock, so the
+      // body is sized by the wider cluster rather than by their sum. The
+      // narrower side simply gets the difference as air, which is what keeps
+      // the clock on the centre line.
+      readonly property real contentWidth: Math.max(idleLeft.implicitWidth,
+        idleRight.implicitWidth) * 2 + idleClock.implicitWidth
+        + Theme.pillGroupGap * 2
 
       Behavior on opacity {
         NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
       }
 
-      EQBars {
-        // Visible whenever audio is playing, but never animated at rest: the
-        // bars only live in the collapsed pill, and the collapsed pill is the
-        // idle state. `animated` can only become true while the pill is open,
-        // where these bars are not drawn, so the 160 ms timer never runs.
-        active: _audioService.active
-        animated: _audioService.active && _psm.isExpanded
-        Layout.alignment: Qt.AlignVCenter
+      RowLayout {
+        id: idleLeft
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Theme.pillGroupGap
+
+        EQBars {
+          // Visible whenever audio is playing, but never animated at rest: the
+          // bars only live in the collapsed pill, and the collapsed pill is
+          // the idle state. `animated` can only become true while the pill is
+          // open, where these bars are not drawn, so the 160 ms timer never
+          // runs.
+          active: _audioService.active
+          animated: _audioService.active && _psm.isExpanded
+          Layout.alignment: Qt.AlignVCenter
+        }
+
+        WorkspaceItem {
+          workspaceId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
+          visible: workspaceId > 0
+          Layout.alignment: Qt.AlignVCenter
+        }
       }
 
-      WorkspaceItem {
-        workspaceId: Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 0
-        visible: workspaceId > 0
-        Layout.alignment: Qt.AlignVCenter
+      RowLayout {
+        id: idleClock
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Theme.pillGroupGap
+
+        Txt {
+          id: timeText
+          Layout.maximumWidth: Theme.pillTimeWidth
+          text: Qt.formatDateTime(clock.date, "HH:mm")
+          color: Theme.accent
+          variant: "body"
+          Layout.alignment: Qt.AlignVCenter
+          elide: Text.ElideNone
+        }
+
+        Txt {
+          Layout.maximumWidth: Theme.pillDateWidth
+          text: Qt.formatDateTime(clock.date, "dd MMM yyyy")
+          color: Theme.foreground
+          variant: "body"
+          Layout.alignment: Qt.AlignVCenter
+          elide: Text.ElideNone
+        }
       }
 
-      Txt {
-        id: timeText
-        Layout.maximumWidth: Theme.pillTimeWidth
-        text: Qt.formatDateTime(clock.date, "HH:mm")
-        color: Theme.accent
-        variant: "body"
-        Layout.alignment: Qt.AlignVCenter
-        elide: Text.ElideNone
-      }
+      RowLayout {
+        id: idleRight
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Theme.pillGroupGap
 
-      Txt {
-        Layout.maximumWidth: Theme.pillDateWidth
-        text: Qt.formatDateTime(clock.date, "dd MMM yyyy")
-        color: Theme.foreground
-        variant: "body"
-        Layout.alignment: Qt.AlignVCenter
-        elide: Text.ElideNone
-      }
+        RegWarningIcon {
+          Layout.alignment: Qt.AlignVCenter
+        }
 
-      RegWarningIcon {
-        Layout.alignment: Qt.AlignVCenter
-      }
+        PillDivider {
+          visible: idleTray.visible
+        }
 
-      PillDivider {
-        visible: idleTray.visible
-      }
+        PillTray {
+          id: idleTray
+        }
 
-      PillTray {
-        id: idleTray
-      }
+        PillDivider {
+          visible: idleTray.visible && idleBattery.visible
+        }
 
-      PillDivider {
-        visible: idleTray.visible && idleBattery.visible
-      }
-
-      PillBattery {
-        id: idleBattery
-        service: root.batteryService
-        onClicked: {
-          if (root.batteryLimitWindow) root.batteryLimitWindow.open(idleBattery)
+        PillBattery {
+          id: idleBattery
+          service: root.batteryService
+          onClicked: {
+            if (root.batteryLimitWindow) root.batteryLimitWindow.open(idleBattery)
+          }
         }
       }
     }
