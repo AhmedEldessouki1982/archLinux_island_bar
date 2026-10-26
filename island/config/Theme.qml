@@ -369,4 +369,10 @@ QtObject {
   // A ShapePath stroke takes a single colour, so the old cyan->purple gradient
   // is expressed as one low-alpha blend of the two ends of that ramp.
   readonly property color shapeBorder: Qt.rgba(0.64, 0.75, 0.985, 0.30)
+
+  // Border for the clear pill surface, where the stroke is the only thing
+  // holding the silhouette against the wallpaper instead of a fill. Same hue,
+  // roughly double the alpha; the panel keeps `shapeBorder` because it always
+  // has its own fill behind the stroke.
+  readonly property color shapeBorderClear: Qt.rgba(0.64, 0.75, 0.985, 0.55)
 }

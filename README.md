@@ -46,6 +46,41 @@ None of that is a substitute for benchmarking on your own hardware — it's simp
 
 ---
 
+## Shape
+
+The bar is one top-edge drop, not a strip. `components/DropShape.qml` draws the
+whole silhouette as a single closed path: the two top corners are **concave**
+(inverted) radii so the surface reads as hanging from the screen edge, the
+bottom corners are ordinary convex radii, and the border is a second open path
+that runs left → bottom → right and deliberately stops before the top edge. The
+pill and the health panel use the same component, so their geometry cannot
+drift apart; only the radii differ (14px on the 32px pill, 26px on the panel).
+
+Three rules keep it honest:
+
+- **The clock is centred by construction.** The idle pill is three zones, not
+  one row: `left cluster | clock | right cluster`, with the clock anchored to
+  the body's centre and the body sized `2 × max(left, right) + clock + gaps`.
+  A percent, a tray icon or the EQ bars can no longer push the clock off the
+  centre line — measured at 959.75px against a 960px screen centre.
+- **The radii follow the compositor, as a floor.** `services/HyprStyleService.qml`
+  reads `decoration:rounding` once at startup and exits;
+  `Config.followHyprlandRounding` maps it to `max(14, min(pillHeight/2,
+  rounding + 4))` for the pill and `max(26, min(44, 2 × rounding + 6))` for the
+  panel. Square windows (rounding 0) leave the shape exactly as designed;
+  rounding 16 gives 16px pill ears (the drop component caps an ear at half the
+  body height) and 38px panel ears. No `hyprctl`, no change.
+- **The surface is a choice, not a blur.** `Config.pillSurface` is `"opaque"`
+  (fill + hairline outline) or `"clear"` (no fill, a stronger outline). Clear is
+  for dark wallpapers only: on the development wallpaper the measured contrast
+  between the text and the backdrop through a clear pill is **1.95:1 median**
+  (5th–95th percentile 1.19–3.25:1), well under the 4.5:1 needed for body text.
+  That is the wallpaper's fault, not the border's, and it is why opaque is the
+  default. No glass/blur mode exists: it would need a blur effect, which this
+  repo bans.
+
+---
+
 ## Warning levels
 
 One ramp, defined once in `island/config/Theme.qml`. Every card, glyph and ring
@@ -142,6 +177,8 @@ property var diskMounts: [                 // ring gauges, in display order
   { "mount": "/mnt/data", "label": "DATA" }
 ]
 property var preferredScreens: ["eDP-1"]   // first name that exists wins
+property bool followHyprlandRounding: true // drop radii follow decoration:rounding
+property string pillSurface: "opaque"      // or "clear" - dark wallpapers only
 
 property var chargeLimitPresets: [         // battery popup + panel chips
   { "pct": 58, "detail": "Longest battery life" },
@@ -196,7 +233,7 @@ island/
 ├── config/
 │   ├── qmldir             # QML module definition (three singletons)
 │   ├── Theme.qml          # Dracula palette + type scale + 36px grid, single source of truth
-│   ├── Config.qml         # Personal settings: disk mounts, output, charge presets
+│   ├── Config.qml         # Personal settings: mounts, output, surface, rounding, charge presets
 │   └── Format.qml         # Number / unit formatting
 ├── components/
 │   ├── AudioDeviceMenu.qml # Output / input device picker for the controls card
@@ -223,6 +260,7 @@ island/
 │   ├── BatteryService.qml # Native UPower + asusctl charge-limit read/set
 │   ├── BrightnessService.qml # Backlight via brightnessctl, true 1–100%
 │   ├── GpuModeService.qml # Hybrid / integrated GPU mode switch + tool detection
+│   ├── HyprStyleService.qml # One-shot read of decoration:rounding for the drop
 │   ├── LockService.qml    # Caps/Num-OSD (LED sysfs)
 │   ├── NetworkService.qml # Address, SSID, latency, transfer rates
 │   ├── ProcessStatsService.qml # Top CPU / RAM processes

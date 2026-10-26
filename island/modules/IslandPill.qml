@@ -133,8 +133,8 @@ Item {
       bodyHeight: root.pillHeight
       earRadius: Theme.pillEarRadius
       bottomRadius: Theme.pillBottomRadius
-      fillColor: Theme.background
-      borderColor: Theme.shapeBorder
+      fillColor: Config.pillSurface === "clear" ? "transparent" : Theme.background
+      borderColor: Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder
       borderWidth: 1
     }
 

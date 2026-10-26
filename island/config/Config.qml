@@ -29,6 +29,13 @@ QtObject {
   // rounder compositor pulls it outwards. Set false to pin the tokens.
   property bool followHyprlandRounding: true
 
+  // "opaque" (default) fills the pill with Theme.background. "clear" drops the
+  // fill and thickens the outline, so the pill reads as a stroke lying on the
+  // wallpaper. Clear has no surface to guarantee contrast: the text is drawn
+  // straight onto whatever is behind it, which is the point - and the risk.
+  // Only the pill changes; the panel, popups and banners keep their own fill.
+  property string pillSurface: "opaque"
+
   // Battery charge-limit presets, in display order. `pct` is the value written
   // to `asusctl battery limit` (20-100); `detail` is the line printed beside it
   // in the popup. The chips stay clickable when the EC reports a limit outside
