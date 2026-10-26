@@ -23,6 +23,7 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Shared panel typography and toggle glyphs** — four monospace sizes (10 / 12 / 15 / 24) and one high-contrast lavender label colour are shared across cards; the DND, keep-awake and Bluetooth chips use stateful Canvas glyphs and full-name tooltips.
 - **Storage card** — two 64px ring gauges for the mounts listed in `config/Config.qml` (ROOT and DATA by default). A mount the system does not actually report is dropped, never drawn as 0%.
 - **Live weather card** — current location and temperature + conditions via `open-meteo`, refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The location itself is either IP geolocation (`ipwho.is`, re-resolved every 6 h because an ISP changes its mind about which city you are in) or a city pinned in `Config.weatherCity`, which skips the IP lookup entirely. The card also shows the day/night state and the sunrise / sunset times.
+- **Prayer alarms** — Fajr, Dhuhr, Asr, Maghrib and Isha are announced **by name, at the minute they fall due**, for the same location as the weather card. Times come from AlAdhan once a day (Egyptian General Authority of Survey by default, Shafi Asr) and are cached with their day, place and method, so a shell that never opened the panel still rings; each alarm is one critical banner that waits until you dismiss it. No sound, no pill indicator, no panel line.
 - **Native Quickshell integration** — battery/charging straight from the built-in **UPower** service (event-driven, zero polling) and the clock from **SystemClock**; active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
 - **Dracula throughout** — one singleton theme, a single palette, no hard-coded colours and no literal font sizes outside it.
 - **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
@@ -138,6 +139,7 @@ at all.
 | `curl` | Weather geolocation + forecast fetches |
 | `iproute2`, `procps-ng`, `coreutils` | Address, `top`, `df`/`ping` readouts |
 | `pacman-contrib` (`checkupdates`) | Pending-update count (cached 5 min; a `pacman.log` append invalidates it) |
+| `libnotify` (`notify-send`) | Prayer alarm banners (only invoked at the alarm itself) |
 | _optional_ `asusctl` | Battery charge-limit popup (`asusd` daemon) + power-profile readout |
 | _optional_ `supergfxctl` | ASUS GPU mode/status readout |
 | _optional_ `nvidia-utils` | GPU load/temp via `nvidia-smi` |
@@ -198,6 +200,11 @@ property bool followHyprlandRounding: true // drop radii follow decoration:round
 property string pillSurface: "opaque"      // or "clear" - dark wallpapers only
 property var displayCutouts: ({})          // output name -> cutout px, e.g. { "eDP-1": 44 }
 property string weatherCity: ""           // "" = IP geolocation; a name pins the forecast
+
+property bool prayerAlarms: true           // false = no fetch, no alarms
+property int prayerMethod: 5               // AlAdhan method id (5 = Egyptian General Authority)
+property int prayerSchool: 0               // 0 = Shafi, 1 = Hanafi (affects Asr only)
+property var prayerNames: ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"] // trim to alarm on fewer
 
 property var chargeLimitPresets: [         // battery popup + panel chips
   { "pct": 58, "detail": "Longest battery life" },
@@ -283,6 +290,7 @@ island/
 │   ├── LockService.qml    # Caps/Num-OSD (LED sysfs)
 │   ├── NetworkService.qml # Address, SSID, latency, transfer rates
 │   ├── ProcessStatsService.qml # Top CPU / RAM processes
+│   ├── PrayerService.qml  # AlAdhan times + one-shot alarm timer (runs with the panel closed)
 │   ├── StorageService.qml # Per-mount usage (df), sampled while open
 │   ├── SystemStatsService.qml # CPU / RAM / uptime / load averages
 │   ├── ThermalService.qml # CPU + GPU temperatures, fan speeds
@@ -323,6 +331,7 @@ Screenshots taken at each step of the idle / workspace / tray / panel pass — b
 
 - **ASUS**-only extras are gated on the binaries, not on hope: `asusctl` and `supergfxctl` are probed once at startup, and the PROFILE / GPU MODE cards plus the charge-limit row are hidden when the matching tool is absent. A single surviving card takes the full column width.
 - **Weather** needs network access. `open-meteo.com` is called every 30 min; the location behind those calls is re-resolved every 6 h from `ipwho.is`, or geocoded once from `Config.weatherCity`. On failure the last-known-good reading is kept, and a failed lookup short-circuits so the card doesn't spin on stale coordinates. IP geolocation names the ISP's city, not yours — pin `weatherCity` if the two disagree.
+- **Prayer alarms** need one successful request per day (`api.aladhan.com`). With no network at all there are no times for that day, and therefore no alarm: the service retries four times over the next hour and then waits for the next day rather than polling forever. `method` and `school` are AlAdhan ids — if your mosque disagrees by a few minutes, that is the knob. A fired prayer is recorded in the cache, so reloading the shell does not ring the same prayer twice.
 - **WiFi identity** is read from the active iwd station with `iwctl`; Island never starts, enables, or reconfigures a network controller.
 - **GPU load** comes from amdgpu's `gpu_busy_percent`, which on some APUs flickers between 0 and 100 between reads. The card shows what the kernel reports; it does not smooth the source away.
 - **Quickshell 0.3.x quirks** are worked around, not hidden:

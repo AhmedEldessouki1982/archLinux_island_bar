@@ -127,6 +127,14 @@ PanelWindow {
     layer: notificationLayer
   }
 
+  // Prayer alarms live outside the panel on purpose: they have to fire with the
+  // UI closed. They borrow the weather card's coordinates so the alarm and the
+  // forecast can never describe two different cities.
+  PrayerService {
+    id: prayerService
+    location: floatingHealth.weatherService
+  }
+
   IslandPill {
     id: islandPill
     anchors.horizontalCenter: parent.horizontalCenter

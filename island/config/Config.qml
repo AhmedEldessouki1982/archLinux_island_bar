@@ -52,6 +52,17 @@ QtObject {
   // place.
   property string weatherCity: ""
 
+  // Prayer alarms. Each prayer in `prayerNames` is announced by name at its own
+  // minute, for the location the weather card is using. `prayerMethod` and
+  // `prayerSchool` are AlAdhan's ids: method 5 is the Egyptian General Authority
+  // of Survey, school 0 is Shafi (1 would make Asr later, Hanafi). Set
+  // `prayerAlarms` false to switch the feature - and its daily fetch - off
+  // entirely.
+  property bool prayerAlarms: true
+  property int prayerMethod: 5
+  property int prayerSchool: 0
+  property var prayerNames: ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
+
   // Battery charge-limit presets, in display order. `pct` is the value written
   // to `asusctl battery limit` (20-100); `detail` is the line printed beside it
   // in the popup. The chips stay clickable when the EC reports a limit outside
