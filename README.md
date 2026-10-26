@@ -137,7 +137,7 @@ at all.
 | `upower` | Battery/charging events (for the native UPower service) |
 | `curl` | Weather geolocation + forecast fetches |
 | `iproute2`, `procps-ng`, `coreutils` | Address, `top`, `df`/`ping` readouts |
-| `pacman-contrib` (`checkupdates`) | Pending-update count (cached for 1 h) |
+| `pacman-contrib` (`checkupdates`) | Pending-update count (cached 5 min; a `pacman.log` append invalidates it) |
 | _optional_ `asusctl` | Battery charge-limit popup (`asusd` daemon) + power-profile readout |
 | _optional_ `supergfxctl` | ASUS GPU mode/status readout |
 | _optional_ `nvidia-utils` | GPU load/temp via `nvidia-smi` |
