@@ -403,6 +403,14 @@ Item {
     : (root.updateCount === 0 ? "UP TO DATE" : "?")
   readonly property bool updateIsCount: root.updateCount > 0
 
+  // Bluetooth: the badge counts live connections, not the BlueZ device tree.
+  // `Bluetooth.devices` holds every device the adapter has ever paired with or
+  // merely seen, so its length is a "known" count and would read 6 with
+  // nothing connected. Paired-but-idle mice are not connected devices.
+  readonly property var bluetoothDevices: Bluetooth.devices ? Bluetooth.devices.values : []
+  readonly property int bluetoothConnected: root.bluetoothDevices.filter(d => d.connected).length
+  readonly property int bluetoothKnown: root.bluetoothDevices.length
+
   readonly property var volumes: root.storageService ? root.storageService.volumes : []
   readonly property int storageRingSize: Theme.ringDiameter
   readonly property real storageCellW: (root.colCW - 2 * Theme.cardPadX - root.gut) / 2
@@ -893,9 +901,10 @@ Item {
             width: (parent.width - 2 * Theme.gapSmall) / 3
             height: parent.height
             label: "BT"
-            badge: Bluetooth.devices ? Bluetooth.devices.values.length : 0
+            badge: root.bluetoothConnected
             iconType: "bluetooth"
-            tooltip: "Bluetooth · " + (Bluetooth.devices ? Bluetooth.devices.values.length : 0) + " connected"
+            tooltip: "Bluetooth · " + root.bluetoothConnected + " connected · "
+              + root.bluetoothKnown + " known"
             active: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
             onToggled: {
               root.userActivity()
