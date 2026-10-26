@@ -23,7 +23,7 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Shared panel typography and toggle glyphs** — four monospace sizes (10 / 12 / 15 / 24) and one high-contrast lavender label colour are shared across cards; the DND, keep-awake and Bluetooth chips use stateful Canvas glyphs and full-name tooltips.
 - **Storage card** — two 64px ring gauges for the mounts listed in `config/Config.qml` (ROOT and DATA by default). A mount the system does not actually report is dropped, never drawn as 0%.
 - **Live weather card** — current location and temperature + conditions via `open-meteo`, refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The location itself is either IP geolocation (`ipwho.is`, re-resolved every 6 h because an ISP changes its mind about which city you are in) or a city pinned in `Config.weatherCity`, which skips the IP lookup entirely. The card also shows the day/night state and the sunrise / sunset times.
-- **Prayer alarms** — Fajr, Dhuhr, Asr, Maghrib and Isha are announced **by name, at the minute they fall due**, for the same location as the weather card. Times come from AlAdhan once a day (Egyptian General Authority of Survey by default, Shafi Asr) and are cached with their day, place and method, so a shell that never opened the panel still rings; each alarm is one critical banner that waits until you dismiss it, and critical urgency is the one thing Do Not Disturb does not silence. No sound, no alarm state anywhere, no panel line — only a minaret-with-sound-waves icon (the shape of IconOven's `adhan-speaker`) before the keyboard flag in the expanded pill, which opens today's five times in the same frame — and the same spot, horizontally centred 5px below the island — as the charge-limit popup, with the next prayer highlighted.
+- **Prayer alarms** — Fajr, Dhuhr, Asr, Maghrib and Isha are announced **by name, at the minute they fall due**, for the same location as the weather card. Times come from AlAdhan once a day (Egyptian General Authority of Survey by default, Shafi Asr) and are cached with their day, place and method, so a shell that never opened the panel still rings; each alarm is one critical banner that waits until you dismiss it, and critical urgency is the one thing Do Not Disturb does not silence. No sound, no alarm state anywhere, no panel line — only a mosque glyph (the same `md-mosque` icon Omarchy's azan plugin puts in its bar) before the keyboard flag in the expanded pill, which opens today's five times in the charge-limit popup's frame — also horizontally centred 5px below the island — with the next prayer highlighted.
 - **Native Quickshell integration** — battery/charging straight from the built-in **UPower** service (event-driven, zero polling) and the clock from **SystemClock**; active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
 - **Dracula throughout** — one singleton theme, a single palette, no hard-coded colours and no literal font sizes outside it.
 - **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
@@ -272,7 +272,7 @@ island/
 │   ├── BatteryIcon.qml    # Canvas-drawn battery
 │   ├── DropShape.qml      # Shared flat silhouette (pill + health panel)
 │   ├── EQBars.qml         # Equalizer bars, gated on playback + expansion
-│   ├── GlyphIcon.qml      # Icon-font glyph wrapper
+│   ├── GlyphIcon.qml      # Canvas glyphs: moon / eye / Bluetooth
 │   ├── HealthIcon.qml     # Health panel toggle icon
 │   ├── KbLayoutIcon.qml   # Keyboard layout glyph
 │   ├── LineGraph.qml      # Dense CPU/GPU history inset
@@ -282,6 +282,7 @@ island/
 │   ├── PillDivider.qml    # 1px group divider inside the pill
 │   ├── PillStateMachine.qml # Idle / hover / meter state machine
 │   ├── PillTray.qml       # StatusNotifier slot row
+│   ├── PrayerIcon.qml     # Mosque glyph (nf-md-mosque) for the timetable
 │   ├── RingGauge.qml      # Flat ring gauge (storage disks, power)
 │   ├── ToggleChip.qml     # DND / keep-awake / Bluetooth chip
 │   ├── Txt.qml            # The only text item: caption / body / value / hero
@@ -351,6 +352,6 @@ Screenshots taken at each step of the idle / workspace / tray / panel pass — b
 
 MIT — see [LICENSE](LICENSE). © Ahmed Eldessouki.
 
-The prayer icon traces IconOven's `adhan-speaker` (IconOven by Appic Marketing,
-MIT — <https://iconoven.com/icons>); only its geometry is used, redrawn as a
-Canvas glyph so it takes the theme's colour and stroke.
+The prayer icon is Material Design Icons' `mosque` (U+F1827, Apache-2.0,
+Pictogrammers) as shipped in Nerd Fonts, the same codepoint Omarchy's azan
+plugin — `io.github.ahmadrun.prayer-times`, MIT — uses for its bar entry.

@@ -475,16 +475,8 @@ Item {
             Layout.preferredHeight: Theme.pillSlot
             Layout.alignment: Qt.AlignVCenter
 
-            GlyphIcon {
+            PrayerIcon {
               anchors.centerIn: parent
-              // 18px, not the 16px glyph size: the adhan speaker is a 24-unit
-              // drawing whose arched top is 3 units wide over a 5-unit body, so
-              // its details need the extra two pixels. The slot stays 22px, so
-              // the row's geometry does not depend on this.
-              width: Theme.toggleIconSize
-              height: Theme.toggleIconSize
-              iconType: "prayer"
-              strokeColor: Theme.foreground
             }
 
             MouseArea {
