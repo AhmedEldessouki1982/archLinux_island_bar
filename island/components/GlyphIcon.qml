@@ -80,20 +80,53 @@ Canvas {
       ctx.lineTo(inset + s * 0.5, s * 0.9)
       ctx.stroke()
     } else if (root.iconType === "prayer") {
-      // Crescent and a four-point star: the prayer timetable, drawn with the
-      // same stroke as every other toggle glyph.
+      // Adhan speaker: a minaret with an arched top, a balcony, a spire and two
+      // sound waves. The geometry is IconOven's `adhan-speaker` icon
+      // (https://iconoven.com/icons, MIT, © Appic Marketing), traced on its own
+      // 24-unit grid, so only that icon's shape is used - the stroke ratio is
+      // the source's 1.5/24, floored at 1px for sizes below the pill's 18px.
+      var u = s / 24
+      var px = function (v) { return inset + v * u }
+      var py = function (v) { return v * u }
+
+      ctx.lineWidth = Math.max(1, 1.5 * u)
+
+      // Minaret body: a tapering trapezoid with rounded shoulders.
       ctx.beginPath()
-      ctx.arc(inset + s * 0.46, s * 0.55, s * 0.34, 0.62, Math.PI * 1.62, false)
+      ctx.moveTo(px(6.75), py(21.25))
+      ctx.lineTo(px(11.75), py(21.25))
+      ctx.quadraticCurveTo(px(12.25), py(21.25), px(12.2), py(20.75))
+      ctx.lineTo(px(11.3), py(11))
+      ctx.quadraticCurveTo(px(11.25), py(10.5), px(10.75), py(10.5))
+      ctx.lineTo(px(7.75), py(10.5))
+      ctx.quadraticCurveTo(px(7.25), py(10.5), px(7.2), py(11))
+      ctx.lineTo(px(6.3), py(20.75))
+      ctx.quadraticCurveTo(px(6.25), py(21.25), px(6.75), py(21.25))
       ctx.stroke()
-      var sx = inset + s * 0.80
-      var sy = s * 0.22
-      var sr = s * 0.15
+
+      // Arched top standing on the balcony line, under the spire.
       ctx.beginPath()
-      ctx.moveTo(sx, sy - sr)
-      ctx.lineTo(sx + sr * 0.42, sy)
-      ctx.lineTo(sx, sy + sr)
-      ctx.lineTo(sx - sr * 0.42, sy)
+      ctx.moveTo(px(7.75), py(10.75))
+      ctx.lineTo(px(7.75), py(7))
+      ctx.arc(px(9.25), py(7), 1.5 * u, Math.PI, Math.PI * 2, false)
+      ctx.lineTo(px(10.75), py(10.5))
       ctx.closePath()
+      ctx.stroke()
+
+      // Balcony ledge and spire.
+      ctx.beginPath()
+      ctx.moveTo(px(6), py(10.5))
+      ctx.lineTo(px(12.5), py(10.5))
+      ctx.moveTo(px(9.25), py(2.75))
+      ctx.lineTo(px(9.25), py(5.5))
+      ctx.stroke()
+
+      // Two concentric sound waves, bulging away from the minaret.
+      ctx.beginPath()
+      ctx.arc(px(11.248), py(6.5), 3.5 * u, -0.558, 0.558, false)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(px(11.248), py(6.5), 6.75 * u, -0.558, 0.558, false)
       ctx.stroke()
     }
   }
