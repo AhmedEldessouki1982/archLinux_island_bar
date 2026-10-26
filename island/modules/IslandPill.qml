@@ -266,6 +266,10 @@ Item {
         PillBattery {
           id: idleBattery
           service: root.batteryService
+          // Glyph only while collapsed: the percentage makes the right arm
+          // ~31px wider than the 22px workspace chip, and the centred clock
+          // turns that difference into air between the chip and the time.
+          showPercent: false
           onClicked: {
             if (root.batteryLimitWindow) root.batteryLimitWindow.open()
           }

@@ -3,14 +3,24 @@ import QtQuick.Layouts
 import "../config"
 
 // Battery group: a 24px slot holding the glyph, then the percentage on the
-// same 8px slot gap the tray uses. It is the same component in the collapsed
-// and the expanded pill, so the group cannot move or resize when the pill
-// opens, and the percentage is content-sized — it is never given a fixed
-// width, so "100%" cannot clip.
+// same 8px slot gap the tray uses. The same component draws both pill states,
+// so the glyph, its slot and its colour cannot drift between them, and the
+// percentage is content-sized — it is never given a fixed width, so "100%"
+// cannot clip.
+//
+// The collapsed pill asks for the glyph alone (`showPercent: false`). The idle
+// body is sized 2 x max(left, right) + clock, so an arm that is wider than the
+// other one turns the difference into dead air beside the clock; the workspace
+// chip is 22px and the percentage is ~31px, which is exactly the gap that used
+// to sit between them. Hiding the number at rest keeps the two arms equal, and
+// the glyph still carries the value: its shape is the fill level and its colour
+// is the same ramp the number used. The number is back the moment the pill
+// opens on hover.
 Item {
   id: root
 
   property var service: null
+  property bool showPercent: true
   signal clicked()
 
   Layout.alignment: Qt.AlignVCenter
@@ -40,6 +50,7 @@ Item {
     }
 
     Txt {
+      visible: root.showPercent
       text: root.service ? Math.round(root.service.capacity) + "%" : ""
       color: root.service
         ? Theme.batteryColor(root.service.capacity, root.service.charging)
