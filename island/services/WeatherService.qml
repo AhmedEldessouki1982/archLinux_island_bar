@@ -1,10 +1,27 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../config"
 
 Item {
   id: root
   visible: false
+
+  // Where the coordinates come from.
+  //
+  //   Config.weatherCity === ""  -> ipwho.is, re-resolved every geoMaxAgeMs.
+  //                                 The ISP decides the city, and it can decide
+  //                                 differently tomorrow, so the coordinates are
+  //                                 a cache with an expiry rather than a fact.
+  //   Config.weatherCity !== ""  -> that city, geocoded once via open-meteo.
+  //                                 The IP lookup is never made.
+  //
+  // `geoKey` is what the current coordinates were resolved from ("" for IP,
+  // the city string otherwise). Comparing it with `wantedKey` is what notices a
+  // changed setting, including a restart that reloaded the cache.
+  readonly property string wantedKey: Config.weatherCity.trim()
+  readonly property double geoMaxAgeMs: 6 * 3600000
+  readonly property double cacheMaxAgeMs: 1800000
 
   property string city: ""
   property real tempC: 0
@@ -17,7 +34,8 @@ Item {
   property real latitude: NaN
   property real longitude: NaN
   property double lastFetchMs: 0
-  readonly property double cacheMaxAgeMs: 1800000
+  property double geolocatedMs: 0
+  property string geoKey: ""
 
   // Daylight. Both values come out of the same forecast request, so no extra
   // network call is made: is_day is part of `current`, sunrise and sunset are
@@ -50,10 +68,28 @@ Item {
     root.isDay = hour >= 6 && hour < 18
   }
 
+  function needsGeolocation() {
+    if (root.geoKey !== root.wantedKey) return true
+    if (!isFinite(root.latitude) || !isFinite(root.longitude)) return true
+    return Date.now() - root.geolocatedMs >= root.geoMaxAgeMs
+  }
+
   function refresh() {
-    if (geoProc.running || weatherProc.running) return
-    if (isFinite(root.latitude) && isFinite(root.longitude)) root.fetchWeather()
-    else geoProc.running = true
+    if (geoProc.running || geocodeProc.running || weatherProc.running) return
+    if (root.needsGeolocation()) root.startGeolocation()
+    else root.fetchWeather()
+  }
+
+  function startGeolocation() {
+    if (root.wantedKey.length > 0) {
+      geocodeProc.command = ["curl", "-sS", "--max-time", "8",
+        "https://geocoding-api.open-meteo.com/v1/search?name="
+        + encodeURIComponent(root.wantedKey)
+        + "&count=1&language=en&format=json"]
+      if (!geocodeProc.running) geocodeProc.running = true
+    } else if (!geoProc.running) {
+      geoProc.running = true
+    }
   }
 
   function fetchWeather() {
@@ -76,10 +112,31 @@ Item {
     root.lowC = Number(data.lowC) || 0
     root.weatherCode = Number(data.weatherCode)
     root.lastFetchMs = Number(data.lastFetchMs) || 0
+    root.geolocatedMs = Number(data.geolocatedMs) || 0
+    root.geoKey = String(data.geoKey || "")
     root.sunriseIso = String(data.sunriseIso || "")
     root.sunsetIso = String(data.sunsetIso || "")
     if (data.isDay !== undefined) root.isDay = !!data.isDay
     root.updateDaylight()
+  }
+
+  function saveCache() {
+    cache.setText(JSON.stringify({
+      city: root.city,
+      latitude: root.latitude,
+      longitude: root.longitude,
+      tempC: root.tempC,
+      feelsLikeC: root.feelsLikeC,
+      highC: root.highC,
+      lowC: root.lowC,
+      weatherCode: root.weatherCode,
+      isDay: root.isDay,
+      sunriseIso: root.sunriseIso,
+      sunsetIso: root.sunsetIso,
+      lastFetchMs: root.lastFetchMs,
+      geolocatedMs: root.geolocatedMs,
+      geoKey: root.geoKey
+    }))
   }
 
   Process {
@@ -99,6 +156,36 @@ Item {
           root._pendingCity = String(obj.city || "")
           root.latitude = lat
           root.longitude = lon
+          root.geolocatedMs = Date.now()
+          root.geoKey = ""
+          root.saveCache()
+          root.fetchWeather()
+        } catch (e) {}
+      }
+    }
+  }
+
+  Process {
+    id: geocodeProc
+    command: ["true"]
+    running: false
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var body = this.text.trim()
+        if (body.length === 0 || body.indexOf("{") !== 0) return
+        try {
+          var obj = JSON.parse(body)
+          var hit = obj && obj.results && obj.results.length ? obj.results[0] : null
+          if (!hit) return
+          var lat = Number(hit.latitude)
+          var lon = Number(hit.longitude)
+          if (!isFinite(lat) || !isFinite(lon)) return
+          root._pendingCity = String(hit.name || root.wantedKey)
+          root.latitude = lat
+          root.longitude = lon
+          root.geolocatedMs = Date.now()
+          root.geoKey = root.wantedKey
+          root.saveCache()
           root.fetchWeather()
         } catch (e) {}
       }
@@ -133,20 +220,7 @@ Item {
           root.sunsetIso = daily.sunset && daily.sunset.length ? String(daily.sunset[0]) : ""
           root.isDay = cur.is_day !== undefined ? Number(cur.is_day) === 1 : root.isDay
           root.updateDaylight()
-          cache.setText(JSON.stringify({
-            city: root.city,
-            latitude: root.latitude,
-            longitude: root.longitude,
-            tempC: root.tempC,
-            feelsLikeC: root.feelsLikeC,
-            highC: root.highC,
-            lowC: root.lowC,
-            weatherCode: root.weatherCode,
-            isDay: root.isDay,
-            sunriseIso: root.sunriseIso,
-            sunsetIso: root.sunsetIso,
-            lastFetchMs: root.lastFetchMs
-          }))
+          root.saveCache()
         } catch (e) {}
       }
     }
@@ -170,13 +244,24 @@ Item {
     onTriggered: root.updateDaylight()
   }
 
+  // A changed city applies on the spot when the panel is open; when it is
+  // closed there is nothing to show, and the next open notices the mismatch
+  // between the cached geoKey and wantedKey.
+  Connections {
+    target: Config
+    function onWeatherCityChanged() {
+      if (root.active) root.refresh()
+    }
+  }
+
   FileView {
     id: cache
     path: Quickshell.statePath("island-weather.json")
     watchChanges: false
     onLoaded: {
       try { root.applyData(JSON.parse(text())) } catch (e) {}
-      if (root.active && Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs)
+      if (root.active && (Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs
+        || root.needsGeolocation()))
         root.refresh()
     }
     onLoadFailed: error => {
@@ -188,7 +273,9 @@ Item {
   }
 
   onActiveChanged: {
-    if (root.active && (root.weatherCode < 0 || Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs))
+    if (!root.active) return
+    if (root.weatherCode < 0 || Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs
+      || root.needsGeolocation())
       root.refresh()
   }
 }

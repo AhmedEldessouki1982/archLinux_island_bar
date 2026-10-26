@@ -44,6 +44,14 @@ QtObject {
   // output keeps the plain strip.
   property var displayCutouts: ({})
 
+  // Weather location. Empty means "wherever the ISP looks like I am": the
+  // coordinates come from ipwho.is and are re-resolved every 6 hours, because
+  // an ISP can put you in a different city between lookups. A city name pins
+  // the forecast to that city (open-meteo geocoding) and the IP lookup is never
+  // made - the only way to get a stable answer when the ISP names the wrong
+  // place.
+  property string weatherCity: ""
+
   // Battery charge-limit presets, in display order. `pct` is the value written
   // to `asusctl battery limit` (20-100); `detail` is the line printed beside it
   // in the popup. The chips stay clickable when the EC reports a limit outside

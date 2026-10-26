@@ -22,7 +22,7 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Quick-toggle status** — the Bluetooth chip shows the number of connected devices; the tray is one 24px slot grid in both pill states.
 - **Shared panel typography and toggle glyphs** — four monospace sizes (10 / 12 / 15 / 24) and one high-contrast lavender label colour are shared across cards; the DND, keep-awake and Bluetooth chips use stateful Canvas glyphs and full-name tooltips.
 - **Storage card** — two 64px ring gauges for the mounts listed in `config/Config.qml` (ROOT and DATA by default). A mount the system does not actually report is dropped, never drawn as 0%.
-- **Live weather card** — current location (geo via `ipwho.is`) and temperature + conditions (via `open-meteo`), refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The card also shows the day/night state and the sunrise / sunset times.
+- **Live weather card** — current location and temperature + conditions via `open-meteo`, refreshed every 30 min; if the network or geo lookup fails it silently keeps the last-known-good reading. The location itself is either IP geolocation (`ipwho.is`, re-resolved every 6 h because an ISP changes its mind about which city you are in) or a city pinned in `Config.weatherCity`, which skips the IP lookup entirely. The card also shows the day/night state and the sunrise / sunset times.
 - **Native Quickshell integration** — battery/charging straight from the built-in **UPower** service (event-driven, zero polling) and the clock from **SystemClock**; active-audio detection scrapes the built-in **Pipewire** node tree for stream sinks.
 - **Dracula throughout** — one singleton theme, a single palette, no hard-coded colours and no literal font sizes outside it.
 - **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
@@ -197,6 +197,7 @@ property var preferredScreens: ["eDP-1"]   // first name that exists wins
 property bool followHyprlandRounding: true // drop radii follow decoration:rounding
 property string pillSurface: "opaque"      // or "clear" - dark wallpapers only
 property var displayCutouts: ({})          // output name -> cutout px, e.g. { "eDP-1": 44 }
+property string weatherCity: ""           // "" = IP geolocation; a name pins the forecast
 
 property var chargeLimitPresets: [         // battery popup + panel chips
   { "pct": 58, "detail": "Longest battery life" },
@@ -251,7 +252,7 @@ island/
 ├── config/
 │   ├── qmldir             # QML module definition (three singletons)
 │   ├── Theme.qml          # Dracula palette + type scale + 36px grid, single source of truth
-│   ├── Config.qml         # Personal settings: mounts, output, surface, rounding, charge presets
+│   ├── Config.qml         # Personal settings: mounts, output, surface, rounding, weather, charge presets
 │   └── Format.qml         # Number / unit formatting
 ├── components/
 │   ├── AudioDeviceMenu.qml # Output / input device picker for the controls card
@@ -286,7 +287,7 @@ island/
 │   ├── SystemStatsService.qml # CPU / RAM / uptime / load averages
 │   ├── ThermalService.qml # CPU + GPU temperatures, fan speeds
 │   ├── UpdateService.qml  # Pending package updates
-│   └── WeatherService.qml # ipwho.is geolocation + open-meteo forecast
+│   └── WeatherService.qml # ipwho.is/geocoded location + open-meteo forecast
 └── modules/
     ├── IslandPill.qml     # The pill — idle / hover / meter states + IPC
     ├── BatteryLimitPopup.qml # Charge-threshold radio presets (from Config: 58/78/100%)
@@ -321,7 +322,7 @@ Screenshots taken at each step of the idle / workspace / tray / panel pass — b
 ## Known limitations & tested-on
 
 - **ASUS**-only extras are gated on the binaries, not on hope: `asusctl` and `supergfxctl` are probed once at startup, and the PROFILE / GPU MODE cards plus the charge-limit row are hidden when the matching tool is absent. A single surviving card takes the full column width.
-- **Weather** needs network access; `ipwho.is` and `open-meteo.com` are called at 30-min intervals. On failure the last-known-good reading is kept, and a failed geo lookup short-circuits so the card doesn't spin on stale coordinates.
+- **Weather** needs network access. `open-meteo.com` is called every 30 min; the location behind those calls is re-resolved every 6 h from `ipwho.is`, or geocoded once from `Config.weatherCity`. On failure the last-known-good reading is kept, and a failed lookup short-circuits so the card doesn't spin on stale coordinates. IP geolocation names the ISP's city, not yours — pin `weatherCity` if the two disagree.
 - **WiFi identity** is read from the active iwd station with `iwctl`; Island never starts, enables, or reconfigures a network controller.
 - **GPU load** comes from amdgpu's `gpu_busy_percent`, which on some APUs flickers between 0 and 100 between reads. The card shows what the kernel reports; it does not smooth the source away.
 - **Quickshell 0.3.x quirks** are worked around, not hidden:
