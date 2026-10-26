@@ -19,6 +19,14 @@ Item {
   // `geoKey` is what the current coordinates were resolved from ("" for IP,
   // the city string otherwise). Comparing it with `wantedKey` is what notices a
   // changed setting, including a restart that reloaded the cache.
+  //
+  // Two consumers share this location: the weather card, and the prayer alarms
+  // (PrayerService reads latitude/longitude/city). The alarms have to work with
+  // the panel never opened, so the coordinates are resolved on cache load even
+  // while inactive - one request per boot when the cache has expired, none when
+  // it has not. The forecast itself stays panel-gated: `pendingForecast` records
+  // that the coordinates moved without a forecast for them, so the next open
+  // fetches instead of showing the old city's temperature.
   readonly property string wantedKey: Config.weatherCity.trim()
   readonly property double geoMaxAgeMs: 6 * 3600000
   readonly property double cacheMaxAgeMs: 1800000
@@ -36,6 +44,9 @@ Item {
   property double lastFetchMs: 0
   property double geolocatedMs: 0
   property string geoKey: ""
+  // Coordinates resolved while the panel was closed, so no forecast exists for
+  // them yet. Cleared by the forecast that answers them.
+  property bool pendingForecast: false
 
   // Daylight. Both values come out of the same forecast request, so no extra
   // network call is made: is_day is part of `current`, sunrise and sunset are
@@ -72,6 +83,14 @@ Item {
     if (root.geoKey !== root.wantedKey) return true
     if (!isFinite(root.latitude) || !isFinite(root.longitude)) return true
     return Date.now() - root.geolocatedMs >= root.geoMaxAgeMs
+  }
+
+  // Coordinates just moved to a new place, so any forecast on screen describes
+  // the old one. Ask for a new forecast only when the card is actually open;
+  // otherwise leave a note for the next open.
+  function afterGeolocation() {
+    if (root.active) root.fetchWeather()
+    else root.pendingForecast = true
   }
 
   function refresh() {
@@ -117,6 +136,7 @@ Item {
     root.sunriseIso = String(data.sunriseIso || "")
     root.sunsetIso = String(data.sunsetIso || "")
     if (data.isDay !== undefined) root.isDay = !!data.isDay
+    if (data.pendingForecast !== undefined) root.pendingForecast = !!data.pendingForecast
     root.updateDaylight()
   }
 
@@ -135,7 +155,8 @@ Item {
       sunsetIso: root.sunsetIso,
       lastFetchMs: root.lastFetchMs,
       geolocatedMs: root.geolocatedMs,
-      geoKey: root.geoKey
+      geoKey: root.geoKey,
+      pendingForecast: root.pendingForecast
     }))
   }
 
@@ -154,12 +175,13 @@ Item {
           var lon = Number(obj.longitude)
           if (!isFinite(lat) || !isFinite(lon)) return
           root._pendingCity = String(obj.city || "")
+          root.city = root._pendingCity
           root.latitude = lat
           root.longitude = lon
           root.geolocatedMs = Date.now()
           root.geoKey = ""
+          root.afterGeolocation()
           root.saveCache()
-          root.fetchWeather()
         } catch (e) {}
       }
     }
@@ -181,12 +203,13 @@ Item {
           var lon = Number(hit.longitude)
           if (!isFinite(lat) || !isFinite(lon)) return
           root._pendingCity = String(hit.name || root.wantedKey)
+          root.city = root._pendingCity
           root.latitude = lat
           root.longitude = lon
           root.geolocatedMs = Date.now()
           root.geoKey = root.wantedKey
+          root.afterGeolocation()
           root.saveCache()
-          root.fetchWeather()
         } catch (e) {}
       }
     }
@@ -220,6 +243,7 @@ Item {
           root.sunsetIso = daily.sunset && daily.sunset.length ? String(daily.sunset[0]) : ""
           root.isDay = cur.is_day !== undefined ? Number(cur.is_day) === 1 : root.isDay
           root.updateDaylight()
+          root.pendingForecast = false
           root.saveCache()
         } catch (e) {}
       }
@@ -244,13 +268,14 @@ Item {
     onTriggered: root.updateDaylight()
   }
 
-  // A changed city applies on the spot when the panel is open; when it is
-  // closed there is nothing to show, and the next open notices the mismatch
-  // between the cached geoKey and wantedKey.
+  // A changed city applies on the spot; with the panel closed only the
+  // coordinates are re-resolved, because the prayer alarms follow this location
+  // too and must not keep a city the user has just replaced.
   Connections {
     target: Config
     function onWeatherCityChanged() {
       if (root.active) root.refresh()
+      else if (root.needsGeolocation()) root.startGeolocation()
     }
   }
 
@@ -260,14 +285,15 @@ Item {
     watchChanges: false
     onLoaded: {
       try { root.applyData(JSON.parse(text())) } catch (e) {}
-      if (root.active && (Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs
-        || root.needsGeolocation()))
+      // Location first, panel or not: see the note at `wantedKey`.
+      if (root.needsGeolocation()) root.startGeolocation()
+      else if (root.active && Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs)
         root.refresh()
     }
     onLoadFailed: error => {
       if (error === FileViewError.FileNotFound) {
         cache.setText("{}")
-        if (root.active) root.refresh()
+        root.startGeolocation()
       }
     }
   }
@@ -275,7 +301,7 @@ Item {
   onActiveChanged: {
     if (!root.active) return
     if (root.weatherCode < 0 || Date.now() - root.lastFetchMs >= root.cacheMaxAgeMs
-      || root.needsGeolocation())
+      || root.needsGeolocation() || root.pendingForecast)
       root.refresh()
   }
 }
