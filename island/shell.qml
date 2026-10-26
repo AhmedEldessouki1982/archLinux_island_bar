@@ -115,6 +115,12 @@ PanelWindow {
     screen: root.screen
   }
 
+  PrayerPopup {
+    id: prayerPopup
+    screen: root.screen
+    service: prayerService
+  }
+
   NotificationLayer {
     id: notificationLayer
     screen: root.screen
@@ -143,6 +149,8 @@ PanelWindow {
     topInset: root.cutout
     healthWindow: floatingHealth
     batteryLimitWindow: batteryLimitPopup
+    prayerWindow: prayerPopup
+    prayerService: prayerService
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
   }

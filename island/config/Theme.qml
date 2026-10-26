@@ -249,6 +249,11 @@ QtObject {
   readonly property int chargePopupOffset: 8
   readonly property int chargeRadioSize: 14
   readonly property int chargeRadioDot: 6
+  // Prayer popup: the charge-limit frame - same card, radius, padding, border -
+  // with one compact row per prayer instead of a tappable option row.
+  readonly property int prayerPopupWidth: root.chargePopupWidth
+  readonly property int prayerPopupRowHeight: 32
+  readonly property int prayerPopupTimeWidth: 44
   readonly property int fanLabelWidth: 34
   readonly property int fanHeaderHeight: 12
   readonly property int fanLineHeight: 18

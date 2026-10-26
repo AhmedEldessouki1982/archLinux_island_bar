@@ -52,6 +52,8 @@ Item {
   property var sharedBrightnessService: null
   property var healthWindow: null
   property var batteryLimitWindow: null
+  property var prayerWindow: null
+  property var prayerService: null
   property var notificationLayer: null
   property var notificationCenter: null
 
@@ -453,6 +455,33 @@ Item {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
               onClicked: _psm.toggleNotificationCenter()
+            }
+          }
+
+          Item {
+            id: prayerIcon
+            // Hidden with the feature: no alarms configured means no timetable
+            // to show either. The times themselves may still be in flight, and
+            // the popup says so rather than inventing them.
+            visible: Config.prayerAlarms
+            implicitWidth: Theme.pillSlot
+            implicitHeight: Theme.pillSlot
+            Layout.preferredWidth: Theme.pillSlot
+            Layout.preferredHeight: Theme.pillSlot
+            Layout.alignment: Qt.AlignVCenter
+
+            GlyphIcon {
+              anchors.centerIn: parent
+              width: Theme.pillGlyph
+              height: Theme.pillGlyph
+              iconType: "prayer"
+              strokeColor: Theme.foreground
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: if (root.prayerWindow) root.prayerWindow.open(prayerIcon)
             }
           }
 

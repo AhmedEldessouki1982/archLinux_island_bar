@@ -79,6 +79,22 @@ Canvas {
       ctx.lineTo(inset + s * 0.83, s * 0.67)
       ctx.lineTo(inset + s * 0.5, s * 0.9)
       ctx.stroke()
+    } else if (root.iconType === "prayer") {
+      // Crescent and a four-point star: the prayer timetable, drawn with the
+      // same stroke as every other toggle glyph.
+      ctx.beginPath()
+      ctx.arc(inset + s * 0.46, s * 0.55, s * 0.34, 0.62, Math.PI * 1.62, false)
+      ctx.stroke()
+      var sx = inset + s * 0.80
+      var sy = s * 0.22
+      var sr = s * 0.15
+      ctx.beginPath()
+      ctx.moveTo(sx, sy - sr)
+      ctx.lineTo(sx + sr * 0.42, sy)
+      ctx.lineTo(sx, sy + sr)
+      ctx.lineTo(sx - sr * 0.42, sy)
+      ctx.closePath()
+      ctx.stroke()
     }
   }
 }
