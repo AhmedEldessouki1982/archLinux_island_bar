@@ -126,6 +126,11 @@ QtObject {
   readonly property int fontSizeBody: 12
   readonly property int fontWeightBody: 400
 
+  // The pill clock is the one 12px string that is a landmark rather than a
+  // label, so it takes body's size with a semibold weight. Monospace advances
+  // do not change with weight, so the centred clock cannot move.
+  readonly property int fontWeightClock: 600
+
   // value: 15px / 700 / foreground (or a threshold colour)
   readonly property int fontSizeValue: 15
   readonly property int fontWeightValue: 700

@@ -227,6 +227,7 @@ Item {
           text: Qt.formatDateTime(clock.date, "HH:mm")
           color: Theme.accent
           variant: "body"
+          font.weight: Theme.fontWeightClock
           Layout.alignment: Qt.AlignVCenter
           elide: Text.ElideNone
         }
