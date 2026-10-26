@@ -8,18 +8,20 @@ import "../config"
 // percentage is content-sized — it is never given a fixed width, so "100%"
 // cannot clip.
 //
-// The collapsed pill asks for the glyph alone (`showPercent: false`). The idle
+// The collapsed pill asks for the number alone (`showGlyph: false`). The idle
 // body is sized 2 x max(left, right) + clock, so an arm that is wider than the
 // other one turns the difference into dead air beside the clock; the workspace
-// chip is 22px and the percentage is ~31px, which is exactly the gap that used
-// to sit between them. Hiding the number at rest keeps the two arms equal, and
-// the glyph still carries the value: its shape is the fill level and its colour
-// is the same ramp the number used. The number is back the moment the pill
-// opens on hover.
+// chip is 22px, the percentage is ~22px, and the glyph pushes the group to
+// 53px — which is exactly the gap that used to sit between the chip and the
+// time. Hiding the glyph at rest keeps the two arms equal, and it costs
+// nothing: the colour still carries the level (red <=10, orange <=20, yellow
+// <=35, foreground above, green while charging), and the glyph is back the
+// moment the pill opens on hover.
 Item {
   id: root
 
   property var service: null
+  property bool showGlyph: true
   property bool showPercent: true
   signal clicked()
 
@@ -36,6 +38,7 @@ Item {
     spacing: Theme.pillSlotGap
 
     Item {
+      visible: root.showGlyph
       implicitWidth: Theme.pillSlot
       implicitHeight: Theme.pillSlot
       Layout.alignment: Qt.AlignVCenter

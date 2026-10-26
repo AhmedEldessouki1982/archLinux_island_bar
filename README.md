@@ -65,11 +65,11 @@ Three rules keep it honest:
   A percent, a tray icon or the EQ bars can no longer push the clock off the
   centre line — measured at 959.75px against a 960px screen centre. The price is
   that the narrower arm gets the difference as air beside the clock, which is
-  why the collapsed pill draws the battery **glyph without its percentage** (22px
-  against the 22px workspace chip, 14px of space instead of 43px). The number is
-  back as soon as the pill opens on hover, and the glyph keeps the level's
-  colour: red at or below 10%, orange to 20%, yellow to 35%, foreground above
-  that, green while charging.
+  why the collapsed pill draws the battery **percentage without the glyph**
+  (22px against the 22px workspace chip: 13px of space either side of the clock
+  instead of 43px on one side). The glyph is back as soon as the pill opens on
+  hover, and the number keeps the level's colour: red at or below 10%, orange to
+  20%, yellow to 35%, foreground above that, green while charging.
 - **The radii follow the compositor, as a floor.** `services/HyprStyleService.qml`
   reads `decoration:rounding` once at startup and exits;
   `Config.followHyprlandRounding` maps it to `max(14, min(pillHeight/2,
