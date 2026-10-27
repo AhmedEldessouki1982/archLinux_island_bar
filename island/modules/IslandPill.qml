@@ -178,32 +178,22 @@ Item {
       opacity: _psm.isExpanded || _psm.meterMode !== "" ? 0 : 1
       clip: true
 
-      // Each side must hold its own cluster *plus* half of the clock, so the
-      // body is sized by the wider cluster rather than by their sum. The
-      // narrower side simply gets the difference as air, which is what keeps
-      // the clock on the centre line.
-      readonly property real contentWidth: Math.max(idleLeft.implicitWidth,
-        idleRight.implicitWidth) * 2 + idleClock.implicitWidth
-        + Theme.pillGroupGap * 2
+      readonly property real contentWidth: idleRow.implicitWidth
 
       Behavior on opacity {
         NumberAnimation { duration: Theme.animDurationFast; easing: Easing.OutQuad }
       }
 
       RowLayout {
-        id: idleLeft
-        anchors.left: parent.left
+        id: idleRow
         anchors.verticalCenter: parent.verticalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
         spacing: Theme.pillGroupGap
 
         EQBars {
-          // Visible whenever audio is playing, but never animated at rest: the
-          // bars only live in the collapsed pill, and the collapsed pill is
-          // the idle state. `animated` can only become true while the pill is
-          // open, where these bars are not drawn, so the 160 ms timer never
-          // runs.
-          active: _audioService.active
-          animated: _audioService.active && _psm.isExpanded
+          active: _audioService.active && !_psm.isExpanded
+          animated: _audioService.active && !_psm.isExpanded
+          visible: _audioService.active && !_psm.isExpanded
           Layout.alignment: Qt.AlignVCenter
         }
 
@@ -212,40 +202,32 @@ Item {
           visible: workspaceId > 0
           Layout.alignment: Qt.AlignVCenter
         }
-      }
 
-      RowLayout {
-        id: idleClock
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.pillGroupGap
-
-        Txt {
-          id: timeText
-          Layout.maximumWidth: Theme.pillTimeWidth
-          text: Qt.formatDateTime(clock.date, "HH:mm")
-          color: Theme.accent
-          variant: "body"
-          font.weight: Theme.fontWeightClock
+        RowLayout {
+          spacing: Theme.pillGroupGap
           Layout.alignment: Qt.AlignVCenter
-          elide: Text.ElideNone
-        }
 
-        Txt {
-          Layout.maximumWidth: Theme.pillDateWidth
-          text: Qt.formatDateTime(clock.date, "dd MMM yyyy")
-          color: Theme.foreground
-          variant: "body"
-          Layout.alignment: Qt.AlignVCenter
-          elide: Text.ElideNone
-        }
-      }
+          Txt {
+            Layout.maximumWidth: Theme.pillTimeWidth
+            Layout.minimumWidth: implicitWidth
+            text: Qt.formatDateTime(clock.date, "HH:mm")
+            color: Theme.accent
+            variant: "body"
+            font.weight: Theme.fontWeightClock
+            Layout.alignment: Qt.AlignVCenter
+            elide: Text.ElideNone
+          }
 
-      RowLayout {
-        id: idleRight
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.pillGroupGap
+          Txt {
+            Layout.maximumWidth: Theme.pillDateWidth
+            Layout.minimumWidth: implicitWidth
+            text: Qt.formatDateTime(clock.date, "dd MMM yyyy")
+            color: Theme.foreground
+            variant: "body"
+            Layout.alignment: Qt.AlignVCenter
+            elide: Text.ElideNone
+          }
+        }
 
         RegWarningIcon {
           Layout.alignment: Qt.AlignVCenter
@@ -266,11 +248,6 @@ Item {
         PillBattery {
           id: idleBattery
           service: root.batteryService
-          // Number, no glyph, while collapsed: the glyph makes the right arm
-          // ~31px wider than the 22px workspace chip, and the centred clock
-          // turns that difference into air between the chip and the time. The
-          // percentage is the same width as the chip, so nothing is left over,
-          // and its colour still reports the level.
           showGlyph: false
           onClicked: {
             if (root.batteryLimitWindow) root.batteryLimitWindow.open()
@@ -278,7 +255,6 @@ Item {
         }
       }
     }
-
     RowLayout {
       id: expandedLayout
       anchors.verticalCenter: parent.verticalCenter
