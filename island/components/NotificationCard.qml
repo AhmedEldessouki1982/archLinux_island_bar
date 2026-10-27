@@ -104,7 +104,6 @@ Rectangle {
         Txt {
           anchors.centerIn: parent
           width: parent.width
-          height: parent.height
           text: "\uF0F3"
           color: card.accentColor
           visible: !iconBox.hasImage && !iconBox.hasIcon
@@ -177,7 +176,6 @@ Rectangle {
         Txt {
           anchors.centerIn: parent
           width: parent.width
-          height: parent.height
           text: "✕"
           color: closeMa.containsMouse ? Theme.foreground : Theme.comment
           variant: "caption"
@@ -217,7 +215,6 @@ Rectangle {
             id: actionLabel
             anchors.centerIn: parent
             width: parent.width
-            height: parent.height
             text: actionBtn.modelData.text !== "" ? actionBtn.modelData.text : "Action"
             color: actionBtn.hovered ? Theme.foreground : Theme.comment
             variant: "caption"
@@ -294,7 +291,6 @@ Rectangle {
         Txt {
           anchors.centerIn: parent
           width: parent.width
-          height: parent.height
           text: "\uF061"
           color: parent.hovered ? Theme.background : Theme.comment
           variant: "body"

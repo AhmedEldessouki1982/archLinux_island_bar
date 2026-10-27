@@ -90,7 +90,6 @@ Item {
   Txt {
     anchors.centerIn: parent
     width: parent.width
-    height: parent.height
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
     text: root.known ? Format.percent(root.value) : "--"

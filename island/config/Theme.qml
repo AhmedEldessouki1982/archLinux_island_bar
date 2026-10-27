@@ -25,25 +25,31 @@ QtObject {
   property color foreground: "#f8f8f2"
 
   // Purple marks an active/selected state and fills sliders;
-  // green/yellow/orange/red mark a threshold or a warning. Nothing else.
+  // green/yellow/orange/red mark a threshold or a warning. The one exception is
+  // the battery charge limit, which is yellow in its selected state: it is a
+  // battery-health setting, not a generic toggle, and yellow is the palette's
+  // "this is a deliberate limit" signal.
   property color accent: "#bd93f9"
   property color green: "#50fa7b"
   property color yellow: "#f1fa8c"
   property color orange: "#ffb86c"
-  property color red: "#ff5555"
+  // Dracula's red is #ff5555, which measures 3.91:1 on a card and 4.28:1 on the
+  // charge-limit tint: too low for text. Lifted one step so every place red is
+  // printed — weather city, critical values — clears 4.5:1.
+  property color red: "#ff7a7a"
   readonly property color weatherCity: root.red
-  readonly property color chargeLimitActive: root.red
+  readonly property color chargeLimitActive: root.yellow
 
   // One muted lavender for every card label in the health panel.
   // Contrast against cardFill: 4.98:1 (WCAG AA needs 4.5:1).
   readonly property color label: "#a49bee"
 
-  // Dimmed text (unavailable values, idle states). This is deliberately a
-  // darker step of the same lavender so secondary text stays behind a label
-  // instead of reading as one: 3.61:1 on cardFill, 4.18:1 on background.
+  // Dimmed text (unavailable values, idle states, days outside the shown
+  // month). One step darker than the label lavender, but held at the WCAG AA
+  // floor rather than below it: 4.54:1 on cardFill, 5.26:1 on background.
   // Only values that are absent or inactive use it — never information the
   // reader needs right now.
-  readonly property color comment: "#8b85bb"
+  readonly property color comment: "#9d97cf"
 
   // Slider track / inactive chip fill.
   property color selection: "#44475a"
@@ -53,7 +59,9 @@ QtObject {
   readonly property color cardBorderColor: "#3d4258"
   readonly property color cardHoverFill: "#3a3e52"
   readonly property color activeTint: "#383548"
-  readonly property color chargeLimitActiveTint: "#4b313a"
+  // Dark olive that reads as "yellow selected" behind the yellow text; yellow
+  // measures 10.1:1 on it and the label lavender 4.56:1, so both clear AA.
+  readonly property color chargeLimitActiveTint: "#3f3b26"
   readonly property color transparent: "transparent"
 
   // ===========================================================================
@@ -118,6 +126,11 @@ QtObject {
   readonly property int fontSizeBody: 12
   readonly property int fontWeightBody: 400
 
+  // The pill clock is the one 12px string that is a landmark rather than a
+  // label, so it takes body's size with a semibold weight. Monospace advances
+  // do not change with weight, so the centred clock cannot move.
+  readonly property int fontWeightClock: 600
+
   // value: 15px / 700 / foreground (or a threshold colour)
   readonly property int fontSizeValue: 15
   readonly property int fontWeightValue: 700
@@ -137,11 +150,11 @@ QtObject {
   readonly property int ringDiameter: 64
   readonly property int ringThickness: 5
 
-  // Sparkline inside the CPU and GPU cards.
+  // Sparkline inside the CPU and GPU cards. A new sample is taken on every
+  // service read (2 s), so the graph holds the last two minutes.
   readonly property int sparklineHeight: 36
   readonly property color graphLow: root.accent
   readonly property int graphSampleCount: 60
-  readonly property int graphSampleInterval: 1000
   readonly property int graphBorderWidth: 1
   readonly property int graphInset: 2
   readonly property real graphLineWidth: 1.5
@@ -170,23 +183,45 @@ QtObject {
   readonly property int chipRadius: 6
   readonly property int chipPadX: 6
   readonly property int chipHeight: 26
-  readonly property int pillGap: 12
-  readonly property int pillInnerGap: 8
-  readonly property int pillActionGap: 10
+
+  // --- island pill ----------------------------------------------------------
+  // Screen strip the bar reserves. The pill is 32px tall and hangs off the top
+  // edge; the 4px under it is the clearance from the first tiled window (one
+  // gap step, so the window sits as far from the pill as it does from the side
+  // walls), and a display cutout (Config.displayCutouts) pushes the whole strip
+  // deeper.
+  readonly property int barReservedHeight: 36
+  // One 24px slot for every glyph and every hit area in the pill, and one
+  // 16px glyph size: tray icons, action icons and the battery therefore sit on
+  // the same optical line whether the pill is collapsed or open, and no zone
+  // can invent a size of its own.
   readonly property int pillHeight: 32
-  readonly property int pillIcon: 16
-  readonly property int pillActionIcon: 19
-  readonly property int pillActionSlot: 24
+  readonly property int pillSlot: 24
+  readonly property int pillGlyph: 16
+  // Between two slots of the same group (two tray icons, icon and value).
+  readonly property int pillSlotGap: 8
+  // Between two groups: 12px of air, a 1px rule, another 12px of air.
+  readonly property int pillGroupGap: 12
   readonly property int pillPaddingLeft: 12
   readonly property int pillPaddingRight: 12
-  readonly property int pillWorkspaceCell: 20
-  readonly property int pillWorkspaceHeight: 20
-  readonly property int pillWorkspaceGap: 2
+  // Workspace slots. One size everywhere: 22px cell, 4px pitch gap, so the
+  // collapsed pill and the expanded strip cannot drift apart.
+  readonly property int wsSlot: 22
+  readonly property int wsGap: 4
+  readonly property int wsRadius: 11
+  readonly property int wsDotSize: 3
+  // Slot 10 carries two digits in a 22px cell; condensing the tracking is the
+  // only way both digits stay inside the pill without shrinking the type.
+  readonly property real wsCondensedTracking: -0.6
+  // The collapsed pill is content-driven, but a run of tray icons and a long
+  // app title must not push it off the screen: it is clamped to this band and
+  // the title absorbs the difference by eliding.
   readonly property int pillMinWidth: 150
+  readonly property int pillMaxWidth: 760
   readonly property int pillTitleMaxWidth: 300
   readonly property int pillDividerWidth: 1
+  readonly property int pillDividerHeight: 16
   readonly property color pillDivider: "#50566b"
-  readonly property int trayIconSize: 18
   readonly property int toggleBadgeSize: 12
 
   // Calendar: a day cell is a square highlight behind the number.
@@ -207,21 +242,25 @@ QtObject {
   readonly property int networkGlyphWidth: 16
   readonly property int weatherSunColWidth: 50
   readonly property int monthArrowHitSize: 16
-  readonly property int pillWorkspaceWidth: 24
   readonly property int pillTimeWidth: 44
   readonly property int pillDateWidth: 92
-  readonly property int pillBatteryWidth: 42
   readonly property int pillIpMaxWidth: 140
   readonly property int pillMeterMaxWidth: 80
-  readonly property int chargeLimitLabelWidth: 92
   readonly property int chargeLimitValueWidth: 48
   readonly property int chargePopupWidth: 286
   readonly property int chargePopupRowHeight: 44
   readonly property int chargePopupGap: 8
   readonly property int chargePopupPad: 12
-  readonly property int chargePopupOffset: 8
+  // Gap between the pill and a popup card: both dialogs are horizontally
+  // centred but stay near the island, so the eye does not have to travel.
+  readonly property int popupTopGap: 5
   readonly property int chargeRadioSize: 14
   readonly property int chargeRadioDot: 6
+  // Prayer popup: the charge-limit frame - same card, radius, padding, border -
+  // with one compact row per prayer instead of a tappable option row.
+  readonly property int prayerPopupWidth: root.chargePopupWidth
+  readonly property int prayerPopupRowHeight: 32
+  readonly property int prayerPopupTimeWidth: 44
   readonly property int fanLabelWidth: 34
   readonly property int fanHeaderHeight: 12
   readonly property int fanLineHeight: 18
@@ -236,15 +275,12 @@ QtObject {
   // Right aligned latency column in the network card ("999ms").
   readonly property int latencyColWidth: 44
 
-  // Icon sizes used by the island pill.
-  property int iconSize: 16
-  property int iconFontSize: 15
-  property real iconLineWidth: 1.5
-
   // ===========================================================================
   // Thresholds
   // ===========================================================================
 
+  // Every band is inclusive at its lower edge: a value exactly equal to a
+  // threshold takes the next colour up (except battery, which reads downward).
   readonly property int loadWarning: 40
   readonly property int loadHigh: 75
   readonly property int loadCritical: 90
@@ -265,14 +301,6 @@ QtObject {
   readonly property int diskWarning: 70
   readonly property int diskHigh: 85
   readonly property int diskCritical: 93
-
-  // Green for healthy, then yellow / orange / red.
-  function ascendingColor(value, warning, high, critical) {
-    if (value >= critical) return root.red
-    if (value >= high) return root.orange
-    if (value >= warning) return root.yellow
-    return root.green
-  }
 
   // The same ramp, but a healthy value stays in the foreground colour: text
   // only turns into an accent when there is something to report.
@@ -304,38 +332,37 @@ QtObject {
     return root.stateColor(value, root.latencyWarning, root.latencyHigh, root.latencyCritical)
   }
 
+  // Battery reads downward: red at or below 10, orange to 20, yellow to 35.
+  // Being plugged in does not mask any of that — a phone on a weak charger at
+  // 8% is still an alarm — it only turns the healthy bands green.
   function batteryColor(value, charging) {
-    if (charging) return root.green
     if (value <= root.batteryCritical) return root.red
     if (value <= root.batteryLow) return root.orange
     if (value <= root.batteryWarning) return root.yellow
-    return root.foreground
+    return charging ? root.green : root.foreground
   }
 
   function diskColor(value) {
     if (value < 0) return root.comment
-    // spec: green < 70, yellow 70-85, orange 85-93, red > 93
-    if (value > root.diskCritical) return root.red
-    if (value > root.diskHigh) return root.orange
+    // green < 70, yellow 70-85, orange 85-93, red >= 93
+    if (value >= root.diskCritical) return root.red
+    if (value >= root.diskHigh) return root.orange
     if (value >= root.diskWarning) return root.yellow
     return root.green
   }
 
-  // Storage meters follow the same rule as every other value in the panel: a
-  // healthy filesystem is plain foreground, and only a filling one turns into
-  // an accent. The ring, its label and its numbers all read from this one
-  // function so a cell can never disagree with itself.
+  // Storage meters read green when healthy: a ring is a status instrument, so
+  // "nothing to report" is itself information, unlike the numeric text values
+  // above which stay foreground until they cross a band. The ring, its label
+  // and its numbers all read from this one function so a cell can never
+  // disagree with itself.
   function storageColor(value) {
     if (value < 0) return root.comment
     return root.diskColor(value)
   }
 
-  // Filesystems shown as ring gauges in display order.
-  property var diskMounts: [
-    { "mount": "/", "label": "ROOT" },
-    { "mount": "/home", "label": "HOME" },
-    { "mount": "/mnt/data", "label": "DATA" }
-  ]
+  // Which filesystems the storage card shows is a personal setting, not a
+  // design token: see Config.diskMounts.
 
   // ===========================================================================
   // Motion and shape
@@ -360,4 +387,10 @@ QtObject {
   // A ShapePath stroke takes a single colour, so the old cyan->purple gradient
   // is expressed as one low-alpha blend of the two ends of that ramp.
   readonly property color shapeBorder: Qt.rgba(0.64, 0.75, 0.985, 0.30)
+
+  // Border for the clear pill surface, where the stroke is the only thing
+  // holding the silhouette against the wallpaper instead of a fill. Same hue,
+  // roughly double the alpha; the panel keeps `shapeBorder` because it always
+  // has its own fill behind the stroke.
+  readonly property color shapeBorderClear: Qt.rgba(0.64, 0.75, 0.985, 0.55)
 }

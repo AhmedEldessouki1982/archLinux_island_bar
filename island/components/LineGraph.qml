@@ -8,10 +8,11 @@ Item {
   property var samples: []
   property color color: Theme.accent
   property real maxValue: 100
-  property bool active: false
 
-  readonly property real step: width / Math.max(1, (samples ? samples.length : 1) - 1)
-  property bool shiftedPath: false
+  // Built straight from `samples`: the line steps once per sample. There is no
+  // scroll animation — shifting a 60 point bezier one step per sample forced
+  // the Shape to re-tessellate at the refresh rate for the whole interval,
+  // which cost about 15% of a core whenever the panel was open.
   readonly property var paths: buildPaths()
 
   clip: true
@@ -48,7 +49,7 @@ Item {
 
   Item {
     id: graphGroup
-    width: root.width + root.step
+    width: root.width
     height: root.height
 
     Shape {
@@ -73,41 +74,6 @@ Item {
     }
   }
 
-  NumberAnimation {
-    id: scrollAnimation
-    target: graphGroup
-    property: "x"
-    from: 0
-    to: -root.step
-    duration: Theme.graphSampleInterval
-    easing.type: Easing.Linear
-    onFinished: {
-      root.shiftedPath = false
-      graphGroup.x = 0
-    }
-  }
-
-  onSamplesChanged: {
-    if (!root.active || !root.samples || root.samples.length < Theme.graphSampleCount) {
-      scrollAnimation.stop()
-      root.shiftedPath = false
-      graphGroup.x = 0
-      return
-    }
-    scrollAnimation.stop()
-    graphGroup.x = 0
-    root.shiftedPath = true
-    scrollAnimation.start()
-  }
-
-  onActiveChanged: {
-    if (!root.active) {
-      scrollAnimation.stop()
-      root.shiftedPath = false
-      graphGroup.x = 0
-    }
-  }
-
   function buildPaths() {
     var values = root.samples || []
     if (values.length < 2 || root.width <= 0 || root.height <= 0)
@@ -115,7 +81,6 @@ Item {
 
     var n = values.length
     var dx = root.width / Math.max(1, n - 1)
-    var offset = root.shiftedPath ? dx : 0
     var ys = []
     var xs = []
     for (var i = 0; i < n; i++) {
@@ -123,7 +88,7 @@ Item {
       if (!isFinite(v) || v < 0 || v > root.maxValue)
         v = i > 0 ? Number(values[i - 1]) : 0
       v = Math.max(0, Math.min(root.maxValue, v))
-      xs.push(offset + i * dx)
+      xs.push(i * dx)
       var usableHeight = Math.max(1, root.height - 2 * Theme.graphInset)
       ys.push(Theme.graphInset + usableHeight - (v / root.maxValue) * usableHeight)
     }

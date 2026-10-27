@@ -36,18 +36,23 @@ Item {
   // ===========================================================================
 
   property real cpuLoad: 0
+  property bool cpuReady: false
   property real cpuTemp: 0
   property int cpuCount: 1
   property real ramUsed: 0
   property real ramTotal: 0
   property real ramPercent: 0
+  property bool ramReady: false
   property real gpuTemp: 0
   property real gpuLoad: 0
+  // GPU utilisation as the panel prints it: zero when the dGPU is suspended.
+  property real gpuLoadNow: 0
   property real cpuFanSpeed: 0
   property real gpuFanSpeed: 0
   property real netRxRate: 0
   property real netTxRate: 0
   property real netLatency: -1
+  property bool netConnected: false
   property string wifiSsid: ""
   property int batteryCapacity: 0
   property real batteryPower: 0
@@ -94,9 +99,11 @@ Item {
     if (root.systemStatsService) {
       root.cpuCount = Qt.binding(() => root.systemStatsService.cpuCount)
       root.cpuLoad = Qt.binding(() => root.systemStatsService.cpuLoad)
+      root.cpuReady = Qt.binding(() => root.systemStatsService.cpuReady)
       root.ramUsed = Qt.binding(() => root.systemStatsService.ramUsed)
       root.ramTotal = Qt.binding(() => root.systemStatsService.ramTotal)
       root.ramPercent = Qt.binding(() => root.systemStatsService.ramPercent)
+      root.ramReady = Qt.binding(() => root.systemStatsService.ramReady)
       root.kernelVersion = Qt.binding(() => root.systemStatsService.kernelVersion)
       root.userName = Qt.binding(() => root.systemStatsService.userName)
       root.hostName = Qt.binding(() => root.systemStatsService.hostName)
@@ -109,6 +116,8 @@ Item {
       root.gpuFanSpeed = Qt.binding(() => root.thermalService.gpuFanSpeed)
       root.gpuTemp = Qt.binding(() => root.thermalService.gpuTemp)
       root.gpuLoad = Qt.binding(() => root.thermalService.gpuLoad)
+      root.gpuLoadNow = Qt.binding(() => root.thermalService.gpuReading
+        ? root.thermalService.gpuLoadOut : 0)
     }
   }
   onGpuModeServiceChanged: {
@@ -123,6 +132,7 @@ Item {
       root.netRxRate = Qt.binding(() => root.networkService.rxRate)
       root.netTxRate = Qt.binding(() => root.networkService.txRate)
       root.netLatency = Qt.binding(() => root.networkService.latencyMs)
+      root.netConnected = Qt.binding(() => root.networkService.connected)
       root.wifiSsid = Qt.binding(() => root.networkService.ssid)
     }
   }
@@ -198,9 +208,21 @@ Item {
   // Navigation state is independent of the clock and reset only when opened.
   property int viewYear: new Date().getFullYear()
   property int viewMonth: new Date().getMonth()
-  property string clockText: ""
   property string calendarDayKey: ""
   property var weeks: []
+
+  // The panel prints a "HH:mm" clock, so it wakes once a minute instead of the
+  // per-second timer this used to carry. Midnight rolls the calendar over.
+  SystemClock {
+    id: clock
+    precision: SystemClock.Minutes
+  }
+  readonly property date now: clock.date
+  onNowChanged: {
+    if (!root.active) return
+    var key = root.now.getFullYear() + "-" + root.now.getMonth() + "-" + root.now.getDate()
+    if (key !== root.calendarDayKey) root.rebuildCalendar()
+  }
 
   readonly property string monthTitle: Qt.formatDate(new Date(root.viewYear, root.viewMonth, 1), "MMMM yyyy")
 
@@ -215,28 +237,36 @@ Item {
   readonly property real clockGap: Math.max(0,
     Math.floor((root.h7 - 2 * Theme.cardPadY - root.clockContentH) / 3))
 
+  // Six weeks of real days: the leading and trailing cells carry the adjacent
+  // months, dimmed. Blank cells used to leave the last row empty in a five week
+  // month, which pushed the whole clock block 12px up inside its card; a full
+  // six week grid keeps the block optically centred and the height constant.
   function rebuildCalendar() {
     var first = new Date(root.viewYear, root.viewMonth, 1)
-    var last = new Date(root.viewYear, root.viewMonth + 1, 0)
+    var daysInMonth = new Date(root.viewYear, root.viewMonth + 1, 0).getDate()
+    var daysInPrevMonth = new Date(root.viewYear, root.viewMonth, 0).getDate()
     var startOffset = first.getDay()
-    var daysInMonth = last.getDate()
     var today = new Date()
     root.calendarDayKey = today.getFullYear() + "-" + today.getMonth() + "-" + today.getDate()
     var isCurrentMonth = today.getFullYear() === root.viewYear && today.getMonth() === root.viewMonth
+
     var cells = []
-    for (var i = 0; i < startOffset; i++) cells.push({ label: "", isToday: false, isPast: true })
+    for (var p = startOffset - 1; p >= 0; p--)
+      cells.push({ label: String(daysInPrevMonth - p), isToday: false, isPast: true, outside: true })
     for (var d = 1; d <= daysInMonth; d++) {
-      var isToday = isCurrentMonth && today.getDate() === d
-      var isPast = isCurrentMonth && d < today.getDate()
-      cells.push({ label: String(d), isToday: isToday, isPast: isPast })
+      cells.push({
+        label: String(d),
+        isToday: isCurrentMonth && today.getDate() === d,
+        isPast: isCurrentMonth && d < today.getDate(),
+        outside: false
+      })
     }
-    while (cells.length % 7 !== 0) cells.push({ label: "", isToday: false, isPast: true })
+    var nextDay = 1
+    while (cells.length < 42)
+      cells.push({ label: String(nextDay++), isToday: false, isPast: false, outside: true })
+
     var w = []
-    for (var k = 0; k < cells.length; k += 7) w.push(cells.slice(k, k + 7))
-    // Always six rows: the calendar never changes height when the month does.
-    var blank = []
-    for (var b = 0; b < 7; b++) blank.push({ label: "", isToday: false, isPast: true })
-    while (w.length < 6) w.push(blank.slice())
+    for (var k = 0; k < 42; k += 7) w.push(cells.slice(k, k + 7))
     root.weeks = w
   }
 
@@ -252,7 +282,7 @@ Item {
   }
 
   // ===========================================================================
-  // Processes — three rows merging the cpu and the memory top list
+  // Processes — the top CPU and memory lists merged into the rows that fit
   // ===========================================================================
 
   readonly property var procRows: {
@@ -262,12 +292,12 @@ Item {
     var rows = []
     var cpu = svc.cpuTop || []
     var mem = svc.memoryTop || []
-    for (var i = 0; i < cpu.length && i < 3; i++) {
+    for (var i = 0; i < cpu.length; i++) {
       var c = cpu[i]
       seen[c.pid] = c
       rows.push(c)
     }
-    for (var j = 0; j < mem.length && j < 3; j++) {
+    for (var j = 0; j < mem.length; j++) {
       var m = mem[j]
       if (seen[m.pid]) continue
       rows.push(m)
@@ -275,9 +305,20 @@ Item {
     rows.sort(function (a, b) {
       return Math.max(b.cpu, b.memory) - Math.max(a.cpu, a.memory)
     })
-    return rows.slice(0, 4)
+    return rows.slice(0, root.procRowCount)
   }
-  readonly property int procRowCount: 4
+  // The card is four units tall. How many rows it holds is measured from the
+  // real line height, not assumed: a fixed four left a 40px hole at the bottom.
+  readonly property real procBodyH: root.h4 - 2 * Theme.cardPadY
+    - root.mCaptionH - Theme.gapMedium - root.mCaptionH - Theme.gapSmall
+  readonly property int procRowCount: Math.max(1,
+    Math.floor((root.procBodyH + Theme.gapTight) / (root.mBodyH + Theme.gapTight)))
+  // Whatever height the rows do not use becomes the space between them, so the
+  // list ends on the card's bottom padding instead of stopping short.
+  readonly property real procRowGap: root.procRowCount > 1
+    ? Math.max(0, Math.floor((root.procBodyH - root.procRowCount * root.mBodyH)
+      / (root.procRowCount - 1)))
+    : 0
   readonly property real procNameW: root.colAW - 2 * Theme.cardPadX
     - Theme.procCpuColWidth - Theme.procRamColWidth
 
@@ -287,6 +328,11 @@ Item {
 
   readonly property string conditionText: root.weatherService && root.weatherService.weatherCode >= 0
     ? root.weatherStatus(root.weatherService.weatherCode) : "--"
+  // The city is whatever the geolocation service resolved, never a fixture.
+  readonly property string weatherCityText: {
+    var city = root.weatherService ? String(root.weatherService.city) : ""
+    return city.length > 0 ? city.toUpperCase() : "--"
+  }
   readonly property bool weatherHasSun: root.weatherService
     && root.weatherService.sunriseText.length > 0 && root.weatherService.sunsetText.length > 0
   readonly property real weatherInnerW: root.colBW - 2 * Theme.cardPadX
@@ -342,6 +388,9 @@ Item {
 
   readonly property int batteryFillSegments: Math.round(
     Math.max(0, Math.min(100, root.batteryCapacity)) / 100 * Theme.batteryBarSegments)
+  // The presets live in Config, not in the panel: the popup and the chips read
+  // the same three values, so they cannot disagree about what a preset is.
+  readonly property var chargeLimitPresets: Config.chargeLimitPresets
   readonly property string batteryStateText: root.batteryCharging ? "Charging"
     : (root.batteryOnAc ? "AC" : "Discharging")
   readonly property string batteryStatusText: root.hasBattery
@@ -353,6 +402,14 @@ Item {
   readonly property string updateText: root.updateCount > 0 ? String(root.updateCount)
     : (root.updateCount === 0 ? "UP TO DATE" : "?")
   readonly property bool updateIsCount: root.updateCount > 0
+
+  // Bluetooth: the badge counts live connections, not the BlueZ device tree.
+  // `Bluetooth.devices` holds every device the adapter has ever paired with or
+  // merely seen, so its length is a "known" count and would read 6 with
+  // nothing connected. Paired-but-idle mice are not connected devices.
+  readonly property var bluetoothDevices: Bluetooth.devices ? Bluetooth.devices.values : []
+  readonly property int bluetoothConnected: root.bluetoothDevices.filter(d => d.connected).length
+  readonly property int bluetoothKnown: root.bluetoothDevices.length
 
   readonly property var volumes: root.storageService ? root.storageService.volumes : []
   readonly property int storageRingSize: Theme.ringDiameter
@@ -373,6 +430,20 @@ Item {
     var rel = root.kernelVersion.split("-")[0]
     return rel.length > 0 ? host + " \u00b7 " + rel : host
   }
+  // The two ASUS cards are only meaningful where their tool is installed.
+  // GpuModeService answers that once at startup; here it decides whether the
+  // row exists at all, so a non-ASUS machine sees a shorter right column
+  // rather than two cards stuck on "--".
+  readonly property bool profileToolAvailable: root.gpuModeService
+    ? root.gpuModeService.asusctlAvailable : false
+  readonly property bool gpuToolAvailable: root.gpuModeService
+    ? root.gpuModeService.supergfxctlAvailable : false
+  readonly property bool asusRowVisible: root.profileToolAvailable || root.gpuToolAvailable
+  readonly property bool chargeLimitSupported: root.batteryService
+    ? root.batteryService.chargeLimitSupported : false
+  readonly property bool chargeLimitRead: root.batteryService
+    ? root.batteryService.chargeLimitRead : false
+
   readonly property string profileText: root.powerProfile.length > 0
     ? root.powerProfile : "--"
   readonly property string gpuModeText: root.gpuMode.length > 0
@@ -427,11 +498,6 @@ Item {
     return a
   }
 
-  function hasPresetChargeLimit() {
-    return root.batteryService && root.batteryService.chargeLimitRead
-      && [60, 80, 100].indexOf(root.batteryService.chargeLimit) >= 0
-  }
-
   width: root.contentWidth
   height: root.contentHeight
   opacity: root.active ? 1 : 0
@@ -445,21 +511,17 @@ Item {
     }
   }
 
-  Timer {
-    interval: 1000
-    running: root.active
-    repeat: true
-    onTriggered: {
-      var d = new Date()
-      root.clockText = Qt.formatDateTime(d, "HH:mm")
-      var dayKey = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
-      if (dayKey !== root.calendarDayKey) root.rebuildCalendar()
+  // The graphs advance on the service read (2 s), not on a timer of their own.
+  // The old 1 s timer pushed the same CPU value twice between two reads and
+  // forced a repaint of both sparklines for no new information.
+  onCpuLoadChanged: {
+    if (root.active && root.cpuReady)
       root.cpuHistory = root.pushSample(root.cpuHistory, root.cpuLoad)
-      var gpuVal = (root.thermalService && root.thermalService.gpuReading)
-        ? root.thermalService.gpuLoadOut : 0
-      root.gpuHistory = root.pushSample(root.gpuHistory, gpuVal)
-    }
   }
+  onGpuLoadNowChanged: {
+    if (root.active) root.gpuHistory = root.pushSample(root.gpuHistory, root.gpuLoadNow)
+  }
+
   function start() {
     root.cpuHistory = Array(root.historyMax - 1).fill(0)
     root.gpuHistory = Array(root.historyMax - 1).fill(0)
@@ -471,7 +533,10 @@ Item {
     if (root.updateService) root.updateService.start()
     if (root.storageService) root.storageService.start()
     if (root.weatherService) root.weatherService.active = true
-    root.clockText = Qt.formatDateTime(new Date(), "HH:mm")
+    // The EC's charge threshold changes outside the shell (BIOS, another
+    // tool), and the chips must not show yesterday's answer. One read per
+    // panel open; the service re-reads after every write.
+    if (root.batteryService) root.batteryService.refreshChargeLimit()
     var today = new Date()
     root.viewYear = today.getFullYear()
     root.viewMonth = today.getMonth()
@@ -526,7 +591,7 @@ Item {
           Hero {
             width: parent.width
             height: root.mHeroH
-            text: root.clockText
+            text: Qt.formatDateTime(root.now, "HH:mm")
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideNone
@@ -651,8 +716,11 @@ Item {
                         width: parent.width
                         text: dayCell.modelData.label
                         color: dayCell.modelData.isToday ? Theme.background
-                          : (dayCell.modelData.isPast ? Theme.comment : Theme.foreground)
-                        variant: "body"
+                          : ((dayCell.modelData.isPast || dayCell.modelData.outside)
+                            ? Theme.comment : Theme.foreground)
+                        // Today is the only emphasised cell; `variant` selects a
+                        // size, so the weight is set on the font directly.
+                        font.weight: dayCell.modelData.isToday
                           ? Theme.fontWeightValue : Theme.fontWeightBody
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideNone
@@ -727,7 +795,7 @@ Item {
               anchors.top: procHeader.bottom
               anchors.topMargin: Theme.gapSmall
               width: parent.width
-              spacing: 0
+              spacing: root.procRowGap
 
               Repeater {
                 model: root.procRows
@@ -737,7 +805,6 @@ Item {
                   required property int index
                   width: procBody.width
                   height: root.mBodyH
-                    + (procRow.index < root.procRowCount - 1 ? Theme.gapTight : 0)
 
                   Row {
                     width: parent.width
@@ -834,9 +901,10 @@ Item {
             width: (parent.width - 2 * Theme.gapSmall) / 3
             height: parent.height
             label: "BT"
-            badge: Bluetooth.devices ? Bluetooth.devices.values.length : 0
+            badge: root.bluetoothConnected
             iconType: "bluetooth"
-            tooltip: "Bluetooth · " + (Bluetooth.devices ? Bluetooth.devices.values.length : 0) + " connected"
+            tooltip: "Bluetooth · " + root.bluetoothConnected + " connected · "
+              + root.bluetoothKnown + " known"
             active: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
             onToggled: {
               root.userActivity()
@@ -1041,9 +1109,11 @@ Item {
           entranceIndex: 4
 
           Column {
-            width: parent.width - 2 * Theme.cardPadXDense
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.fill: parent
+            anchors.leftMargin: Theme.cardPadXDense
+            anchors.rightMargin: Theme.cardPadXDense
+            anchors.topMargin: Theme.cardPadYDense
+            anchors.bottomMargin: Theme.cardPadYDense
             spacing: Theme.gapTight
 
             Caption {
@@ -1060,8 +1130,8 @@ Item {
                 width: Theme.metricValueWidth
                 height: parent.height
                 verticalAlignment: Text.AlignVCenter
-                color: Theme.loadColor(root.cpuLoad)
-                text: Format.percent(root.cpuLoad)
+                color: root.cpuReady ? Theme.loadColor(root.cpuLoad) : Theme.comment
+                text: root.cpuReady ? Format.percent(root.cpuLoad) : "--"
               }
               Item {
                 width: Theme.gapSmall
@@ -1071,17 +1141,18 @@ Item {
                 width: parent.width - Theme.metricValueWidth - Theme.gapSmall
                 height: parent.height
                 verticalAlignment: Text.AlignBottom
-                color: Theme.temperatureColor(root.cpuTemp)
-                text: Format.temp(root.cpuTemp)
+                color: root.cpuTemp > 0 ? Theme.temperatureColor(root.cpuTemp) : Theme.comment
+                text: root.cpuTemp > 0 ? Format.temp(root.cpuTemp) : "--"
               }
             }
             LineGraph {
               width: parent.width
-              height: Theme.sparklineHeight
+              // The graph takes whatever the two text lines leave behind, so
+              // the card never overflows and nothing sits on the border.
+              height: parent.height - root.mCaptionH - root.mValueH - 2 * Theme.gapTight
               samples: root.cpuHistory
-              color: Theme.graphColor(root.cpuLoad)
+              color: root.cpuReady ? Theme.graphColor(root.cpuLoad) : Theme.comment
               maxValue: 100
-              active: root.active
             }
           }
         }
@@ -1092,9 +1163,11 @@ Item {
           entranceIndex: 5
 
           Column {
-            width: parent.width - 2 * Theme.cardPadXDense
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.fill: parent
+            anchors.leftMargin: Theme.cardPadXDense
+            anchors.rightMargin: Theme.cardPadXDense
+            anchors.topMargin: Theme.cardPadYDense
+            anchors.bottomMargin: Theme.cardPadYDense
             spacing: Theme.gapTight
 
             Caption {
@@ -1137,13 +1210,12 @@ Item {
             }
             LineGraph {
               width: parent.width
-              height: Theme.sparklineHeight
+              height: parent.height - root.mCaptionH - root.mValueH - 2 * Theme.gapTight
               samples: root.gpuHistory
               color: (root.thermalService && !root.thermalService.gpuReading)
                 ? Theme.comment : Theme.graphColor(root.thermalService
                     ? root.thermalService.gpuLoadOut : 0)
               maxValue: 100
-              active: root.active && !!(root.thermalService && root.thermalService.gpuReading)
             }
           }
         }
@@ -1180,13 +1252,25 @@ Item {
                   verticalAlignment: Text.AlignBottom
                   text: "RAM"
                 }
+                // The percentage is the alarm signal, so it leads the card and
+                // takes the memory ramp: yellow from 60%, orange from 78%, red
+                // from 90% (Theme.memoryColor, shared with the bar below).
                 Value {
                   id: ramValue
                   width: parent.width
                   height: root.mValueH
                   horizontalAlignment: Text.AlignRight
                   verticalAlignment: Text.AlignVCenter
-                  color: Theme.memoryColor(root.ramPercent)
+                  color: root.ramReady ? Theme.memoryColor(root.ramPercent) : Theme.comment
+                  text: root.ramReady ? Format.percent(root.ramPercent) : "--"
+                  elide: Text.ElideNone
+                }
+                Caption {
+                  width: parent.width
+                  height: root.mCaptionH
+                  horizontalAlignment: Text.AlignRight
+                  verticalAlignment: Text.AlignVCenter
+                  color: root.ramReady ? Theme.label : Theme.comment
                   text: Format.usedTotal(root.ramUsed, root.ramTotal)
                   elide: Text.ElideNone
                 }
@@ -1293,7 +1377,8 @@ Item {
               width: parent.width - Theme.networkGlyphWidth - Theme.gapSmall
               height: parent.height
               verticalAlignment: Text.AlignVCenter
-              text: Format.rate(root.netRxRate)
+              color: root.netConnected ? Theme.foreground : Theme.comment
+              text: root.netConnected ? Format.rate(root.netRxRate) : "--"
             }
           }
           Row {
@@ -1311,7 +1396,8 @@ Item {
               width: parent.width - Theme.networkGlyphWidth - Theme.gapSmall
               height: parent.height
               verticalAlignment: Text.AlignVCenter
-              text: Format.rate(root.netTxRate)
+              color: root.netConnected ? Theme.foreground : Theme.comment
+              text: root.netConnected ? Format.rate(root.netTxRate) : "--"
             }
           }
           Row {
@@ -1374,7 +1460,7 @@ Item {
                 width: parent.width
                 height: root.mCaptionH
                 verticalAlignment: Text.AlignVCenter
-                text: "CAIRO"
+                text: root.weatherCityText
                 color: Theme.weatherCity
               }
               Value {
@@ -1551,38 +1637,47 @@ Item {
           }
 
           Item {
+            // No asusd means no threshold to show or set, so the spacer and the
+            // whole limit row go away instead of printing a placeholder.
+            visible: root.chargeLimitSupported
             width: parent.width
             height: Theme.gapSmall
           }
 
           Row {
+            visible: root.chargeLimitSupported
             width: parent.width
             height: Theme.chipHeight
             spacing: Theme.gapSmall
             Caption {
-              visible: !root.hasPresetChargeLimit()
+              // Only a failed/absent read falls back to text. The three presets
+              // stay clickable even when the EC reports a value outside them —
+              // otherwise a machine left on 60% would lose its controls.
+              visible: !root.chargeLimitRead
               width: parent.width
               height: parent.height
               verticalAlignment: Text.AlignVCenter
-              color: root.batteryService && root.batteryService.chargeLimitRead
-                ? Theme.label : Theme.comment
-              text: root.batteryService && root.batteryService.chargeLimitRead
-                ? "LIMIT " + Format.percent(root.batteryService.chargeLimit)
-                : "LIMIT N/A"
+              color: root.batteryService && root.batteryService.chargeLimitReading
+                ? Theme.comment : Theme.label
+              text: root.batteryService && root.batteryService.chargeLimitReading
+                ? "LIMIT WAIT" : "LIMIT N/A"
             }
 
             Row {
-              visible: root.hasPresetChargeLimit()
+              visible: root.chargeLimitRead
               width: parent.width
               height: Theme.chipHeight
               spacing: Theme.gapSmall
               Repeater {
-                model: root.hasPresetChargeLimit() ? [60, 80, 100] : []
+                model: root.chargeLimitRead
+                  ? root.chargeLimitPresets.map(function (p) { return p.pct }) : []
                 delegate: LimitChip {
                   required property int modelData
                   limit: modelData
                   height: Theme.chipHeight
-                  width: Math.floor((parent.width - 2 * Theme.gapSmall) / 3)
+                  width: Math.floor((parent.width
+                    - (root.chargeLimitPresets.length - 1) * Theme.gapSmall)
+                    / root.chargeLimitPresets.length)
                 }
               }
             }
@@ -1590,14 +1685,16 @@ Item {
         }
       }
 
-      // --- profile | gpu mode (1u) -------------------------------------------
+      // --- profile | gpu mode (1u, ASUS only) --------------------------------
       Row {
         width: colC.width
         height: root.h1
         spacing: root.gut
+        visible: root.asusRowVisible
 
         Card {
-          width: root.halfCW
+          visible: root.profileToolAvailable
+          width: root.gpuToolAvailable ? root.halfCW : colC.width
           height: parent.height
           entranceIndex: 12
 
@@ -1639,7 +1736,8 @@ Item {
         }
 
         Card {
-          width: root.halfCW
+          visible: root.gpuToolAvailable
+          width: root.profileToolAvailable ? root.halfCW : colC.width
           height: parent.height
           entranceIndex: 13
 
@@ -1669,7 +1767,7 @@ Item {
                 height: root.mCaptionH
                 spacing: Theme.gapTight
                 Caption {
-                  width: parent.width - root.mCaptionH
+                  width: parent.width - 2 * Theme.gapTight
                   height: parent.height
                   verticalAlignment: Text.AlignVCenter
                   text: "GPU MODE"
@@ -1696,10 +1794,10 @@ Item {
         }
       }
 
-      // --- storage (4u) ------------------------------------------------------
+      // --- storage (4u, or 5u when the ASUS row is hidden) --------------------
       Card {
         width: colC.width
-        height: root.h4
+        height: root.asusRowVisible ? root.h4 : root.h4 + root.h1 + root.gut
         entranceIndex: 14
 
         Item {
@@ -2003,7 +2101,7 @@ Item {
   // A charge limit chip: active one is outlined and tinted, the rest is flat.
   component LimitChip: Rectangle {
     id: limitChip
-    property int limit: 60
+    property int limit: 0
     readonly property bool isActive: root.batteryService
       ? root.batteryService.chargeLimitRead
         && root.batteryService.chargeLimit === limitChip.limit : false

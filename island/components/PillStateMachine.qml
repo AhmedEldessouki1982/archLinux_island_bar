@@ -34,7 +34,14 @@ Item {
     if (root.healthWindow)
       root.healthWindow.panelClosed.connect(() => {
         root.isHealthPanelOpen = false
+        // Nothing that widened the pill may outlive the panel, and the OSD must
+        // not spring back the moment the card leaves.
+        root.clearMeter()
         root.isExpanded = false
+        // The pointer did not move, so no hover event is coming to bring the
+        // pill back: reclaim it here rather than leaving it collapsed under a
+        // cursor that is still on it. Moving off and back works either way.
+        if (root.pointerInside) hoverRecheckTimer.restart()
       })
   }
 
@@ -58,7 +65,8 @@ Item {
     id: hoverRecheckTimer
     interval: Theme.hoverCollapseDelay
     onTriggered: {
-      if (root.meterMode === "" && root.pointerInside) root.isExpanded = true
+      if (root.meterMode === "" && root.pointerInside && !root.isHealthPanelOpen)
+        root.isExpanded = true
       else if (!root.isHealthPanelOpen) root.isExpanded = false
     }
   }
@@ -74,7 +82,9 @@ Item {
     root.pointerInside = inside
     if (inside) {
       hoverRecheckTimer.stop()
-      if (root.meterMode === "") root.isExpanded = true
+      // The panel owns the screen while it is open: hovering the pill must not
+      // stretch it back out from behind the card.
+      if (root.meterMode === "" && !root.isHealthPanelOpen) root.isExpanded = true
     } else if (!root.isHealthPanelOpen) {
       hoverRecheckTimer.restart()
     }
@@ -96,10 +106,17 @@ Item {
     if (root.isHealthPanelOpen) {
       if (root.healthWindow) root.healthWindow.close()
       root.isHealthPanelOpen = false
+      root.clearMeter()
     } else {
       if (root.notificationCenter) root.notificationCenter.close()
       if (root.healthWindow) root.healthWindow.open()
       root.isHealthPanelOpen = true
+      // The panel replaces the pill: collapse it so it is not left stretched
+      // behind the card, drop any OSD that would hold it at meter width, and
+      // stop the hover timer that would re-expand it.
+      root.clearMeter()
+      hoverRecheckTimer.stop()
+      root.isExpanded = false
     }
   }
 
@@ -115,16 +132,37 @@ Item {
   function closeHealthPanel() {
     if (root.healthWindow) root.healthWindow.close()
     root.isHealthPanelOpen = false
+    root.clearMeter()
+    hoverRecheckTimer.stop()
+    root.isExpanded = false
   }
 
   // --- meter overlay ---
 
+  // The pill's OSD is the only thing that widens it while it is collapsed, so
+  // the state - including its timer - goes whenever the panel takes the screen
+  // and again when it gives it back. A leftover `meterMode` would leave the
+  // pill stretched at meter width with nothing drawn in it.
+  function clearMeter() {
+    meterTimer.stop()
+    if (root.meterMode !== "") root.meterMode = ""
+  }
+
   function showMeter(mode) {
+    if (root.isHealthPanelOpen) {
+      root.clearMeter()
+      return
+    }
     root.meterMode = mode
     meterTimer.restart()
   }
 
   function onMeterActivity(mode) {
+    // The panel has its own sliders, and an OSD here would push the collapsed
+    // pill out from under the card. Suppress it at the single entry point - the
+    // wheel, the keybind IPC and the caps/num listeners all come through here -
+    // so no fast poll is asked for either.
+    if (root.isHealthPanelOpen) return
     if (!root.meterReady) return
     if (mode === "volume" && root.audioService) root.audioService.requestFastPoll()
     else if (mode === "brightness" && root.brightnessService) root.brightnessService.requestFastPoll()
@@ -133,7 +171,7 @@ Item {
 
   function dismissMeter() {
     root.meterMode = ""
-    if (root.pointerInside) root.isExpanded = true
+    if (root.pointerInside && !root.isHealthPanelOpen) root.isExpanded = true
     else if (!root.isHealthPanelOpen) {
       root.isExpanded = false
       hoverRecheckTimer.restart()

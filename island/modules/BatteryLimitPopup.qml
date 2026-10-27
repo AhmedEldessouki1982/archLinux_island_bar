@@ -14,8 +14,10 @@ PanelWindow {
   focusable: true
 
   property var batteryService: null
-  property var anchorItem: null
   property int popupW: Theme.chargePopupWidth
+  // Display cutout on this output; shell.qml passes the same value it gives the
+  // pill, so the card keeps its gap below the island however far down it sits.
+  property int topInset: 0
 
   WlrLayershell.layer: WlrLayer.Overlay
   anchors.top: true
@@ -48,8 +50,12 @@ PanelWindow {
     width: root.popupW
     height: root.containerHeight
     opacity: 1
-    x: 0
-    y: 0
+    // Horizontally centred, but pinned a fixed gap below the island rather
+    // than the screen: the card belongs to the pill, and the eye is already
+    // there. The top edge does not depend on the card's height, so the option
+    // rows arriving late grow the card downward instead of moving it.
+    x: Math.round(((root.screen ? root.screen.width : root.width) - root.popupW) / 2)
+    y: root.topInset + Theme.pillHeight + Theme.popupTopGap
 
     Rectangle {
       anchors.fill: parent
@@ -90,11 +96,7 @@ PanelWindow {
 
       Repeater {
         model: root.batteryService && root.batteryService.chargeLimitSupported
-          && root.batteryService.chargeLimitRead ? [
-          { pct: 60, detail: "Longest battery life" },
-          { pct: 80, detail: "Balanced" },
-          { pct: 100, detail: "Full capacity" }
-        ] : []
+          && root.batteryService.chargeLimitRead ? Config.chargeLimitPresets : []
 
         delegate: Rectangle {
           id: option
@@ -174,7 +176,7 @@ PanelWindow {
   }
 
   readonly property int optionCount: root.batteryService && root.batteryService.chargeLimitSupported
-    && root.batteryService.chargeLimitRead ? 3 : 0
+    && root.batteryService.chargeLimitRead ? Config.chargeLimitPresets.length : 0
   readonly property int contentRowCount: 1 + root.optionCount
     + (root.batteryService && root.batteryService.chargeLimitError ? 1 : 0)
   readonly property int containerHeight: Theme.chargePopupPad * 2 + Theme.fontSizeBody
@@ -193,21 +195,45 @@ PanelWindow {
       && root.batteryService.chargeLimit === pct
   }
 
-  function open(anchor) {
-    root.anchorItem = anchor || null
-    if (root.batteryService) root.batteryService.refreshChargeLimit()
-    root.visible = true
-    if (root.anchorItem) {
-      var point = root.anchorItem.mapToGlobal(Qt.point(0, root.anchorItem.height))
-      container.x = Math.max(Theme.chargePopupPad,
-        Math.min(point.x + root.anchorItem.width - root.popupW,
-          (root.screen ? root.screen.width : root.width) - root.popupW - Theme.chargePopupPad))
-      container.y = point.y + Theme.chargePopupOffset
+  // A click asks for the threshold list, but whether the machine has one is
+  // only known once the read comes back. `pendingOpen` holds the request for
+  // that one read: without asusd/asusctl the popup simply never appears,
+  // instead of showing a frame with no options in it.
+  property bool pendingOpen: false
+
+  onPendingOpenChanged: if (root.pendingOpen) root.resolvePending()
+
+  function resolvePending() {
+    if (!root.pendingOpen) return
+    if (!root.batteryService) {
+      root.pendingOpen = false
+      return
     }
+    if (root.batteryService.chargeLimitReading) return
+    root.pendingOpen = false
+    if (root.batteryService.chargeLimitSupported) root.show()
+  }
+
+  Connections {
+    target: root.batteryService
+    function onChargeLimitReadingChanged() { root.resolvePending() }
+    function onChargeLimitSupportedChanged() { root.resolvePending() }
+  }
+
+  function open() {
+    if (!root.batteryService) return
+    root.batteryService.refreshChargeLimit()
+    if (root.batteryService.chargeLimitSupported) root.show()
+    else root.pendingOpen = true
+  }
+
+  function show() {
+    root.visible = true
   }
 
   function close() {
     successCloseTimer.stop()
+    root.pendingOpen = false
     root.visible = false
   }
 }

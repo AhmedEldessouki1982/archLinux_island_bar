@@ -37,6 +37,13 @@ Item {
   property real earRadius: 14
   property real bottomRadius: 14
 
+  // True when the surface hangs off the top screen edge: the top corners are
+  // concave ears and the top edge is the screen edge, so it is not stroked.
+  // False when the surface floats (below a display cutout), where the top
+  // corners become ordinary convex radii and the outline closes all the way
+  // round - otherwise the shape would have no top border and read as cropped.
+  property bool concaveTop: true
+
   // --- public paint --------------------------------------------------------
   property color fillColor: "transparent"
   property color borderColor: "transparent"
@@ -67,8 +74,12 @@ Item {
     antialiasing: true
 
     // ---- fill: one closed path -------------------------------------------
+    // ---- hanging shape: concave ears on the screen edge -------------------
+    // Each group is drawn only in its own mode: a ShapePath whose fill and
+    // stroke are both transparent paints nothing, which is cheaper to read
+    // than one path stitched from conditional arcs.
     ShapePath {
-      fillColor: root.fillColor
+      fillColor: root.concaveTop ? root.fillColor : "transparent"
       strokeColor: "transparent"
       strokeWidth: 0
       startX: 0
@@ -142,7 +153,7 @@ Item {
     // ---- border: open path, left + bottom + right only --------------------
     ShapePath {
       fillColor: "transparent"
-      strokeColor: root.borderColor
+      strokeColor: root.concaveTop ? root.borderColor : "transparent"
       strokeWidth: root.borderWidth
       capStyle: ShapePath.FlatCap
       joinStyle: ShapePath.RoundJoin
@@ -202,6 +213,156 @@ Item {
       }
 
       // deliberately no closing segment: the top edge stays unstroked
+    }
+
+    // ---- floating shape: all four corners convex -------------------------
+    // Used when the surface is not touching the screen edge (it hangs below a
+    // display cutout instead). Radius E on top, B at the bottom, and the
+    // corners are placed at E / B rather than E+B, because there is no ear
+    // overhang to absorb.
+    ShapePath {
+      fillColor: root.concaveTop ? "transparent" : root.fillColor
+      strokeColor: "transparent"
+      strokeWidth: 0
+      startX: root._ear
+      startY: 0
+
+      // top edge
+      PathLine {
+        x: root._w - root._ear
+        y: 0
+      }
+
+      // top-right convex corner: -> (W,E), centre (W-E,E)
+      PathArc {
+        x: root._w
+        y: root._ear
+        radiusX: root._ear
+        radiusY: root._ear
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      // right edge
+      PathLine {
+        x: root._w
+        y: root._h - root._bot
+      }
+
+      // bottom-right convex corner: -> (W-B,H), centre (W-B,H-B)
+      PathArc {
+        x: root._w - root._bot
+        y: root._h
+        radiusX: root._bot
+        radiusY: root._bot
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      // bottom edge
+      PathLine {
+        x: root._bot
+        y: root._h
+      }
+
+      // bottom-left convex corner: -> (0,H-B), centre (B,H-B)
+      PathArc {
+        x: 0
+        y: root._h - root._bot
+        radiusX: root._bot
+        radiusY: root._bot
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      // left edge
+      PathLine {
+        x: 0
+        y: root._ear
+      }
+
+      // top-left convex corner: -> (E,0), centre (E,E)
+      PathArc {
+        x: root._ear
+        y: 0
+        radiusX: root._ear
+        radiusY: root._ear
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+    }
+
+    // ---- floating border: the same outline, closed and inset -------------
+    ShapePath {
+      fillColor: "transparent"
+      strokeColor: root.concaveTop ? "transparent" : root.borderColor
+      strokeWidth: root.borderWidth
+      capStyle: ShapePath.FlatCap
+      joinStyle: ShapePath.RoundJoin
+      startX: root._ear + root._i
+      startY: root._i
+
+      PathLine {
+        x: root._w - root._ear - root._i
+        y: root._i
+      }
+
+      PathArc {
+        x: root._w - root._i
+        y: root._ear + root._i
+        radiusX: root._ear
+        radiusY: root._ear
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      PathLine {
+        x: root._w - root._i
+        y: root._h - root._bot - root._i
+      }
+
+      PathArc {
+        x: root._w - root._bot - root._i
+        y: root._h - root._i
+        radiusX: root._bot
+        radiusY: root._bot
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      PathLine {
+        x: root._bot + root._i
+        y: root._h - root._i
+      }
+
+      PathArc {
+        x: root._i
+        y: root._h - root._bot - root._i
+        radiusX: root._bot
+        radiusY: root._bot
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      PathLine {
+        x: root._i
+        y: root._ear + root._i
+      }
+
+      PathArc {
+        x: root._ear + root._i
+        y: root._i
+        radiusX: root._ear
+        radiusY: root._ear
+        useLargeArc: false
+        direction: PathArc.Clockwise
+      }
+
+      // closed: the floating shape has a top edge to stroke
+      PathLine {
+        x: root._ear + root._i
+        y: root._i
+      }
     }
   }
 }
