@@ -6,8 +6,8 @@ A single morphing pill that expands on hover into a full status cluster, built w
 
 ## Features
 
-- **Morphing pill** — three states in one bar: a narrow idle pill, a hover-expanded layout, and a compact centered meter for transient feedback (volume / brightness / keyboard-lock OSD).
-- **Volume + brightness control** — scroll to adjust, click to mute / toggle; each shows a compact centered meter that pops up on bind, triggered over Hyprland IPC from your hardware keys.
+- **Morphing pill** — three states in one bar: a narrow idle pill, a hover-expanded layout, and a compact centered meter for transient feedback (volume / brightness / keyboard-lock OSD). Opening the health panel drops the pill back to its idle width, so the card never has island wings sticking out around it.
+- **Volume + brightness control** — scroll to adjust, click to mute / toggle; each shows a compact centered meter that pops up on bind, triggered over Hyprland IPC from your hardware keys. While the health panel is open that OSD is suppressed: the panel already carries both sliders, and a meter there would only stretch the pill out from under the card. The key still changes the level — only the pop is skipped — and the meter state is cleared on close so nothing is left stuck.
 - **Honest brightness scale** — the percentage on screen is exactly what `brightnessctl` reports, from 1% to 100%. There is no hidden remap: a backlight at 100% of its range reads 100%.
 - **Battery charge-limit popup** — click the battery icon for **58%**, **78%**, or **100%** presets via `asusctl battery limit`; the selected preset is read back from the system and marked in Dracula yellow. Without `asusd` the row is not drawn at all. The card is centred horizontally, 5px below the island.
 - **Workspaces** — one `WorkspaceItem` component drives both states: the idle pill shows only the active workspace, the expanded pill shows **1–10** in fixed 22px slots with a single accent pill that **slides** between them (150 ms). Occupied slots carry a dot, empty slots stay dim, hover lightens the fill, and clicking an empty slot focuses it.
@@ -17,7 +17,7 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Network identity** — the health panel shows the connected SSID with latency and transfer rates, while the expanded pill keeps its compact IP address readout.
 - **Notifications** — banner + center, with deadline-based expiry for transient notifications and true pinning for persistent ones. Do Not Disturb silences ordinary notifications but not urgency-2 (critical) ones: an application only reaches for that urgency when it means "interrupt me", and a silenced alarm is worse than no alarm.
 - **Calendar** — independent month navigation and a six-week grid (adjacent-month days dimmed) keep the current-day marker accurate without snapping the view back.
-- **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Auto-dismisses after 15 s idle and resets its timer while you interact with it.
+- **Full system health panel** — a floating overlay showing CPU load + temp, GPU load/temp/mode/power, RAM, CPU + GPU fan speeds, network transfer rate, battery charge + draw, power profile, and kernel/user info. Opening it collapses the island first — the card replaces the pill rather than sitting on a stretched one — and a click anywhere outside the card, or the same IPC call again, drops it back. Auto-dismisses after 15 s idle and resets its timer while you interact with it. On close nothing that widened the pill can survive, and a pointer still resting on the island gets its hover back without being jiggled.
 - **Bento health panel** — fixed 196 / 232 / 196px columns on a 36px unit grid with 8px gutters. Each column is exactly **11 units** (476px) tall, so all three end on the same baseline without stretched cards; the whole body is **640×476** inside a **716×500** window. The left column carries the clock/calendar and top processes; the middle carries quick toggles, audio/brightness, smooth CPU/GPU load graphs, RAM/fan, network and weather; the right carries identity, battery power, profile/GPU mode, two storage rings and updates/uptime.
 - **Quick-toggle status** — the Bluetooth chip shows the number of connected devices; the tray is one 24px slot grid in both pill states.
 - **Shared panel typography and toggle glyphs** — four monospace sizes (10 / 12 / 15 / 24) and one high-contrast lavender label colour are shared across cards; the DND, keep-awake and Bluetooth chips use stateful Canvas glyphs and full-name tooltips.
@@ -253,6 +253,8 @@ quickshell -c island ipc call island adjustBrightness -5     # -5%
 
 `adjustBrightness` clamps at 1% and 100%, matching the real backlight range.
 
+`toggleHealth` is a true toggle and the health chip does the same thing: the first call opens the panel and collapses the pill, the second closes it. While the panel is open, `triggerMeter` / `adjustBrightness` still change the volume or backlight, but the pill OSD is not drawn — the panel's own sliders are the feedback there. The panel itself is dismissed by clicking outside its card.
+
 ---
 
 ## Project structure
@@ -280,7 +282,7 @@ island/
 │   ├── NotificationCard.qml # Notification banner content
 │   ├── PillBattery.qml    # Battery slot (glyph + percentage)
 │   ├── PillDivider.qml    # 1px group divider inside the pill
-│   ├── PillStateMachine.qml # Idle / hover / meter state machine
+│   ├── PillStateMachine.qml # Idle / hover / meter / health-panel state machine
 │   ├── PillTray.qml       # StatusNotifier slot row
 │   ├── PrayerIcon.qml     # Mosque glyph (nf-md-mosque) for the timetable
 │   ├── RingGauge.qml      # Flat ring gauge (storage disks, power)
@@ -304,9 +306,9 @@ island/
 │   ├── UpdateService.qml  # Pending package updates
 │   └── WeatherService.qml # ipwho.is/geocoded location + open-meteo forecast
 └── modules/
-    ├── IslandPill.qml     # The pill — idle / hover / meter states + IPC
+    ├── IslandPill.qml     # The pill — idle / hover / meter states; health chip opens the panel
     ├── BatteryLimitPopup.qml # Charge-threshold radio presets (from Config: 58/78/100%)
-    ├── FloatingHealth.qml # Overlay window hosting the consolidated panel
+    ├── FloatingHealth.qml # Overlay window for the panel; click outside to dismiss
     ├── HealthPanel.qml    # Bento panel: clock+procs / controls+weather / power+storage
     ├── NotificationLayer.qml # Banner stack w/ expiry
     ├── NotificationCenter.qml # Full notification history
@@ -337,6 +339,7 @@ Screenshots taken at each step of the idle / workspace / tray / panel pass — b
 
 ## Known limitations & tested-on
 
+- **The panel owns the island footprint while it is open.** The health card is a full-width layer above the bar, and the collapsed pill sits exactly on the middle column's DND / AWAKE / BT card (pill x 843–1076 at y 0–32, chips x 845–1074 from y 12). A click there is a click on those chips, so the panel is dismissed by clicking *outside* the card, not on the hidden pill. Checked with real uinput clicks: (960,16) toggles AWAKE, (960,6) is inert, (1450,300) closes. The pill therefore has no dismiss handler of its own; the only widening that could have leaked around the card was the expanded pill, and that is what collapsing on open removes.
 - **ASUS**-only extras are gated on the binaries, not on hope: `asusctl` and `supergfxctl` are probed once at startup, and the PROFILE / GPU MODE cards plus the charge-limit row are hidden when the matching tool is absent. A single surviving card takes the full column width.
 - **Weather** needs network access. `open-meteo.com` is called every 30 min; the location behind those calls is re-resolved every 6 h from `ipwho.is`, or geocoded once from `Config.weatherCity`. On failure the last-known-good reading is kept, and a failed lookup short-circuits so the card doesn't spin on stale coordinates. IP geolocation names the ISP's city, not yours — pin `weatherCity` if the two disagree.
 - **Prayer alarms** need one successful request per day (`api.aladhan.com`). With no network at all there are no times for that day, and therefore no alarm: the service retries four times over the next hour and then waits for the next day rather than polling forever. `method` and `school` are AlAdhan ids — if your mosque disagrees by a few minutes, that is the knob. A fired prayer is recorded against its day, place and method, so reloading the shell does not ring the same prayer twice and the next day always starts with a clean slate. The day boundary is the location's own (the offset is taken from the reply), so a pinned city abroad rolls over at its midnight, not this machine's.
