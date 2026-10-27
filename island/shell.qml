@@ -152,7 +152,6 @@ PanelWindow {
     healthWindow: floatingHealth
     batteryLimitWindow: batteryLimitPopup
     prayerWindow: prayerPopup
-    prayerService: prayerService
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
   }

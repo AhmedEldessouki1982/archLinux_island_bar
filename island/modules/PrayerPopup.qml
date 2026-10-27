@@ -10,10 +10,10 @@ import "../config"
 // of a tappable option.
 //
 // The data is already here - PrayerService fetched and cached it for the alarm -
-// so this window does no I/O of its own. It reads `service.times` and marks the
-// next prayer from the clock at the moment it was opened. The service is used
-// rather than the weather card's location so what the popup lists is exactly
-// what the alarms are counting down to.
+// so this window does no I/O of its own. It reads `service.times`, but only
+// after the service says those times are today's for this place: after midnight,
+// or after a change of city, yesterday's list would otherwise be presented as
+// today's. What it lists is exactly what the alarms are counting down to.
 PanelWindow {
   id: root
   visible: false
@@ -78,7 +78,7 @@ PanelWindow {
         Txt {
           Layout.fillWidth: true
           horizontalAlignment: Text.AlignRight
-          text: root.service ? String(root.service.city || "") : ""
+          text: root.timesKnown() ? String(root.service.city || "") : ""
           color: Theme.comment
           variant: "caption"
           elide: Text.ElideRight
@@ -138,12 +138,20 @@ PanelWindow {
 
   readonly property var rows: root.buildRows()
 
+  // The service, not this window, decides whether what it holds is today's for
+  // this place. Asking it keeps a stale list from being labelled as today's.
+  function timesKnown() {
+    var svc = root.service
+    return !!svc && typeof svc.haveTimes === "function" && svc.haveTimes()
+  }
+
   // Every prayer of today, plus which one is next. A time that has passed is
   // dimmed, the next one is the yellow row, the rest wait at full contrast -
   // the same "this is the active one" language as the charge-limit options.
   function buildRows() {
+    if (!root.timesKnown()) return []
     var svc = root.service
-    var times = svc && svc.times ? svc.times : ({})
+    var times = svc.times
     var names = svc && svc.prayerNames ? svc.prayerNames : []
     var now = root.nowMs
     var next = ""

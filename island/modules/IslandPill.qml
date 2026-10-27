@@ -53,7 +53,6 @@ Item {
   property var healthWindow: null
   property var batteryLimitWindow: null
   property var prayerWindow: null
-  property var prayerService: null
   property var notificationLayer: null
   property var notificationCenter: null
 
