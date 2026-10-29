@@ -140,7 +140,7 @@ PanelWindow {
   // forecast can never describe two different cities.
   NetworkService {
     id: shellNetworkService
-    monitoring: true
+    monitoring: prayerService.needsNetwork
   }
 
   PrayerService {

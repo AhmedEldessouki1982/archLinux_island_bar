@@ -57,6 +57,8 @@ Item {
   property var location: null
   property var networkService: null
 
+  readonly property bool needsNetwork: root.enabled && root.locationKey.length > 0 && !root.haveTimes()
+
   readonly property real latitude: root.location ? Number(root.location.latitude) : NaN
   readonly property real longitude: root.location ? Number(root.location.longitude) : NaN
   readonly property string city: root.location ? String(root.location.city || "") : ""
