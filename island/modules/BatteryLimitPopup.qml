@@ -106,13 +106,18 @@ PanelWindow {
           Layout.preferredHeight: Theme.chargePopupRowHeight
           radius: Theme.chipRadius
           color: root.isActive(modelData.pct) ? Theme.chargeLimitActiveTint
+            : rowMouse.pressed ? Theme.cardPressFill
             : (rowMouse.containsMouse ? Theme.cardHoverFill : Theme.cardFill)
           border.width: Theme.cardBorderWidth
-          border.color: root.isActive(modelData.pct) ? Theme.chargeLimitActive : Theme.cardBorderColor
+          border.color: root.isActive(modelData.pct) ? Theme.accentHairline : Theme.cardBorderColor
+
+          Behavior on color { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
+          Behavior on border.color { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
 
           MouseArea {
             id: rowMouse
             anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
             hoverEnabled: true
             enabled: root.batteryService && !root.batteryService.chargeLimitReading
               && !root.batteryService.chargeLimitSetting
