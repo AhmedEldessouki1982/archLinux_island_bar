@@ -136,26 +136,17 @@ Item {
     // directly off the top screen edge: y = 0, no gap and no seam.
     DropShape {
       id: pillShape
+      property bool pillHovered: false
       bodyWidth: root.pillBodyWidth
       bodyHeight: root.pillHeight
       earRadius: Theme.pillEarRadius
       bottomRadius: Theme.pillBottomRadius
       concaveTop: root.topInset === 0
       fillColor: Config.pillSurface === "clear" ? "transparent" : Theme.background
-      borderColor: Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder
+      borderColor: pillHovered ? Theme.accentHairline : (Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder)
       borderWidth: 1
-    }
 
-    Rectangle {
-      id: pillBorder
-      visible: false
-      border.width: 1
-      border.color: Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder
-      radius: Theme.pillEarRadius
-      color: "transparent"
-      anchors.fill: pillShape
-
-      Behavior on border.color { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
+      Behavior on borderColor { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
     }
 
     MouseArea {
@@ -172,7 +163,7 @@ Item {
     HoverHandler {
       target: pill
       onHoveredChanged: {
-        pillBorder.border.color = hovered ? Theme.accentHairline : (Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder)
+        pillShape.pillHovered = hovered
         _psm.setPointerInside(hovered)
       }
     }
