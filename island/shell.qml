@@ -138,9 +138,15 @@ PanelWindow {
   // Prayer alarms live outside the panel on purpose: they have to fire with the
   // UI closed. They borrow the weather card's coordinates so the alarm and the
   // forecast can never describe two different cities.
+  NetworkService {
+    id: shellNetworkService
+    monitoring: true
+  }
+
   PrayerService {
     id: prayerService
     location: floatingHealth.weatherService
+    networkService: shellNetworkService
   }
 
   IslandPill {

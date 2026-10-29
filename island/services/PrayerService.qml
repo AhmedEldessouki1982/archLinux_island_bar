@@ -55,6 +55,7 @@ Item {
   property var wantedPrayers: Config.prayerNames
   // WeatherService: the coordinates and the city name to print on the banner.
   property var location: null
+  property var networkService: null
 
   readonly property real latitude: root.location ? Number(root.location.latitude) : NaN
   readonly property real longitude: root.location ? Number(root.location.longitude) : NaN
@@ -416,4 +417,21 @@ Item {
   onSchoolChanged: root.sync()
   onWantedPrayersChanged: root.sync()
   onLocationKeyChanged: root.sync()
+
+  Connections {
+    target: root.networkService
+    function onConnectedChanged() {
+      if (root.networkService && root.networkService.connected) {
+        if (!root.haveTimes() && root.enabled && root.locationKey.length > 0) {
+          root.retries = 0
+          root.armTimer.stop()
+          if (!root.fetchTimes()) {
+            root.setTimer("retry", 1000)
+          }
+        } else if (!root.haveTimes()) {
+          root.sync()
+        }
+      }
+    }
+  }
 }
