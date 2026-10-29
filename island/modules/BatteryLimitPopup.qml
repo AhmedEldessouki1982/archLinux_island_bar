@@ -63,30 +63,7 @@ PanelWindow {
       color: Theme.cardFill
       border.width: Theme.cardBorderWidth
       border.color: Theme.cardBorderColor
-
-      Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.leftMargin: 1
-        anchors.rightMargin: 1
-        anchors.topMargin: 1
-        height: 1
-        radius: Math.max(0, parent.radius - 1)
-        color: Theme.cardHighlight
-      }
-
-      Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: 1
-        anchors.rightMargin: 1
-        anchors.bottomMargin: 1
-        height: 1
-        radius: Math.max(0, parent.radius - 1)
-        color: Theme.cardEdgeDark
-      }
+      CardEdges {}
     }
 
     ColumnLayout {
