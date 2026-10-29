@@ -146,6 +146,18 @@ Item {
       borderWidth: 1
     }
 
+    Rectangle {
+      id: pillBorder
+      visible: false
+      border.width: 1
+      border.color: Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder
+      radius: Theme.pillEarRadius
+      color: "transparent"
+      anchors.fill: pillShape
+
+      Behavior on border.color { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
+    }
+
     MouseArea {
       id: mouseArea
       anchors.fill: parent
@@ -159,7 +171,10 @@ Item {
 
     HoverHandler {
       target: pill
-      onHoveredChanged: _psm.setPointerInside(hovered)
+      onHoveredChanged: {
+        pillBorder.border.color = hovered ? Theme.accentHairline : (Config.pillSurface === "clear" ? Theme.shapeBorderClear : Theme.shapeBorder)
+        _psm.setPointerInside(hovered)
+      }
     }
 
     // The idle pill is three zones, not one row. The clock group is pinned to
