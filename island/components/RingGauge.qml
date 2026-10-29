@@ -42,7 +42,7 @@ Item {
 
     property real fraction: root.fraction
     property color arcColor: root.valueColor
-    property color trackColor: Theme.selection
+    property color trackColor: Theme.ringTrail
     property int strokeWidth: root.thickness
 
     onFractionChanged: requestPaint()
