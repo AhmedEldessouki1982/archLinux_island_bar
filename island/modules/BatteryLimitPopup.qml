@@ -121,7 +121,6 @@ PanelWindow {
             hoverEnabled: true
             enabled: root.batteryService && !root.batteryService.chargeLimitReading
               && !root.batteryService.chargeLimitSetting
-            cursorShape: Qt.PointingHandCursor
             onClicked: {
               if (root.batteryService) root.batteryService.setLimit(option.modelData.pct)
             }
