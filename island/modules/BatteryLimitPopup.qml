@@ -111,7 +111,7 @@ PanelWindow {
           border.width: Theme.cardBorderWidth
           border.color: root.isActive(modelData.pct) ? Theme.accentHairline : Theme.cardBorderColor
 
-          Behavior on color { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
+          Behavior on color { ColorAnimation { duration: rowMouse.pressed ? Theme.pressDuration : Theme.animDurationFast; easing.type: Easing.OutQuad } }
           Behavior on border.color { ColorAnimation { duration: Theme.animDurationFast; easing.type: Easing.OutQuad } }
 
           MouseArea {
