@@ -220,6 +220,15 @@ QtObject {
   readonly property int pillMaxWidth: 760
   readonly property int pillTitleMaxWidth: 300
   readonly property int pillDividerWidth: 1
+
+  // Visual polish tokens
+  readonly property color cardHighlight: Qt.rgba(1, 1, 1, 0.05)  // 1px inner top highlight
+  readonly property color cardEdgeDark: Qt.rgba(0, 0, 0, 0.12)   // 1px inner bottom edge
+  readonly property color cardPressFill: Qt.rgba(1, 1, 1, 0.02)
+  readonly property color accentHairline: Qt.rgba(189 / 255, 147 / 255, 249 / 255, 0.35) // accent at ~35% alpha
+  readonly property color ringTrail: Qt.rgba(68 / 255, 71 / 255, 90 / 255, 1.0) // one step darker than selection
+
+  readonly property int pressDuration: 80
   readonly property int pillDividerHeight: 16
   readonly property color pillDivider: "#50566b"
   readonly property int toggleBadgeSize: 12
