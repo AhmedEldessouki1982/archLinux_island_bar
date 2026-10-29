@@ -2065,6 +2065,7 @@ Item {
     border.width: Theme.cardBorderWidth
     border.color: Theme.cardBorderColor
     antialiasing: true
+    CardEdges {}
   }
 
   // caption: 10px / 600 / uppercase / 1px tracking / one muted lavender
