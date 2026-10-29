@@ -72,6 +72,7 @@ Item {
     id: shape
     anchors.fill: parent
     antialiasing: true
+    preferredRendererType: Shape.CurveRenderer
 
     // ---- fill: one closed path -------------------------------------------
     // ---- hanging shape: concave ears on the screen edge -------------------
