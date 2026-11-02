@@ -1435,13 +1435,29 @@ Item {
               clip: true
               text: root.wifiSsid.length > 0 ? root.wifiSsid : "\u2014"
             }
-            Body {
+            Item {
               width: Theme.latencyColWidth
               height: parent.height
-              horizontalAlignment: Text.AlignRight
-              verticalAlignment: Text.AlignVCenter
-              color: Theme.latencyColor(root.netLatency)
-              text: Theme.latencyLabel(root.netLatency)
+              Row {
+                anchors.right: parent.right
+                width: implicitWidth
+                height: parent.height
+                spacing: Theme.gapTight
+                Body {
+                  width: implicitWidth
+                  height: parent.height
+                  verticalAlignment: Text.AlignVCenter
+                  color: Theme.latencyColor(root.netLatency)
+                  text: Format.latency(root.netLatency)
+                }
+                Body {
+                  width: implicitWidth
+                  height: parent.height
+                  verticalAlignment: Text.AlignVCenter
+                  color: Theme.latencyColor(root.netLatency)
+                  text: root.netLatency >= 0 ? Theme.latencyLabel(root.netLatency) : ""
+                }
+              }
             }
           }
         }
