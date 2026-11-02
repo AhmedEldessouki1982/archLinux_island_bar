@@ -123,6 +123,13 @@ PanelWindow {
     topInset: root.cutout
   }
 
+  OpencodeUsagePopup {
+    id: opencodeUsagePopup
+    screen: root.screen
+    service: islandPill.opencodeService
+    topInset: root.cutout
+  }
+
   NotificationLayer {
     id: notificationLayer
     screen: root.screen
@@ -158,6 +165,7 @@ PanelWindow {
     healthWindow: floatingHealth
     batteryLimitWindow: batteryLimitPopup
     prayerWindow: prayerPopup
+    opencodeWindow: opencodeUsagePopup
     notificationLayer: notificationLayer
     notificationCenter: notificationCenter
   }

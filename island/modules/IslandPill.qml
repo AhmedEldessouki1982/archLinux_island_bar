@@ -53,6 +53,8 @@ Item {
   property var healthWindow: null
   property var batteryLimitWindow: null
   property var prayerWindow: null
+  property var opencodeWindow: null
+  property alias opencodeService: _opencodeService
   property var notificationLayer: null
   property var notificationCenter: null
 
@@ -468,6 +470,26 @@ Item {
             }
           }
 
+          Item {
+            implicitWidth: Theme.pillSlot
+            implicitHeight: Theme.pillSlot
+            Layout.preferredWidth: Theme.pillSlot
+            Layout.preferredHeight: Theme.pillSlot
+            Layout.alignment: Qt.AlignVCenter
+
+            AiIcon {
+              anchors.centerIn: parent
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                if (root.opencodeWindow) root.opencodeWindow.open()
+              }
+            }
+          }
+
           KbLayoutIcon {
             width: Theme.pillSlot
             height: Theme.pillSlot
@@ -669,6 +691,9 @@ Item {
   NetworkService {
     id: _networkService
     monitoring: _psm.isExpanded || (root.healthWindow && root.healthWindow.visible)
+  }
+  OpencodeUsageService {
+    id: _opencodeService
   }
   BatteryService {
     id: _batteryService
