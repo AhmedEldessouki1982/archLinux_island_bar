@@ -282,7 +282,7 @@ QtObject {
   readonly property int controlValueWidth: 34
 
   // Right aligned latency column in the network card ("999ms").
-  readonly property int latencyColWidth: 80
+  readonly property int latencyColWidth: 96
 
   // ===========================================================================
   // Thresholds

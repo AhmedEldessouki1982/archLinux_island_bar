@@ -1438,25 +1438,14 @@ Item {
             Item {
               width: Theme.latencyColWidth
               height: parent.height
-              Row {
-                anchors.right: parent.right
-                width: implicitWidth
-                height: parent.height
-                spacing: Theme.gapTight
-                Body {
-                  width: implicitWidth
-                  height: parent.height
-                  verticalAlignment: Text.AlignVCenter
-                  color: Theme.latencyColor(root.netLatency)
-                  text: Format.latency(root.netLatency)
-                }
-                Body {
-                  width: implicitWidth
-                  height: parent.height
-                  verticalAlignment: Text.AlignVCenter
-                  color: Theme.latencyColor(root.netLatency)
-                  text: root.netLatency >= 0 ? Theme.latencyLabel(root.netLatency) : ""
-                }
+              Body {
+                anchors.fill: parent
+                horizontalAlignment: Text.AlignRight
+                verticalAlignment: Text.AlignVCenter
+                color: Theme.latencyColor(root.netLatency)
+                text: root.netLatency >= 0
+                  ? Format.latency(root.netLatency) + "(" + Theme.latencyLabel(root.netLatency) + ")"
+                  : "--"
               }
             }
           }
