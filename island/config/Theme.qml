@@ -341,6 +341,14 @@ QtObject {
     return root.stateColor(value, root.latencyWarning, root.latencyHigh, root.latencyCritical)
   }
 
+  function latencyLabel(value) {
+    var v = Number(value)
+    if (!isFinite(v) || v < 0) return "--"
+    if (v < root.latencyWarning) return "SOLID"
+    if (v < root.latencyHigh) return "GOOD"
+    return "FAIR"
+  }
+
   // Battery reads downward: red at or below 10, orange to 20, yellow to 35.
   // Being plugged in does not mask any of that — a phone on a weak charger at
   // 8% is still an alarm — it only turns the healthy bands green.

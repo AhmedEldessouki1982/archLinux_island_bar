@@ -38,7 +38,7 @@ Rectangle {
 
     Item {
       width: Math.max(0, root.width - Theme.toggleChipPadX * 2 - Theme.toggleIconSize
-        - Theme.gapTight - (root.badge > 0 ? Theme.toggleBadgeSize : 0))
+        - Theme.gapTight - (root.badge > 0 ? Theme.toggleBadgeSize + 1 : 0))
       height: Theme.toggleIconSize
 
       Txt {
@@ -55,11 +55,13 @@ Rectangle {
 
     Item {
       visible: root.badge > 0
-      width: Theme.toggleBadgeSize
+      width: Theme.toggleBadgeSize + 1
       height: Theme.toggleIconSize
 
       Rectangle {
         anchors.verticalCenter: parent.verticalCenter
+        anchors.right: parent.right
+        anchors.rightMargin: 1
         width: Theme.toggleBadgeSize
         height: Theme.toggleBadgeSize
         radius: Theme.toggleBadgeSize / 2

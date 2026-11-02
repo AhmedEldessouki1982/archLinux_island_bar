@@ -1170,15 +1170,38 @@ Item {
             anchors.bottomMargin: Theme.cardPadYDense
             spacing: Theme.gapTight
 
-            Caption {
+            Row {
               width: parent.width
               height: root.mCaptionH
-              verticalAlignment: Text.AlignVCenter
-              text: {
-                var t = root.thermalService
-                if (!t) return "GPU"
-                if (t.showIgpu) return "GPU . IGPU"
-                return t.gpuReading ? "GPU" : "GPU . SUSPENDED"
+              spacing: Theme.gapTight
+              Caption {
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                text: "GPU"
+                color: {
+                  var t = root.thermalService
+                  if (!t) return Theme.label
+                  if (!t.gpuSuspended) return Theme.accent
+                  if (t.gpuSuspended && t.igpuAvailable) return Theme.label
+                  return Theme.label
+                }
+              }
+              Caption {
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                text: "."
+                color: Theme.label
+              }
+              Caption {
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                text: "IGPU"
+                color: {
+                  var t = root.thermalService
+                  if (!t) return Theme.label
+                  if (t.gpuSuspended && t.igpuAvailable) return Theme.accent
+                  return Theme.label
+                }
               }
             }
             Row {
@@ -1418,7 +1441,7 @@ Item {
               horizontalAlignment: Text.AlignRight
               verticalAlignment: Text.AlignVCenter
               color: Theme.latencyColor(root.netLatency)
-              text: Format.latency(root.netLatency)
+              text: Theme.latencyLabel(root.netLatency)
             }
           }
         }
