@@ -156,7 +156,9 @@ PanelWindow {
       Txt {
         visible: !root.service || !root.service.ready
         Layout.fillWidth: true
-        text: "Usage unavailable - check the opencode-go key"
+        text: (root.service && root.service.missingTool === "jq") ? "install jq"
+          : (root.service && root.service.missingTool === "curl") ? "install curl"
+          : "Usage unavailable - check the opencode-go key"
         color: Theme.comment
         variant: "caption"
         elide: Text.ElideRight

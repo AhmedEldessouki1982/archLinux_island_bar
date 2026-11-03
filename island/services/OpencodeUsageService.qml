@@ -5,9 +5,12 @@ import Quickshell.Io
 // Omarchy OpenCode Go plugin does it: the `opencode-go` API key from auth.json
 // is sent as a bearer token to GET /zen/go/v1/usage.
 //
+// The endpoint is undocumented (it is used by the Omarchy OpenCode Go plugin,
+// github.com/ardfard/omarchy-opencode-usage).
+//
 // Nothing polls. refresh() runs once when the usage card opens. A missing key,
 // a rejected key or an unreachable server leaves every value as "--" - never a
-// fake 0%.
+// fake 0%. If jq or curl is missing the card shows a hint instead.
 Item {
   id: root
   visible: false
@@ -17,9 +20,11 @@ Item {
   property bool ready: false
   // { rolling: { percent, resetsAtMs }, weekly: {...}, monthly: {...} }
   property var windows: ({})
+  property string missingTool: ""
 
   function refresh() {
-    if (!usageProc.running) usageProc.running = true
+    root.missingTool = ""
+    if (!depsProc.running) depsProc.running = true
   }
 
   function parse(text) {
@@ -41,6 +46,27 @@ Item {
       }
     }
     return out
+  }
+
+  Process {
+    id: depsProc
+    command: ["sh", "-c", "command -v jq >/dev/null 2>&1 || exit 10; command -v curl >/dev/null 2>&1 || exit 11"]
+    running: false
+    onExited: code => {
+      if (code === 10) {
+        root.missingTool = "jq"
+        root.ready = false
+        root.windows = ({})
+        return
+      }
+      if (code === 11) {
+        root.missingTool = "curl"
+        root.ready = false
+        root.windows = ({})
+        return
+      }
+      if (!usageProc.running) usageProc.running = true
+    }
   }
 
   Process {
