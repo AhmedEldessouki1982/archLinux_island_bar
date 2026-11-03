@@ -114,6 +114,58 @@ for token in diskMounts preferredScreens; do
 done
 [ "$fail" -eq 0 ] && pass "personal settings live in config/Config.qml"
 
+# --- 7. launch smoke test ------------------------------------------------------
+smoke_skip_reason=""
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  smoke_skip_reason="no WAYLAND_DISPLAY"
+elif ! command -v hyprctl >/dev/null 2>&1 || ! hyprctl -j monitors >/dev/null 2>&1; then
+  smoke_skip_reason="hyprctl cannot reach the compositor"
+fi
+
+if [ -n "$smoke_skip_reason" ]; then
+  note "launch smoke test skipped ($smoke_skip_reason)"
+else
+  before_pids=$(pgrep -x quickshell || true)
+  before_count=$(printf '%s\n' "$before_pids" | grep -c . || true)
+  started_by_test=0
+  test_pid=""
+  if [ "$before_count" -eq 0 ]; then
+    setsid -f quickshell -c island >/dev/null 2>&1 &
+    test_pid=$!
+    started_by_test=1
+    sleep 6
+  else
+    quickshell -n -c island >/dev/null 2>&1 || true
+    sleep 6
+  fi
+
+  log_file=$(ls -dt /run/user/$(id -u)/quickshell/by-id/*/log.qslog 2>/dev/null | head -1)
+  smoke_bad=0
+  if [ -n "$log_file" ] && [ -f "$log_file" ]; then
+    if tr '\r' '\n' < "$log_file" | grep -qE 'Failed to load configuration|ERROR'; then
+      smoke_bad=1
+    fi
+  fi
+
+  if [ "$started_by_test" -eq 1 ]; then
+    pkill -x quickshell 2>/dev/null || true
+    sleep 1
+  fi
+
+  after_pids=$(pgrep -x quickshell || true)
+  after_count=$(printf '%s\n' "$after_pids" | grep -c . || true)
+
+  if [ "$smoke_bad" -eq 1 ]; then
+    hard "launch smoke test: Failed to load configuration or ERROR in log"
+  elif [ "$started_by_test" -eq 1 ] && [ "$after_count" -ne 0 ]; then
+    hard "launch smoke test: left quickshell running (started by test, after_count=$after_count)"
+  elif [ "$started_by_test" -eq 0 ] && [ "$after_count" -ne "$before_count" ]; then
+    hard "launch smoke test: process count changed (before=$before_count after=$after_count)"
+  else
+    pass "launch smoke test passed (started_by_test=$started_by_test before=$before_count after=$after_count)"
+  fi
+fi
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "all checks passed"
