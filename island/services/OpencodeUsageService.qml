@@ -48,7 +48,7 @@ Item {
     command: ["sh", "-c",
       "key=$(jq -r '.\"opencode-go\".key // empty' \"$HOME/.local/share/opencode/auth.json\" 2>/dev/null) || exit 2; "
       + "[ -n \"$key\" ] || exit 2; "
-      + "curl -s -m 10 -H \"Authorization: Bearer $key\" https://opencode.ai/zen/go/v1/usage"]
+      + "printf 'Authorization: Bearer %s\\n' \"$key\" | curl -sf -m 10 -H @- https://opencode.ai/zen/go/v1/usage"]
     running: false
     stdout: StdioCollector {
       onStreamFinished: {
