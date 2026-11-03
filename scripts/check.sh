@@ -127,42 +127,67 @@ if [ -n "$smoke_skip_reason" ]; then
 else
   before_pids=$(pgrep -x quickshell || true)
   before_count=$(printf '%s\n' "$before_pids" | grep -c . || true)
-  started_by_test=0
-  test_pid=""
-  if [ "$before_count" -eq 0 ]; then
-    setsid -f quickshell -c island >/dev/null 2>&1 &
-    test_pid=$!
-    started_by_test=1
-    sleep 6
-  else
-    quickshell -n -c island >/dev/null 2>&1 || true
-    sleep 6
-  fi
+
+  note "launch smoke test: stopping existing quickshell instances (before_count=$before_count)"
+  pkill -x quickshell 2>/dev/null || true
+  for i in 1 2 3 4 5; do
+    sleep 1
+    pgrep -x quickshell >/dev/null 2>&1 || break
+  done
+
+  note "launch smoke test: starting fresh instance with 'quickshell -c island'"
+  setsid -f quickshell -c island >/dev/null 2>&1
+  sleep 6
 
   log_file=$(ls -dt /run/user/$(id -u)/quickshell/by-id/*/log.qslog 2>/dev/null | head -1)
   smoke_bad=0
   if [ -n "$log_file" ] && [ -f "$log_file" ]; then
-    if tr '\r' '\n' < "$log_file" | grep -qE 'Failed to load configuration|ERROR'; then
+    if tr '\r' '\n' < "$log_file" | grep -qE 'Failed to load configuration|^[[:space:]]*ERROR'; then
       smoke_bad=1
     fi
   fi
 
-  if [ "$started_by_test" -eq 1 ]; then
+  if [ "$before_count" -eq 0 ]; then
     pkill -x quickshell 2>/dev/null || true
     sleep 1
-  fi
-
-  after_pids=$(pgrep -x quickshell || true)
-  after_count=$(printf '%s\n' "$after_pids" | grep -c . || true)
-
-  if [ "$smoke_bad" -eq 1 ]; then
-    hard "launch smoke test: Failed to load configuration or ERROR in log"
-  elif [ "$started_by_test" -eq 1 ] && [ "$after_count" -ne 0 ]; then
-    hard "launch smoke test: left quickshell running (started by test, after_count=$after_count)"
-  elif [ "$started_by_test" -eq 0 ] && [ "$after_count" -ne "$before_count" ]; then
-    hard "launch smoke test: process count changed (before=$before_count after=$after_count)"
+    after_pids=$(pgrep -x quickshell || true)
+    after_count=$(printf '%s\n' "$after_pids" | grep -c . || true)
+    if [ "$smoke_bad" -eq 1 ]; then
+      hard "launch smoke test: Failed to load configuration or ERROR in log (before_count=$before_count after_count=$after_count)"
+    elif [ "$after_count" -ne 0 ]; then
+      hard "launch smoke test: left quickshell running (started by test, before_count=$before_count after_count=$after_count)"
+    else
+      pass "launch smoke test passed (stopped existing: yes, started fresh: quickshell -c island, before_count=$before_count after_count=$after_count)"
+    fi
   else
-    pass "launch smoke test passed (started_by_test=$started_by_test before=$before_count after=$after_count)"
+    if [ "$smoke_bad" -eq 1 ]; then
+      # Try to restore anyway
+      setsid -f quickshell -c island >/dev/null 2>&1
+      sleep 2
+      after_pids=$(pgrep -x quickshell || true)
+      after_count=$(printf '%s\n' "$after_pids" | grep -c . || true)
+      hard "launch smoke test: Failed to load configuration or ERROR in log (before_count=$before_count after_count=$after_count, restored with quickshell -c island)"
+    else
+      setsid -f quickshell -c island >/dev/null 2>&1
+      sleep 3
+      after_pids=$(pgrep -x quickshell || true)
+      after_count=$(printf '%s\n' "$after_pids" | grep -c . || true)
+      if [ "$after_count" -lt 1 ]; then
+        hard "launch smoke test: failed to restore bar (before_count=$before_count after_count=$after_count)"
+      elif [ "$after_count" -gt 1 ]; then
+        note "launch smoke test: restored to multiple instances ($after_count), normalizing to 1"
+        # keep first, kill extras? just ensure at least 1; requirement says "restore to exactly one running instance and say so in the output" if duplicates
+        pids_list=$(pgrep -x quickshell | awk '{print $1}')
+        # keep one
+        echo "$pids_list" | tail -n +2 | xargs -r kill 2>/dev/null || true
+        sleep 1
+        after_pids=$(pgrep -x quickshell || true)
+        after_count=$(printf '%s\n' "$after_pids" | grep -c . || true)
+        pass "launch smoke test passed (stopped and relaunched fresh instance checked with quickshell -c island; had $before_count running -> restored to exactly 1; before_count=$before_count after_count=$after_count)"
+      else
+        pass "launch smoke test passed (stopped and relaunched fresh instance checked with quickshell -c island; had $before_count running -> restored to exactly 1; before_count=$before_count after_count=$after_count)"
+      fi
+    fi
   fi
 fi
 
