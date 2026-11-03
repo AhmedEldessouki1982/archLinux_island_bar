@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+root=$(git rev-parse --show-toplevel)
+cd "$root" || exit 1
+./scripts/check.sh

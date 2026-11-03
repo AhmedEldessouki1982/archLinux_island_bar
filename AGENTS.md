@@ -107,3 +107,9 @@ One logical change per commit, imperative subject in the form
 `Stop repainting the idle pill: gate EQ animation` — say what changed and why
 the change matters. Never commit `.pi/`, `.agents/`, `.codex/`, `*.bak`,
 `*.qmlc` or `.qmlls.ini` (see `.gitignore`).
+
+## Hooks
+
+- Pre-push hook: `scripts/hooks/pre-push` runs `scripts/check.sh` from the repo top level and exits non-zero to block the push if checks fail.
+- Enable it with `git config core.hooksPath scripts/hooks`.
+- It runs the shell smoke test and will restart the bar.

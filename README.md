@@ -29,6 +29,11 @@ A single morphing pill that expands on hover into a full status cluster, built w
 - **Dracula throughout** — one singleton theme, a single palette, no hard-coded colours and no literal font sizes outside it.
 - **Custom icons** — battery, network, weather, meter bars and the health heart are drawn directly on Qt `Canvas` items, with a small icon-font set for standard controls.
 
+## Development
+
+- Run `scripts/check.sh` before every commit (offline gate: qmllint, design-token rules, no shadows/effects/Animation.Infinite, health panel has no Timer, and a Wayland launch smoke test). The smoke test skips if there is no Wayland session or hyprctl cannot reach the compositor.
+- A pre-push hook (`scripts/hooks/pre-push`) runs `scripts/check.sh` from the repo top level and exits non-zero to block the push if checks fail. Enable it with `git config core.hooksPath scripts/hooks`. It runs the shell smoke test and will restart the bar.
+
 ---
 
 ## Why this isn't just another rice
